@@ -7,6 +7,7 @@ import postsActivityRouter from "./posts-activity";
 import statsRouter from "./stats";
 import notificationsRouter from "./notifications";
 import draftsRouter from "./drafts";
+import verificationRouter from "./verification";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use("/posts", postsRouter);
 router.use("/stats", statsRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/drafts", draftsRouter);
+router.use("/auth/student-verification", verificationRouter);
 
 export default router;

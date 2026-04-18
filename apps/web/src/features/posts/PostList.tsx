@@ -361,8 +361,9 @@ export function PostList({
                               <span className="text-xs font-medium">{p.bookmarkCount ?? 0}</span>
                             </div>
                       </div>
-                      <span className="text-[11px] font-medium text-muted-foreground/70 text-right truncate max-w-[120px]">
+                      <span className="text-[11px] font-medium text-muted-foreground/70 text-right flex items-center gap-1 justify-end truncate max-w-[150px]">
                         by {p.isAnonymous && section === "my-posts" ? "Anonymous (Me)" : p.authorName}
+                        {p.isStudentVerified && !p.isAnonymous && <VerifiedBadge className="w-3 h-3" />}
                       </span>
                     </div>
                   </button>

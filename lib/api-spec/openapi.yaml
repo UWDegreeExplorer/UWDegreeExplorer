@@ -157,6 +157,65 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+
+  /auth/student-verification/send-code:
+    post:
+      operationId: sendVerificationCode
+      tags: [auth]
+      summary: Send a verification code to a uwaterloo.ca email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+              required: [email]
+      responses:
+        "200":
+          description: Code sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Invalid email domain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/student-verification/verify-code:
+    post:
+      operationId: verifyStudentCode
+      tags: [auth]
+      summary: Verify the code sent to the email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+              required: [code]
+      responses:
+        "200":
+          description: Verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /posts:
     get:
       operationId: listPosts
@@ -424,7 +483,12 @@ components:
           type: string
         isAdmin:
           type: boolean
-      required: [id, username, displayName, email, isAdmin]
+        studentEmail:
+          type: string
+          nullable: true
+        isStudentVerified:
+          type: boolean
+      required: [id, username, displayName, email, isAdmin, isStudentVerified]
 
     CurrentUser:
       type: object
@@ -481,6 +545,8 @@ components:
           type: string
         isAnonymous:
           type: boolean
+        isStudentVerified:
+          type: boolean
         commentCount:
           type: integer
         createdAt:
@@ -501,6 +567,7 @@ components:
           excerpt,
           authorName,
           isAnonymous,
+          isStudentVerified,
           commentCount,
           createdAt,
           lastActivityAt,
@@ -526,6 +593,8 @@ components:
           type: string
         isAnonymous:
           type: boolean
+        isStudentVerified:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -544,6 +613,7 @@ components:
           authorId,
           authorName,
           isAnonymous,
+          isStudentVerified,
           createdAt,
           canDelete,
           isBookmarked,
@@ -566,11 +636,13 @@ components:
           type: string
         isAnonymous:
           type: boolean
+        isStudentVerified:
+          type: boolean
         createdAt:
           type: string
           format: date-time
       required:
-        [id, postId, parentId, body, authorName, isAnonymous, createdAt]
+        [id, postId, parentId, body, authorName, isAnonymous, isStudentVerified, createdAt]
 
     PostDetail:
       type: object

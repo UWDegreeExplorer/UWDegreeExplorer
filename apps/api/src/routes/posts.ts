@@ -38,6 +38,7 @@ router.get("/", async (req, res) => {
       authorId: postsTable.authorId,
       isAnonymous: postsTable.isAnonymous,
       authorName: usersTable.displayName,
+      isStudentVerified: usersTable.isStudentVerified,
       authorNameSnapshot: postsTable.authorNameSnapshot,
       createdAt: postsTable.createdAt,
       lastActivityAt: postsTable.lastActivityAt,
@@ -62,6 +63,7 @@ router.get("/", async (req, res) => {
       commentCount: Number(r.commentCount),
       bookmarkCount: Number(r.bookmarkCount),
       isBookmarked: Boolean(r.isBookmarked),
+      isStudentVerified: Boolean(r.isStudentVerified),
       createdAt: r.createdAt.toISOString(),
       lastActivityAt: r.lastActivityAt.toISOString(),
     })),
@@ -135,22 +137,32 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
-  const [post] = await db
-    .select()
+  const [postData] = await db
+    .select({
+      post: postsTable,
+      isStudentVerified: usersTable.isStudentVerified,
+    })
     .from(postsTable)
+    .leftJoin(usersTable, eq(postsTable.authorId, usersTable.id))
     .where(eq(postsTable.id, id))
     .limit(1);
+  const post = postData ? { ...postData.post, isStudentVerified: postData.isStudentVerified } : null;
 
   if (!post) {
     res.status(404).json({ message: "Post not found" });
     return;
   }
 
-  const comments = await db
-    .select()
+  const commentsData = await db
+    .select({
+      comment: commentsTable,
+      isStudentVerified: usersTable.isStudentVerified,
+    })
     .from(commentsTable)
+    .leftJoin(usersTable, eq(commentsTable.authorId, usersTable.id))
     .where(eq(commentsTable.postId, id))
     .orderBy(commentsTable.createdAt);
+  const comments = commentsData.map(c => ({ ...c.comment, isStudentVerified: c.isStudentVerified }));
 
   const sessionUserId = req.session.userId ?? null;
   let viewerIsAdmin = false;

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -45,7 +46,7 @@ function CommentNode({
               comment.authorName.slice(0, 1).toUpperCase()
             )}
           </div>
-          <span className="font-medium">{comment.authorName}</span>
+          <span className="font-medium flex items-center gap-1">{comment.authorName}{comment.isStudentVerified && !comment.isAnonymous && <VerifiedBadge className="w-3.5 h-3.5" />}</span>
           {comment.isAnonymous && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
               Anonymous
@@ -423,7 +424,7 @@ export function PostDetailPane({ postId }: { postId: number }) {
               post.authorName.slice(0, 1).toUpperCase()
             )}
           </div>
-          <span className="font-medium text-foreground/80">{post.authorName}</span>
+          <span className="font-medium text-foreground/80 flex items-center gap-1">{post.authorName}{post.isStudentVerified && !post.isAnonymous && <VerifiedBadge className="w-4 h-4" />}</span>
           <span>· {relTime(post.createdAt)}</span>
         </div>
 

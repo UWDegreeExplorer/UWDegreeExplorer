@@ -66,6 +66,8 @@ export interface User {
   displayName: string;
   email: string;
   isAdmin: boolean;
+  studentEmail?: string | null;
+  isStudentVerified: boolean;
 }
 
 export interface CurrentUser {
@@ -104,6 +106,7 @@ export interface PostSummary {
   excerpt: string;
   authorName: string;
   isAnonymous: boolean;
+  isStudentVerified: boolean;
   commentCount: number;
   createdAt: string;
   lastActivityAt: string;
@@ -119,6 +122,7 @@ export interface Post {
   authorId: number | null;
   authorName: string;
   isAnonymous: boolean;
+  isStudentVerified: boolean;
   createdAt: string;
   canDelete: boolean;
   isBookmarked: boolean;
@@ -132,6 +136,7 @@ export interface Comment {
   body: string;
   authorName: string;
   isAnonymous: boolean;
+  isStudentVerified: boolean;
   createdAt: string;
 }
 

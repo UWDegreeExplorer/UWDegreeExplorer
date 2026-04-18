@@ -6,10 +6,12 @@ import {
   useUpdateCurrentUser,
   getGetCurrentUserQueryKey,
 } from "@workspace/api-client-react";
-import { Settings, Sun, Moon, Monitor, Loader2 } from "lucide-react";
+import { Settings, Sun, Moon, Monitor, Loader2, ShieldCheck } from "lucide-react";
+import { customFetch } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { relTime } from "@/lib/utils";
 
@@ -22,6 +24,10 @@ export function SettingsPane() {
 
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [verifyEmail, setVerifyEmail] = useState("");
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyStep, setVerifyStep] = useState<"email" | "code">("email");
+  const [isVerifying, setIsVerifying] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("app-theme") as any) || "system";
@@ -76,6 +82,52 @@ export function SettingsPane() {
   const startEditing = (field: string, value: string) => {
     setEditingField(field);
     setEditValue(value);
+  };
+
+  
+  const handleSendCode = async () => {
+    if (!verifyEmail.endsWith("@uwaterloo.ca")) {
+      toast({ variant: "destructive", title: "Invalid email", description: "Only @uwaterloo.ca emails are allowed." });
+      return;
+    }
+    setIsVerifying(true);
+    try {
+      const res = await customFetch("/api/auth/student-verification/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: verifyEmail })
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      setVerifyStep("code");
+      toast({ title: "Code sent", description: "Check your email for the verification code." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (verifyCode.length !== 6) {
+      toast({ variant: "destructive", title: "Invalid code", description: "Code must be 6 digits." });
+      return;
+    }
+    setIsVerifying(true);
+    try {
+      const res = await customFetch("/api/auth/student-verification/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: verifyCode })
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      
+      toast({ title: "Verification successful", description: "Your student email has been bound." });
+      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleSave = () => {
@@ -199,6 +251,64 @@ export function SettingsPane() {
                   <span className="font-medium">{user.email}</span>
                 </div>
               </div>
+            </div>
+          </section>
+
+          
+          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-border bg-muted/30">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Student Verification
+              </h2>
+            </div>
+            <div className="p-6 space-y-6">
+              {user.isStudentVerified ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <VerifiedBadge className="w-5 h-5" />
+                    <span className="font-medium text-lg">Verified Student</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Your account is bound to <strong>{user.studentEmail || "a university email"}</strong>.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                    Verify University Email
+                  </label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Bind your @uwaterloo.ca email to display a verified badge on your posts.
+                  </p>
+                  {verifyStep === "email" ? (
+                    <div className="flex items-center gap-2 max-w-sm">
+                      <Input 
+                        placeholder="username@uwaterloo.ca" 
+                        value={verifyEmail} 
+                        onChange={(e) => setVerifyEmail(e.target.value)} 
+                        disabled={isVerifying}
+                      />
+                      <Button onClick={handleSendCode} disabled={isVerifying}>
+                        {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Code"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 max-w-sm">
+                      <Input 
+                        placeholder="6-digit code" 
+                        value={verifyCode} 
+                        onChange={(e) => setVerifyCode(e.target.value)} 
+                        maxLength={6}
+                        disabled={isVerifying}
+                      />
+                      <Button onClick={handleVerifyCode} disabled={isVerifying}>
+                        {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
+                      </Button>
+                      <Button variant="ghost" onClick={() => setVerifyStep("email")} disabled={isVerifying}>Cancel</Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 

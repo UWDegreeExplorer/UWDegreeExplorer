@@ -4,7 +4,7 @@ import { logger } from "./logger";
 let transporter: nodemailer.Transporter | null = null;
 let initialized = false;
 
-function getTransporter(): nodemailer.Transporter | null {
+async function getTransporter(): Promise<nodemailer.Transporter | null> {
   if (initialized) return transporter;
   initialized = true;
 
@@ -14,10 +14,24 @@ function getTransporter(): nodemailer.Transporter | null {
   const pass = process.env.SMTP_PASS;
 
   if (!host || !port || !user || !pass) {
-    logger.info(
-      "SMTP not configured (missing SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS) — reply notifications will be logged only.",
-    );
-    return null;
+    logger.info("SMTP not configured. Creating Ethereal Email test account for development...");
+    try {
+      const testAccount = await nodemailer.createTestAccount();
+      transporter = nodemailer.createTransport({
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: testAccount.user, // generated ethereal user
+          pass: testAccount.pass, // generated ethereal password
+        },
+      });
+      logger.info("Ethereal Email test account created successfully.");
+      return transporter;
+    } catch (err) {
+      logger.error("Failed to create Ethereal Email account", err);
+      return null;
+    }
   }
 
   transporter = nodemailer.createTransport({
@@ -42,7 +56,7 @@ export interface ReplyNotification {
 export async function sendReplyNotification(
   n: ReplyNotification,
 ): Promise<void> {
-  const t = getTransporter();
+  const t = await getTransporter();
   const from = process.env.SMTP_FROM ?? "Campus Forum <no-reply@campus.local>";
   const subject = `New reply on your post: ${n.postTitle}`;
   const text = `Hi ${n.toName},\n\n${n.replierName} replied to your post "${n.postTitle}":\n\n"${n.replyExcerpt}"\n\nView the full thread: /post/${n.postId}\n\n— Campus Forum`;
@@ -61,13 +75,44 @@ export async function sendReplyNotification(
   }
 
   try {
-    await t.sendMail({ from, to: n.toEmail, subject, text, html });
+    const info = await t.sendMail({ from, to: n.toEmail, subject, text, html });
     logger.info(
       { to: n.toEmail, postId: n.postId },
       "Sent reply notification email",
     );
+    if (!process.env.SMTP_HOST) {
+      logger.info(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+    }
   } catch (err) {
     logger.error({ err, to: n.toEmail }, "Failed to send reply notification");
+  }
+}
+
+export async function sendVerificationEmail(toEmail: string, code: string): Promise<void> {
+  const t = await getTransporter();
+  const from = process.env.SMTP_FROM ?? "Campus Forum <no-reply@campus.local>";
+  const subject = `Verify your student email`;
+  const text = `Your verification code is: ${code}\n\nThis code will expire in 15 minutes.\n\n— Campus Forum`;
+  const html = `<p>Your verification code is: <strong style="font-size: 24px;">${escapeHtml(code)}</strong></p>
+<p>This code will expire in 15 minutes.</p>
+<p style="color:#888;font-size:12px">— Campus Forum</p>`;
+
+  if (!t) {
+    logger.info(
+      { to: toEmail, code },
+      "[email-stub] student verification (SMTP not configured)",
+    );
+    return;
+  }
+
+  try {
+    const info = await t.sendMail({ from, to: toEmail, subject, text, html });
+    logger.info({ to: toEmail }, "Sent student verification email");
+    if (!process.env.SMTP_HOST) {
+      logger.info(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+    }
+  } catch (err) {
+    logger.error({ err, to: toEmail }, "Failed to send student verification email");
   }
 }
 
