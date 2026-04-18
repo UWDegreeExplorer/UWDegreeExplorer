@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/alert-dialog";
 import { Search, Filter, ArrowUpDown, Loader2, FileEdit, Trash2, MessageSquare, Bookmark, Layers } from "lucide-react";
 import { type SectionFilter, SECTION_LABELS } from "@/lib/constants";
 import { relTime, excerpt } from "@/lib/utils";
@@ -149,21 +149,6 @@ export function PostList({
           
           {(section === "all" || section === "my-posts" || section === "bookmarks" || (section as string) in SECTION_LABELS) && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2 border-dashed">
-                    <Filter className="w-3 h-3" />
-                    {categoryFilter === "all" ? "All Categories" : SECTION_LABELS[categoryFilter as Section]}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="text-xs">
-                  <DropdownMenuItem onClick={() => setCategoryFilter("all")}>All Categories</DropdownMenuItem>
-                  {Object.entries(SECTION_LABELS).map(([val, label]) => (
-                    <DropdownMenuItem key={val} onClick={() => setCategoryFilter(val as Section)}>{label}</DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
               {(section === "my-posts" || section === "bookmarks") && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -201,7 +186,8 @@ export function PostList({
         {/* Subtle background fetching indicator */}
         {isFetching && filteredItems.length > 0 && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 animate-pulse z-20" />
-        )}        {isLoading && filteredItems.length === 0 ? (
+        )}
+        {isLoading && filteredItems.length === 0 ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
           </div>
@@ -403,9 +389,3 @@ export function EmptyState({ message }: { message: string }) {
     </div>
   );
 }
-
-
-
-
-
-
