@@ -14,6 +14,9 @@ async function getTransporter(): Promise<nodemailer.Transporter | null> {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
+  // Even if Resend API key is present, we might still want the transporter for other emails
+  // But for now, if RESEND_API_KEY is there, we'll try to use the HTTP API in sendVerificationEmail.
+  // We still configure SMTP as a fallback or for other email types.
   if (resendApiKey) {
     logger.info("Configuring SMTP using Resend API Key...");
     transporter = nodemailer.createTransport({
@@ -104,14 +107,43 @@ export async function sendReplyNotification(
 }
 
 export async function sendVerificationEmail(toEmail: string, code: string): Promise<void> {
-  const t = await getTransporter();
-  const from = process.env.SMTP_FROM ?? (process.env.RESEND_API_KEY ? "onboarding@resend.dev" : "Campus Forum <no-reply@campus.local>");
-  const subject = `Verify your student email`;
-  const text = `Your verification code is: ${code}\n\nThis code will expire in 15 minutes.\n\n— Campus Forum`;
-  const html = `<p>Your verification code is: <strong style="font-size: 24px;">${escapeHtml(code)}</strong></p>
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const from = process.env.SMTP_FROM ?? (resendApiKey ? "onboarding@resend.dev" : "Campus Forum <no-reply@campus.local>");
+  const subject = "Verify your student email";
+  const html = `<p>Your verification code is: <strong style="font-size: 24px;">${code}</strong></p>
 <p>This code will expire in 15 minutes.</p>
 <p style="color:#888;font-size:12px">— Campus Forum</p>`;
 
+  if (resendApiKey) {
+    logger.info({ to: toEmail }, "Sending verification email via Resend HTTP API...");
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from,
+          to: toEmail,
+          subject,
+          html,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        logger.error({ error, to: toEmail }, "Resend API error response");
+      } else {
+        logger.info({ to: toEmail }, "Successfully sent email via Resend API");
+        return;
+      }
+    } catch (err) {
+      logger.error({ err, to: toEmail }, "Failed to call Resend API, falling back to SMTP");
+    }
+  }
+
+  const t = await getTransporter();
   if (!t) {
     logger.info(
       { to: toEmail, code },
@@ -121,13 +153,13 @@ export async function sendVerificationEmail(toEmail: string, code: string): Prom
   }
 
   try {
-    const info = await t.sendMail({ from, to: toEmail, subject, text, html });
-    logger.info({ to: toEmail }, "Sent student verification email");
+    const info = await t.sendMail({ from, to: toEmail, subject, html });
+    logger.info({ to: toEmail }, "Sent student verification email via SMTP");
     if (!process.env.SMTP_HOST && !process.env.RESEND_API_KEY) {
       logger.info(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
     }
   } catch (err) {
-    logger.error({ err, to: toEmail }, "Failed to send student verification email");
+    logger.error({ err, to: toEmail }, "Failed to send student verification email via SMTP");
   }
 }
 
