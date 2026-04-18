@@ -8,7 +8,7 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
-app.set("trust proxy", 1);
+app.set("trust proxy", true);
 
 app.use(
   pinoHttp({
@@ -46,8 +46,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "development" ? "lax" : "none",
+      secure: process.env.NODE_ENV !== "development",
       maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
     },
   }),
