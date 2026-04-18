@@ -8,10 +8,25 @@ async function getTransporter(): Promise<nodemailer.Transporter | null> {
   if (initialized) return transporter;
   initialized = true;
 
+  const resendApiKey = process.env.RESEND_API_KEY;
   const host = process.env.SMTP_HOST;
   const port = process.env.SMTP_PORT;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
+
+  if (resendApiKey) {
+    logger.info("Configuring SMTP using Resend API Key...");
+    transporter = nodemailer.createTransport({
+      host: "smtp.resend.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "resend",
+        pass: resendApiKey,
+      },
+    });
+    return transporter;
+  }
 
   if (!host || !port || !user || !pass) {
     logger.info("SMTP not configured. Creating Ethereal Email test account for development...");
@@ -57,7 +72,7 @@ export async function sendReplyNotification(
   n: ReplyNotification,
 ): Promise<void> {
   const t = await getTransporter();
-  const from = process.env.SMTP_FROM ?? "Campus Forum <no-reply@campus.local>";
+  const from = process.env.SMTP_FROM ?? (process.env.RESEND_API_KEY ? "onboarding@resend.dev" : "Campus Forum <no-reply@campus.local>");
   const subject = `New reply on your post: ${n.postTitle}`;
   const text = `Hi ${n.toName},\n\n${n.replierName} replied to your post "${n.postTitle}":\n\n"${n.replyExcerpt}"\n\nView the full thread: /post/${n.postId}\n\n— Campus Forum`;
   const html = `<p>Hi <strong>${escapeHtml(n.toName)}</strong>,</p>
@@ -80,7 +95,7 @@ export async function sendReplyNotification(
       { to: n.toEmail, postId: n.postId },
       "Sent reply notification email",
     );
-    if (!process.env.SMTP_HOST) {
+    if (!process.env.SMTP_HOST && !process.env.RESEND_API_KEY) {
       logger.info(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
     }
   } catch (err) {
@@ -90,7 +105,7 @@ export async function sendReplyNotification(
 
 export async function sendVerificationEmail(toEmail: string, code: string): Promise<void> {
   const t = await getTransporter();
-  const from = process.env.SMTP_FROM ?? "Campus Forum <no-reply@campus.local>";
+  const from = process.env.SMTP_FROM ?? (process.env.RESEND_API_KEY ? "onboarding@resend.dev" : "Campus Forum <no-reply@campus.local>");
   const subject = `Verify your student email`;
   const text = `Your verification code is: ${code}\n\nThis code will expire in 15 minutes.\n\n— Campus Forum`;
   const html = `<p>Your verification code is: <strong style="font-size: 24px;">${escapeHtml(code)}</strong></p>
@@ -108,7 +123,7 @@ export async function sendVerificationEmail(toEmail: string, code: string): Prom
   try {
     const info = await t.sendMail({ from, to: toEmail, subject, text, html });
     logger.info({ to: toEmail }, "Sent student verification email");
-    if (!process.env.SMTP_HOST) {
+    if (!process.env.SMTP_HOST && !process.env.RESEND_API_KEY) {
       logger.info(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
     }
   } catch (err) {
