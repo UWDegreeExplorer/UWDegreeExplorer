@@ -92,12 +92,11 @@ export function SettingsPane() {
     }
     setIsVerifying(true);
     try {
-      const res = await fetch("/api/auth/student-verification/send-code", {
+      await customFetch("/api/auth/student-verification/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: verifyEmail })
       });
-      if (!res.ok) throw new Error((await res.json()).message);
       setVerifyStep("code");
       toast({ title: "Code sent", description: "Check your email for the verification code." });
     } catch (err: any) {
@@ -114,12 +113,11 @@ export function SettingsPane() {
     }
     setIsVerifying(true);
     try {
-      const res = await fetch("/api/auth/student-verification/verify-code", {
+      await customFetch("/api/auth/student-verification/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: verifyCode })
       });
-      if (!res.ok) throw new Error((await res.json()).message);
       
       toast({ title: "Verification successful", description: "Your student email has been bound." });
       queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
