@@ -92,7 +92,7 @@ export function SettingsPane() {
     }
     setIsVerifying(true);
     try {
-      const res = await customFetch("/api/auth/student-verification/send-code", {
+      const res = await fetch("/api/auth/student-verification/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: verifyEmail })
@@ -114,7 +114,7 @@ export function SettingsPane() {
     }
     setIsVerifying(true);
     try {
-      const res = await customFetch("/api/auth/student-verification/verify-code", {
+      const res = await fetch("/api/auth/student-verification/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: verifyCode })

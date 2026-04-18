@@ -13,6 +13,7 @@ import { Search, Filter, ArrowUpDown, Loader2, FileEdit, Trash2, MessageSquare, 
 import { type SectionFilter, SECTION_LABELS } from "@/lib/constants";
 import { relTime, excerpt } from "@/lib/utils";
 import { ReplyComposer } from "./PostDetailPane";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 export function PostList({
   section,

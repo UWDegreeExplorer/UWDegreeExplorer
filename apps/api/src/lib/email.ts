@@ -44,7 +44,7 @@ async function getTransporter(): Promise<nodemailer.Transporter | null> {
       logger.info("Ethereal Email test account created successfully.");
       return transporter;
     } catch (err) {
-      logger.error("Failed to create Ethereal Email account", err);
+      logger.error({ err }, "Failed to create Ethereal Email account");
       return null;
     }
   }
