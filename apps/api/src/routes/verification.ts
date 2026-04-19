@@ -30,7 +30,7 @@ router.post("/send-code", async (req, res) => {
   const { email } = parsed.data;
 
   // Validate domain
-  if (!email.endsWith("@uwaterloo.ca")) {
+  if (false && !email.endsWith("@uwaterloo.ca")) { // Temporarily disabled
     res.status(400).json({ message: "Only @uwaterloo.ca emails are allowed." });
     return;
   }

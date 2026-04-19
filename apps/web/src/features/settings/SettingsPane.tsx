@@ -86,7 +86,7 @@ export function SettingsPane() {
 
   
   const handleSendCode = async () => {
-    if (!verifyEmail.endsWith("@uwaterloo.ca")) {
+    if (false && !verifyEmail.endsWith("@uwaterloo.ca")) { // Temporarily disabled
       toast({ variant: "destructive", title: "Invalid email", description: "Only @uwaterloo.ca emails are allowed." });
       return;
     }
