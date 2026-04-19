@@ -10,6 +10,7 @@ import {
 } from "@workspace/api-zod";
 import { OAuth2Client } from "google-auth-library";
 import { requestVerificationCode, verifyCode } from "../lib/verification-service";
+import { emailVerificationsTable } from "@workspace/db";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -50,6 +51,9 @@ router.post("/register", async (req, res) => {
     return;
   }
 
+  // Cleanup: Delete the verification record after successful registration
+  await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.email, email));
+
   req.session.userId = user.id;
   res.json({
     id: user.id,
@@ -86,6 +90,9 @@ router.post("/login", async (req, res) => {
     res.status(401).json({ message: "Invalid credentials" });
     return;
   }
+
+  // Cleanup: Delete the verification record after successful registration
+  await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.email, email));
 
   req.session.userId = user.id;
   res.json({
@@ -304,7 +311,9 @@ router.post("/register/send-code", async (req, res) => {
     res.status(400).json({ message: "Invalid registration data" });
     return;
   }
-  const { username, email } = parsed.data;
+  const { username, email, password } = parsed.data;
+  const passwordHash = await bcrypt.hash(password, 10);
+  const pendingData = { ...parsed.data, password: passwordHash };
 
   // Check if username or email already in use
   const existing = await db
@@ -318,7 +327,7 @@ router.post("/register/send-code", async (req, res) => {
     return;
   }
 
-  const result = await requestVerificationCode(email, req.body);
+  const result = await requestVerificationCode(email, pendingData);
   if (!result.success) {
     res.status(429).json({ message: result.message });
     return;
@@ -346,8 +355,7 @@ router.post("/register/verify", async (req, res) => {
     return;
   }
 
-  const { username, displayName, password } = userData;
-  const passwordHash = await bcrypt.hash(password, 10);
+  const { username, displayName, password: passwordHash } = userData;
   
   const isUWaterloo = email.endsWith("@uwaterloo.ca");
 
@@ -367,6 +375,9 @@ router.post("/register/verify", async (req, res) => {
     res.status(500).json({ message: "Failed to create user" });
     return;
   }
+
+  // Cleanup: Delete the verification record after successful registration
+  await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.email, email));
 
   req.session.userId = user.id;
   res.json({

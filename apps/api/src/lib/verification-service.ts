@@ -1,6 +1,7 @@
 import { db, emailVerificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendVerificationEmail } from "./email";
+import crypto from "crypto";
 import { logger } from "./logger";
 
 export async function requestVerificationCode(email: string, pendingUserData?: any): Promise<{ success: boolean; message: string }> {
@@ -37,7 +38,7 @@ export async function requestVerificationCode(email: string, pendingUserData?: a
   }
 
   // 3. Generate code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = crypto.randomInt(100000, 999999).toString();
   const expiresAt = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes
 
   // 4. Update or Insert
