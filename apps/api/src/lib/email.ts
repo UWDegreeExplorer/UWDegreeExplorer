@@ -108,11 +108,22 @@ export async function sendReplyNotification(
 
 export async function sendVerificationEmail(toEmail: string, code: string): Promise<void> {
   const resendApiKey = process.env.RESEND_API_KEY;
-  const from = process.env.SMTP_FROM ?? (resendApiKey ? "onboarding@resend.dev" : "Campus Forum <no-reply@campus.local>");
+  const from = process.env.SMTP_FROM || "UWDegree Explorer <no-reply@uwdegree.org>";
+  logger.info({ from, to: toEmail }, "Preparing to send email...");
   const subject = "Verify your student email";
-  const html = `<p>Your verification code is: <strong style="font-size: 24px;">${code}</strong></p>
-<p>This code will expire in 15 minutes.</p>
-<p style="color:#888;font-size:12px">— Campus Forum</p>`;
+  const html = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="color: #333;">Verify your email address</h2>
+      <p style="color: #555; font-size: 16px;">Hi there,</p>
+      <p style="color: #555; font-size: 16px;">Thank you for using <strong>UWDegree Explorer</strong>. Please use the following verification code to complete your registration:</p>
+      <div style="background-color: #f4f4f7; padding: 15px; text-align: center; border-radius: 4px; margin: 20px 0;">
+        <span style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #2563eb;">${code}</span>
+      </div>
+      <p style="color: #777; font-size: 14px;">This code will expire in <strong>15 minutes</strong>. If you did not request this code, you can safely ignore this email.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+      <p style="color: #999; font-size: 12px; text-align: center;">
+        &copy; 2026 UWDegree Explorer. Built for UWaterloo Students.
+      </p>
+    </div>`;
 
   if (resendApiKey) {
     logger.info({ to: toEmail }, "Sending verification email via Resend HTTP API...");
