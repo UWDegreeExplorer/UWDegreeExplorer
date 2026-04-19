@@ -56,6 +56,8 @@ router.post("/register", async (req, res) => {
     displayName: user.displayName,
     email: user.email,
     isAdmin: user.isAdmin,
+    isStudentVerified: user.isStudentVerified,
+    studentEmail: user.studentEmail,
   });
 });
 
@@ -91,6 +93,8 @@ router.post("/login", async (req, res) => {
     displayName: user.displayName,
     email: user.email,
     isAdmin: user.isAdmin,
+    isStudentVerified: user.isStudentVerified,
+    studentEmail: user.studentEmail,
   });
 });
 
@@ -178,6 +182,8 @@ router.post("/google", async (req, res) => {
       email: user.email,
       isAdmin: user.isAdmin,
       avatarUrl: picture || user.avatarUrl || null,
+      isStudentVerified: user.isStudentVerified,
+      studentEmail: user.studentEmail,
     });
   } catch (error) {
     console.error("Google verify error:", error);
@@ -213,6 +219,8 @@ router.get("/me", async (req, res) => {
       email: user.email,
       isAdmin: user.isAdmin,
       avatarUrl: user.avatarUrl ?? null,
+      isStudentVerified: user.isStudentVerified,
+      studentEmail: user.studentEmail,
     },
   });
 });
