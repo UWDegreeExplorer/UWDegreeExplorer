@@ -261,13 +261,21 @@ export function SettingsPane() {
             </div>
             <div className="p-6 space-y-6">
               {user.isStudentVerified ? (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <div className="flex items-center gap-2 text-primary">
                     <VerifiedBadge className="w-5 h-5" />
-                    <span className="font-medium text-lg">Verified Student</span>
+                    <span className="font-semibold">Verified Student Status</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Your account is bound to <strong>{user.studentEmail || "a university email"}</strong>.
+                  <div className="space-y-1">
+                    <p className="text-sm text-foreground/80">
+                      You have already bound your student email address.
+                    </p>
+                    <p className="text-sm font-medium text-foreground">
+                      Bound Email: <span className="text-primary">{user.studentEmail}</span>
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground italic">
+                    Verification badge is now active on your non-anonymous posts.
                   </p>
                 </div>
               ) : (
