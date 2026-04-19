@@ -9,6 +9,7 @@ import {
   UpdateCurrentUserBody,
 } from "@workspace/api-zod";
 import { OAuth2Client } from "google-auth-library";
+import { requestVerificationCode, verifyCode } from "../lib/verification-service";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -294,6 +295,89 @@ router.patch("/me", async (req, res) => {
     console.error("Update user error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
+});
+
+
+router.post("/register/send-code", async (req, res) => {
+  const parsed = RegisterUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: "Invalid registration data" });
+    return;
+  }
+  const { username, email } = parsed.data;
+
+  // Check if username or email already in use
+  const existing = await db
+    .select()
+    .from(usersTable)
+    .where(or(eq(usersTable.username, username), eq(usersTable.email, email)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    res.status(409).json({ message: "Username or email already in use" });
+    return;
+  }
+
+  const result = await requestVerificationCode(email, req.body);
+  if (!result.success) {
+    res.status(429).json({ message: result.message });
+    return;
+  }
+
+  res.json({ message: result.message });
+});
+
+router.post("/register/verify", async (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    res.status(400).json({ message: "Email and code are required" });
+    return;
+  }
+
+  const result = await verifyCode(email, code);
+  if (!result.success) {
+    res.status(400).json({ message: result.message });
+    return;
+  }
+
+  const userData = result.pendingUserData;
+  if (!userData) {
+    res.status(400).json({ message: "No pending registration found for this email" });
+    return;
+  }
+
+  const { username, displayName, password } = userData;
+  const passwordHash = await bcrypt.hash(password, 10);
+  
+  const isUWaterloo = email.endsWith("@uwaterloo.ca");
+
+  const [user] = await db
+    .insert(usersTable)
+    .values({
+      username,
+      displayName,
+      email,
+      passwordHash,
+      studentEmail: isUWaterloo ? email : null,
+      isStudentVerified: isUWaterloo,
+    })
+    .returning();
+
+  if (!user) {
+    res.status(500).json({ message: "Failed to create user" });
+    return;
+  }
+
+  req.session.userId = user.id;
+  res.json({
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    email: user.email,
+    isAdmin: user.isAdmin,
+    isStudentVerified: user.isStudentVerified,
+    studentEmail: user.studentEmail,
+  });
 });
 
 export default router;

@@ -5,3 +5,4 @@ export * from "./session";
 export * from "./notifications";
 export * from "./bookmarks";
 export * from "./drafts";
+export * from "./email_verifications";

@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { sendVerificationEmail } from "../lib/email";
+import { requestVerificationCode, verifyCode } from "../lib/verification-service";
 
 const router: IRouter = Router();
 
@@ -29,27 +29,25 @@ router.post("/send-code", async (req, res) => {
 
   const { email } = parsed.data;
 
-  // Validate domain
-  if (false && !email.endsWith("@uwaterloo.ca")) { // Temporarily disabled
-    res.status(400).json({ message: "Only @uwaterloo.ca emails are allowed." });
+  // Domain check temporarily disabled as per user instruction
+  // if (!email.endsWith("@uwaterloo.ca")) {
+  //   res.status(400).json({ message: "Only @uwaterloo.ca emails are allowed." });
+  //   return;
+  // }
+
+  const result = await requestVerificationCode(email);
+  if (!result.success) {
+    res.status(429).json({ message: result.message });
     return;
   }
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-
+  // Also update user's studentEmail field temporarily
   await db
     .update(usersTable)
-    .set({
-      verificationCode: code,
-      verificationCodeExpiresAt: expiresAt,
-      studentEmail: email, // Store the email temporarily, will be fully bound on verify
-    })
+    .set({ studentEmail: email })
     .where(eq(usersTable.id, userId));
 
-  await sendVerificationEmail(email, code);
-
-  res.json({ message: "Verification code sent" });
+  res.json({ message: result.message });
 });
 
 router.post("/verify-code", async (req, res) => {
@@ -59,32 +57,26 @@ router.post("/verify-code", async (req, res) => {
     return;
   }
 
-  const parsed = VerifyCodeBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ message: "Invalid code format" });
-    return;
-  }
-
-  const { code } = parsed.data;
-
   const [user] = await db
     .select()
     .from(usersTable)
     .where(eq(usersTable.id, userId))
     .limit(1);
 
-  if (!user) {
-    res.status(404).json({ message: "User not found" });
+  if (!user || !user.studentEmail) {
+    res.status(400).json({ message: "No pending verification found." });
     return;
   }
 
-  if (
-    !user.verificationCode ||
-    user.verificationCode !== code ||
-    !user.verificationCodeExpiresAt ||
-    user.verificationCodeExpiresAt < new Date()
-  ) {
-    res.status(400).json({ message: "Invalid or expired verification code" });
+  const parsed = VerifyCodeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: "Invalid code format" });
+    return;
+  }
+
+  const result = await verifyCode(user.studentEmail, parsed.data.code);
+  if (!result.success) {
+    res.status(400).json({ message: result.message });
     return;
   }
 
@@ -92,8 +84,7 @@ router.post("/verify-code", async (req, res) => {
     .update(usersTable)
     .set({
       isStudentVerified: true,
-      verificationCode: null,
-      verificationCodeExpiresAt: null,
+      // No need to clear studentEmail, we want to keep it bound
     })
     .where(eq(usersTable.id, userId));
 
