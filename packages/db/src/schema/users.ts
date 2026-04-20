@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -15,6 +15,8 @@ export const usersTable = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  loginAttempts: integer("login_attempts").notNull().default(0),
+  lockoutUntil: timestamp("lockout_until", { withTimezone: true }),
 });
 
 export type User = typeof usersTable.$inferSelect;

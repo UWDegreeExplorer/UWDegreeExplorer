@@ -84,8 +84,33 @@ router.post("/login", async (req, res) => {
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) {
-    res.status(401).json({ message: "Invalid credentials" });
+    // Increment failed attempts
+    const newAttempts = user.loginAttempts + 1;
+    let lockoutUntil = user.lockoutUntil;
+    
+    if (newAttempts >= 5) {
+      lockoutUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 mins
+    }
+    
+    await db
+      .update(usersTable)
+      .set({ loginAttempts: newAttempts, lockoutUntil })
+      .where(eq(usersTable.id, user.id));
+
+    res.status(401).json({ 
+      message: newAttempts >= 5 
+        ? "Too many failed attempts. Your account has been locked for 15 minutes." 
+        : "Invalid credentials" 
+    });
     return;
+  }
+
+  // Success: Reset attempts
+  if (user.loginAttempts > 0 || user.lockoutUntil) {
+    await db
+      .update(usersTable)
+      .set({ loginAttempts: 0, lockoutUntil: null })
+      .where(eq(usersTable.id, user.id));
   }
 
   req.session.userId = user.id;
