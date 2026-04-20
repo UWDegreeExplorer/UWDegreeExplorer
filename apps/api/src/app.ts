@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "@workspace/db";
+import { rateLimit } from "express-rate-limit";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -52,6 +53,26 @@ app.use(
     },
   }),
 );
+
+
+// Rate limiting to prevent brute force and abuse
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100, // Limit each IP to 100 requests per 15 minutes
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  limit: 5, // Limit each IP to 5 requests per minute
+  message: { message: "Too many login attempts, please try again after a minute" },
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+
+app.use("/api/auth/login", loginLimiter);
+app.use("/api", apiLimiter);
 
 app.use("/api", router);
 
