@@ -129,6 +129,26 @@ export function SettingsPane() {
     }
   };
 
+    const handleDeleteAccount = async () => {
+    try {
+      await customFetch("/api/auth/me", {
+        method: "DELETE",
+      });
+      toast({
+        title: "Account deleted",
+        description: "Your account has been permanently removed.",
+      });
+      setLocation("/login");
+      window.location.reload(); // Ensure everything is cleared
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to delete account.",
+      });
+    }
+  };
+
   const handleSave = () => {
     if (!editingField) return;
 
