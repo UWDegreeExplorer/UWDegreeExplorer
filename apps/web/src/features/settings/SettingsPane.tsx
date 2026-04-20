@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,7 @@ import { relTime } from "@/lib/utils";
 
 export function SettingsPane() {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { data: userData } = useGetCurrentUser();
   const updateMutation = useUpdateCurrentUser();
