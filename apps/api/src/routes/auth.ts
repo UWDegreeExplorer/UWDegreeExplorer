@@ -385,4 +385,32 @@ router.post("/register/verify", async (req, res) => {
   });
 });
 
+
+router.delete("/me", async (req, res) => {
+  if (!req.session.userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const userId = req.session.userId;
+
+  try {
+    // Delete the user record. Foreign keys are set to 'set null' for posts/comments.
+    await db.delete(usersTable).where(eq(usersTable.id, userId));
+
+    // Destroy session
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Session destruction error:", err);
+        res.status(500).json({ message: "Failed to logout after account deletion" });
+        return;
+      }
+      res.json({ message: "Account successfully deleted" });
+    });
+  } catch (err) {
+    console.error("Delete account error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

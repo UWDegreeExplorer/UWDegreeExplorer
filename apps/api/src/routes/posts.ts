@@ -202,13 +202,13 @@ router.get("/:id", async (req, res) => {
     post: {
       ...post,
       ...finalMetadata,
-      authorName: post.isAnonymous ? "Anonymous" : post.authorNameSnapshot,
+      authorName: post.isAnonymous ? "Anonymous" : (post.authorId ? post.authorNameSnapshot : "Deleted User"),
       createdAt: post.createdAt.toISOString(),
       canDelete,
     },
     comments: comments.map((c) => ({
       ...c,
-      authorName: c.isAnonymous ? "Anonymous" : c.authorNameSnapshot,
+      authorName: c.isAnonymous ? "Anonymous" : (c.authorId ? c.authorNameSnapshot : "Deleted User"),
       createdAt: c.createdAt.toISOString(),
     })),
   });
