@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
@@ -179,7 +180,7 @@ export default function Register() {
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <FormLabel>Verification Code</FormLabel>
+                  <Label>Verification Code</Label>
                   <p className="text-xs text-muted-foreground">
                     Sent to <strong>{form.getValues().email}</strong>. Expires in 5 minutes.
                   </p>
