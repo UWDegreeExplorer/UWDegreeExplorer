@@ -51,9 +51,6 @@ router.post("/register", async (req, res) => {
     return;
   }
 
-  // Cleanup: Delete the verification record after successful registration
-  await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.email, email));
-
   req.session.userId = user.id;
   res.json({
     id: user.id,
