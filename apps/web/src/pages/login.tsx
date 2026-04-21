@@ -140,7 +140,6 @@ export default function Login() {
                       <FormMessage />
                     </FormItem>
                     <div className="flex justify-end">
-                      <Button variant="link" size="sm" className="px-0 h-auto text-xs text-muted-foreground" onClick={() => setLocation("/forgot-password")} type="button">Forgot password?</Button>
                     </div>
                   )}
                 />
@@ -157,11 +156,13 @@ export default function Login() {
                       <FormMessage />
                     
                       <div className="flex justify-end">
+                      </div>
+                    
+                      <div className="flex justify-end">
                         <Button variant="link" size="sm" className="px-0 h-auto text-xs text-muted-foreground" onClick={() => setLocation("/forgot-password")} type="button">Forgot password?</Button>
                       </div>
                     </FormItem>
                     <div className="flex justify-end">
-                      <Button variant="link" size="sm" className="px-0 h-auto text-xs text-muted-foreground" onClick={() => setLocation("/forgot-password")} type="button">Forgot password?</Button>
                     </div>
                   )}
                 />
