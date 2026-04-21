@@ -79,8 +79,10 @@ router.post("/login", async (req, res) => {
     .limit(1);
 
   if (!user) {
-    res.status(401).json({ message: "Invalid credentials" }
-  console.log(`[Login Debug] User ${user.username} found. Attempts: ${user.loginAttempts}, Lockout: ${user.lockoutUntil}`););
+    res.status(401).json({ message: "Invalid credentials" });
+    return;
+  }
+  console.log(`[Login Debug] User ${user.username} found. Attempts: ${user.loginAttempts}, Lockout: ${user.lockoutUntil}`);
     return;
   }
 
