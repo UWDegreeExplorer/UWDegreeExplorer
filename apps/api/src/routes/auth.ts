@@ -83,8 +83,6 @@ router.post("/login", async (req, res) => {
     return;
   }
   console.log(`[Login Debug] User ${user.username} found. Attempts: ${user.loginAttempts}, Lockout: ${user.lockoutUntil}`);
-    return;
-  }
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) {
