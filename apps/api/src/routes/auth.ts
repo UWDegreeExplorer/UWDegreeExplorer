@@ -47,7 +47,6 @@ router.post("/register", async (req, res) => {
     .returning();
 
   if (!user) {
-    console.log(`[Login Debug] User not found: ${username}`);
     res.status(500).json({ message: "Failed to create user" });
     return;
   }
@@ -71,6 +70,7 @@ router.post("/login", async (req, res) => {
     return;
   }
   const { username, password } = parsed.data;
+  console.log(`[Login Debug] Starting login for: ${username}`);
 
   const [user] = await db
     .select()
@@ -79,8 +79,8 @@ router.post("/login", async (req, res) => {
     .limit(1);
 
   if (!user) {
-    console.log(`[Login Debug] User not found: ${username}`);
-    res.status(401).json({ message: "Invalid credentials" });
+    res.status(401).json({ message: "Invalid credentials" }
+  console.log(`[Login Debug] User ${user.username} found. Attempts: ${user.loginAttempts}, Lockout: ${user.lockoutUntil}`););
     return;
   }
 
@@ -164,7 +164,6 @@ router.post("/google", async (req, res) => {
       .limit(1);
 
     if (!user) {
-    console.log(`[Login Debug] User not found: ${username}`);
       // 2. Create new user if not found
       const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
       let username = baseUsername;
@@ -200,7 +199,6 @@ router.post("/google", async (req, res) => {
     }
 
     if (!user) {
-    console.log(`[Login Debug] User not found: ${username}`);
       res.status(500).json({ message: "Failed to process Google login" });
       return;
     }
@@ -239,7 +237,6 @@ router.get("/me", async (req, res) => {
     .where(eq(usersTable.id, req.session.userId))
     .limit(1);
   if (!user) {
-    console.log(`[Login Debug] User not found: ${username}`);
     res.json({ user: null });
     return;
   }
@@ -280,7 +277,6 @@ router.patch("/me", async (req, res) => {
       .limit(1);
 
     if (!user) {
-    console.log(`[Login Debug] User not found: ${username}`);
       res.status(404).json({ message: "User not found" });
       return;
     }
@@ -397,7 +393,6 @@ router.post("/register/verify", async (req, res) => {
     .returning();
 
   if (!user) {
-    console.log(`[Login Debug] User not found: ${username}`);
     res.status(500).json({ message: "Failed to create user" });
     return;
   }
