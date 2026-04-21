@@ -440,4 +440,76 @@ router.delete("/me", async (req, res) => {
   }
 });
 
+
+// --- Reset Password Routes ---
+
+router.post("/reset-password/send-code", async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    res.status(400).json({ message: "Email is required" });
+    return;
+  }
+
+  // 1. Check if user exists with this email
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, email))
+    .limit(1);
+
+  if (!user) {
+    // For security, don't reveal if user exists. Just say "If account exists, code sent."
+    // But for a simple forum, we can just be direct.
+    res.status(404).json({ message: "No account found with this email address." });
+    return;
+  }
+
+  // 2. Request code using our centralized service
+  const result = await requestVerificationCode(email);
+  if (!result.success) {
+    res.status(429).json({ message: result.message });
+    return;
+  }
+
+  res.json({ message: "Verification code sent to your email." });
+});
+
+router.post("/reset-password/verify", async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword) {
+    res.status(400).json({ message: "Email, code and new password are required" });
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    res.status(400).json({ message: "Password must be at least 6 characters" });
+    return;
+  }
+
+  // 1. Verify code
+  const result = await verifyCode(email, code);
+  if (!result.success) {
+    res.status(400).json({ message: result.message });
+    return;
+  }
+
+  // 2. Hash new password
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+
+  // 3. Update user and reset lockout/attempts
+  await db
+    .update(usersTable)
+    .set({ 
+      passwordHash,
+      loginAttempts: 0,
+      lockoutUntil: null
+    })
+    .where(eq(usersTable.email, email));
+
+  // 4. Cleanup verification record
+  await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.email, email));
+
+  res.json({ message: "Password has been reset successfully. You can now log in." });
+});
+
 export default router;
