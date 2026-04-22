@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      await customFetch("/api/auth/reset-password/send-code", {
+      await customFetch("/auth/reset-password/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      await customFetch("/api/auth/reset-password/verify", {
+      await customFetch("/auth/reset-password/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code, newPassword }),
