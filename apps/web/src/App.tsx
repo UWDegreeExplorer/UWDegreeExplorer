@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import ForgotPassword from "@/pages/forgot-password";
 import NewPost from "@/pages/new-post";
 
 const queryClient = new QueryClient({
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/activity" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/forgot-password" component={ForgotPassword} />
       <Route component={NotFound} />
     </Switch>
   );
