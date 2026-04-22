@@ -139,40 +139,35 @@ pnpm dev
 - **Backend**: http://localhost:5001 (Proxied via `/api`)
 
 
-## 🛡️ User Authentication & Security
+## 🛡️ 用户认证与安全体系
 
-The system implements a multi-layered security and verification architecture to ensure a safe community environment.
+系统采用了多层安全验证架构，以确保社区环境的安全与真实。
 
-### 1. Verification System (Resend API)
-*   **Centralized Service**: All verification codes are managed by a dedicated service with a 5-minute TTL.
-*   **Email Provider**: Integration with **Resend HTTP API** for high-reliability mail delivery.
-*   **Rate Limiting**: 
-    *   **Per Email**: 1 code per 5 minutes, maximum 5 codes per day.
-    *   **Per IP**: Global rate limiting on API endpoints to prevent DDoS and brute force.
+### 1. 验证系统 (Resend API)
+*   **集中化服务**：所有验证码由专用服务统一管理，有效期为 5 分钟。
+*   **邮件发送**：集成 **Resend HTTP API**，确保邮件发送的高可靠性。
+*   **频率限制**：
+    *   **按邮箱**：每 5 分钟限发 1 条，每天最多 5 条。
+    *   **按 IP**：对 API 接口进行全局限速，防止 DDoS 及暴力破解。
 
-### 2. Registration & Student Identity
-*   **Two-Step Registration**: Email verification is mandatory before account creation.
-*   **Automatic Verification**: Users registering with a `@uwaterloo.ca` email automatically receive the "Verified Student" badge.
-*   **Post-Registration Binding**: Existing users can bind their student email in Settings to receive their badge.
-*   **Privacy**: Anonymous posts automatically hide the verification badge even for verified users.
+### 2. 注册与学生身份
+*   **两步注册**：在创建账户前必须通过邮箱验证。
+*   **自动认证**：使用 `@uwaterloo.ca` 邮箱注册的用户将自动获得“学生认证”勋章。
+*   **事后绑定**：已有用户可在设置页面绑定学生邮箱以获取勋章。
+*   **隐私保护**：即使是认证用户，在选择“匿名发布”时也会自动隐藏勋章。
 
-### 3. Login Protection & Lockout
-*   **Password Security**: Industry-standard `bcrypt` hashing for all passwords (including temporary ones for Google OAuth users).
-*   **Account Lockout**: 
-    *   5 consecutive failed login attempts trigger a **15-minute account lockout**.
-    *   Lockout is enforced at the account level, protecting against distributed brute force attacks.
-*   **IP-Based Limiting**: Limits login attempts per IP to 5 per minute to slow down automated scanners.
+### 3. 登录保护与账号锁定
+*   **密码安全**：所有密码（包括谷歌用户的临时密码）均采用行业标准的 `bcrypt` 哈希加密。
+*   **账号锁定**：
+    *   连续 **5 次**登录失败将触发 **15 分钟**的账号锁定。
+    *   锁定在账号维度执行，有效防御分布式暴力破解攻击。
+*   **IP 级限速**：每个 IP 每分钟限登录 5 次，大幅减缓自动化扫描器的速度。
 
-### 4. Account Deletion & Data Privacy
-*   **Secure Deletion**: Users can permanently delete their accounts from the Settings panel.
-*   **Attribution**: When an account is deleted, their posts and comments remain but are attributed to a generic **"Deleted User"** profile.
-*   **Badge Removal**: Verification badges are removed upon account deletion to maintain data accuracy.
+### 4. 账号注销与数据隐私
+*   **安全注销**：用户可在设置面板永久删除其账号。
+*   **归属处理**：账号删除后，其帖子和评论将被保留，但署名会更改为 **"Deleted User"**（已注销用户）。
+*   **勋章移除**：账号注销时，相关的验证勋章将一并移除，确保数据的真实性。
 
-### 5. Secure Password Reset
-*   **Code-Based Reset**: Users can reset forgotten passwords by verifying their identity via their registered email.
-*   **Automatic Unlock**: A successful password reset automatically clears any existing account lockouts and failed attempt counters.
-
-
-- **Secrets**: Never commit `.env`. It is ignored by git. Use `.env.example` as a template.
-- **Session**: `trust proxy` is enabled in the backend to support secure cookies behind reverse proxies (like Supabase/Vercel).
-- **CORS**: Configured to allow credentials for session-based authentication.
+### 5. 安全密码重置
+*   **验证码重置**：用户可通过验证注册邮箱来重置忘记的密码。
+*   **自动解锁**：密码重置成功后，系统会自动清除该账号的登录失败计数和锁定状态。
