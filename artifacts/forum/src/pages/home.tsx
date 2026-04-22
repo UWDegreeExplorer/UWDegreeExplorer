@@ -509,26 +509,6 @@ function EmptyState({ message }: { message: string }) {
     </div>
   );
 }
-  return (
-    <div className="px-8 py-16 text-center">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
-        <PencilLine className="w-5 h-5 text-muted-foreground" />
-      </div>
-      <h3 className="font-serif text-lg font-medium">No posts {label} yet</h3>
-      <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">
-        Start the conversation. Share something with the community.
-      </p>
-      <Button
-        variant="outline"
-        size="sm"
-        className="mt-5"
-        onClick={() => setLocation("/new")}
-      >
-        Write the first post
-      </Button>
-    </div>
-  );
-}
 
 function CommentNode({
   comment,
