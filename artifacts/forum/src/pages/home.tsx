@@ -28,6 +28,7 @@ import {
   MessageCircle,
   PencilLine,
   Reply,
+  Search,
   Send,
   Shield,
   Trash2,
@@ -262,12 +263,19 @@ function PostList({
   section,
   selectedId,
   onSelect,
+  search,
+  onSearchChange,
 }: {
   section: SectionFilter;
   selectedId: number | null;
   onSelect: (id: number) => void;
+  search: string;
+  onSearchChange: (val: string) => void;
 }) {
-  const params = section === "all" ? undefined : { section };
+  const params = {
+    section: section === "all" ? undefined : section,
+    search: search.trim() || undefined,
+  };
   const { data: posts, isLoading } = useListPosts(params);
 
   return (
@@ -276,10 +284,21 @@ function PostList({
         <h1 className="font-serif text-2xl font-medium tracking-tight">
           {section === "all" ? "All Discussions" : SECTION_LABELS[section]}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {posts?.length ?? 0}{" "}
-          {posts?.length === 1 ? "post" : "posts"}
-        </p>
+        <div className="flex items-center justify-between mt-1 gap-4">
+          <p className="text-sm text-muted-foreground shrink-0">
+            {posts?.length ?? 0} {posts?.length === 1 ? "post" : "posts"}
+          </p>
+          <div className="relative flex-1 max-w-[200px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full bg-background/50 border border-border rounded-md pl-8 pr-3 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+            />
+          </div>
+        </div>
       </div>
 
       <ScrollArea className="flex-1">
@@ -854,27 +873,27 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [matchPost, params] = useRoute<{ id: string }>("/post/:id");
   const selectedId = matchPost && params?.id ? Number(params.id) : null;
-  const [section, setSection] = useState<SectionFilter>("all");
-
-  const handleSelect = (id: number) => {
-    setLocation(`/post/${id}`);
-  };
+  const [activeSection, setActiveSection] = useState<SectionFilter>("all");
+  const [search, setSearch] = useState("");
 
   return (
     <div className="h-screen flex flex-col bg-background">
       <Header />
       <div className="flex-1 flex overflow-hidden">
         <SectionRail
-          active={section}
+          active={activeSection}
           onSelect={(s) => {
-            setSection(s);
+            setActiveSection(s);
+            setSearch("");
             if (matchPost) setLocation("/");
           }}
         />
         <PostList
-          section={section}
+          section={activeSection}
           selectedId={selectedId}
-          onSelect={handleSelect}
+          search={search}
+          onSearchChange={setSearch}
+          onSelect={(id) => setLocation(`/post/${id}`)}
         />
         <main className="flex-1 flex flex-col bg-background min-w-0">
           {selectedId ? (
