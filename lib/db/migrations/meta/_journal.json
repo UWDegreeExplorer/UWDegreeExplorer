@@ -8,6 +8,13 @@
       "when": 1777172977578,
       "tag": "0000_slimy_wallop",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777173777712,
+      "tag": "0001_flaky_kate_bishop",
+      "breakpoints": true
     }
   ]
 }
