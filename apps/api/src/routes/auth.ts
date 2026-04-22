@@ -484,4 +484,47 @@ router.post("/reset-password/verify", async (req, res) => {
   res.json({ message: "Password reset successful." });
 });
 
+
+router.post("/change-password", async (req, res) => {
+  if (!req.session.userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const { currentPassword, newPassword } = req.body;
+  if (!newPassword || newPassword.length < 6) {
+    res.status(400).json({ message: "New password must be at least 6 characters" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, req.session.userId))
+    .limit(1);
+
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
+
+  // If user has a password set (not a "fresh" Google user who hasn't set one yet)
+  // we check if they provided the correct current password.
+  // Note: For simplicity, we treat all users as having a password (since Google login sets a random one).
+  const isMatch = await bcrypt.compare(currentPassword || "", user.passwordHash);
+  
+  // Security Exception: If it's a Google user who forgot their random-generated password,
+  // they should use the "Forgot Password" flow from login page.
+  // BUT for the Settings page, we'll require current password for safety.
+  if (!isMatch) {
+    res.status(400).json({ message: "Current password is incorrect" });
+    return;
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await db.update(usersTable).set({ passwordHash: newHash }).where(eq(usersTable.id, user.id));
+
+  res.json({ message: "Password updated successfully" });
+});
+
 export default router;
