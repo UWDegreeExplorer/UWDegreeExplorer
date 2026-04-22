@@ -422,10 +422,9 @@ export function SettingsPane() {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your account
-                    and remove your personal data from our servers. Your posts and comments
-                    将会被标记为 "Deleted User".
+                  <AlertDialogDescription className="text-foreground/90 py-2">
+                    This action <strong className="text-destructive">cannot be undone</strong>. This will <strong className="text-destructive font-bold uppercase">permanently delete</strong> your account
+                    and remove all personal data. Your posts and comments will be attributed to <strong>"Deleted User"</strong>.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
