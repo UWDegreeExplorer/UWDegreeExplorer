@@ -18,7 +18,7 @@ router.get("/", async (req, res) => {
     res.status(400).json({ message: "Invalid query parameters" });
     return;
   }
-  const { section, search, authorId } = parsed.data as any;
+  const { section, search, authorId } = parsed.data;
 
   const filters = [];
   if (section) filters.push(eq(postsTable.section, section));
@@ -59,6 +59,43 @@ router.get("/", async (req, res) => {
       lastActivityAt: p.lastActivityAt.toISOString(),
     })),
   );
+});
+
+// GET /api/me/activity - Unified feed of user's posts and comments
+router.get("/activity", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+  const userPosts = await db
+    .select({
+      id: postsTable.id,
+      title: postsTable.title,
+      content: postsTable.body,
+      createdAt: postsTable.createdAt,
+      type: sql<string>`'post'`,
+    })
+    .from(postsTable)
+    .where(eq(postsTable.authorId, userId));
+
+  const userComments = await db
+    .select({
+      id: commentsTable.id,
+      title: sql<string>`(SELECT title FROM ${postsTable} WHERE id = ${commentsTable.postId})`,
+      content: commentsTable.body,
+      createdAt: commentsTable.createdAt,
+      type: sql<string>`'comment'`,
+    })
+    .from(commentsTable)
+    .where(eq(commentsTable.authorId, userId));
+
+  const combined = [...userPosts, ...userComments].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+  );
+
+  res.json(combined.map(item => ({
+    ...item,
+    createdAt: item.createdAt.toISOString()
+  })));
 });
 
 router.post("/", async (req, res) => {

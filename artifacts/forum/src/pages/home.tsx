@@ -282,7 +282,6 @@ function SectionRail({
         <button
           onClick={() => {
             onSelect("inbox");
-            markAsRead({}, { onSuccess: () => refetchUnread() });
           }}
           className={[
             "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors",
@@ -327,48 +326,133 @@ function PostList({
 }) {
   const { data: currentUserData } = useGetCurrentUser();
   const currentUser = currentUserData?.user;
+  const queryClient = useQueryClient();
 
-  const params = {
+  // 1. 数据获取逻辑：根据 section 切换不同的 Hook 或接口
+  const { data: posts, isLoading: postsLoading } = useListPosts({
     section: (section === "all" || section === "my-posts" || section === "inbox") ? undefined : section,
     search: search.trim() || undefined,
     authorId: section === "my-posts" ? currentUser?.id : undefined,
-  };
-  const { data: posts, isLoading } = useListPosts(params);
+  }, {
+    enabled: section !== "inbox" && section !== "my-posts"
+  });
+
+  const { data: notifications, isLoading: notifyLoading, refetch: refetchNotify } = useCustomFetch<any[]>("/notifications", {
+    enabled: section === "inbox" && !!currentUser,
+  });
+
+  const { data: activity, isLoading: activityLoading } = useCustomFetch<any[]>("/posts/activity", {
+    enabled: section === "my-posts" && !!currentUser,
+  });
+
+  const { mutate: markAllRead } = useCustomMutation<any, any>("/notifications/read-all", {
+    method: "POST",
+    onSuccess: () => {
+      refetchNotify();
+      queryClient.invalidateQueries({ queryKey: ["/notifications/unread-count"] });
+    }
+  });
+
+  const isLoading = postsLoading || notifyLoading || activityLoading;
 
   return (
     <div className="w-[420px] border-r border-border flex flex-col shrink-0 bg-background">
+      {/* Header 部分 */}
       <div className="px-6 py-5 border-b border-border bg-card/30 shrink-0">
-        <h1 className="font-serif text-2xl font-medium tracking-tight">
-          {section === "all" ? "All Discussions" : 
-           section === "my-posts" ? "My Activity" :
-           section === "inbox" ? "Notifications" :
-           SECTION_LABELS[section]}
-        </h1>
-        <div className="flex items-center justify-between mt-1 gap-4">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="font-serif text-2xl font-medium tracking-tight">
+            {section === "all" ? "All Discussions" : 
+             section === "my-posts" ? "My Activity" :
+             section === "inbox" ? "Notifications" :
+             SECTION_LABELS[section]}
+          </h1>
+          {section === "inbox" && notifications && notifications.length > 0 && (
+            <Button variant="ghost" size="xs" onClick={() => markAllRead({})} className="text-xs text-muted-foreground hover:text-primary">
+              Mark all read
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground shrink-0">
-            {posts?.length ?? 0} {posts?.length === 1 ? "post" : "posts"}
+            {section === "inbox" ? (notifications?.length ?? 0) : 
+             section === "my-posts" ? (activity?.length ?? 0) :
+             (posts?.length ?? 0)} items
           </p>
-          <div className="relative flex-1 max-w-[200px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full bg-background/50 border border-border rounded-md pl-8 pr-3 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
-            />
-          </div>
+          {(section !== "inbox" && section !== "my-posts") && (
+            <div className="relative flex-1 max-w-[200px]">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search..."
+                className="w-full h-8 pl-8 pr-3 text-xs bg-muted/50 border-none rounded-md focus:ring-1 focus:ring-primary outline-none"
+              />
+            </div>
+          )}
         </div>
       </div>
 
+      {/* 列表主体 */}
       <ScrollArea className="flex-1">
         {isLoading ? (
-          <div className="p-6 text-sm text-muted-foreground">Loading…</div>
-        ) : !posts || posts.length === 0 ? (
-          <EmptyPostList section={section} />
+          <div className="p-8 flex flex-col items-center justify-center text-muted-foreground text-center">
+            <Loader2 className="w-6 h-6 animate-spin mb-2 opacity-20" />
+            <span className="text-xs font-medium">Loading content...</span>
+          </div>
+        ) : section === "inbox" ? (
+          <ul className="divide-y divide-border">
+            {notifications?.map((n) => (
+              <li key={n.id}>
+                <button
+                  onClick={() => onSelect(n.postId)}
+                  className={[
+                    "w-full text-left px-6 py-4 transition-colors hover:bg-accent/50",
+                    !n.isRead && "bg-primary/[0.03] relative after:absolute after:left-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary"
+                  ].join(" ")}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant={n.isRead ? "outline" : "secondary"} className="text-[10px] py-0">
+                      {n.type === "reply_to_post" ? "Post Reply" : "Comment Reply"}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">{relTime(n.createdAt)}</span>
+                  </div>
+                  <p className="text-sm leading-snug">
+                    <span className="font-bold text-foreground">{n.actorName}</span>
+                    <span className="text-muted-foreground"> replied to: </span>
+                    <span className="font-medium">"{n.postTitle}"</span>
+                  </p>
+                </button>
+              </li>
+            ))}
+            {notifications?.length === 0 && <EmptyState message="No notifications yet" />}
+          </ul>
+        ) : section === "my-posts" ? (
+          <ul className="divide-y divide-border">
+            {activity?.map((a) => (
+              <li key={`${a.type}-${a.id}`}>
+                <button
+                  onClick={() => onSelect(a.type === "post" ? a.id : a.postId)}
+                  className="w-full text-left px-6 py-4 transition-colors hover:bg-accent/50"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary/70">
+                      {a.type}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">{relTime(a.createdAt)}</span>
+                  </div>
+                  <h3 className="text-sm font-semibold mb-1 truncate">{a.title}</h3>
+                  <p className="text-[13px] text-muted-foreground line-clamp-2 italic leading-relaxed">
+                    "{excerpt(a.content, 120)}"
+                  </p>
+                </button>
+              </li>
+            ))}
+            {activity?.length === 0 && <EmptyState message="You haven't posted anything yet" />}
+          </ul>
         ) : (
           <ul className="divide-y divide-border">
-            {posts.map((p) => {
+            {posts?.map((p) => {
               const isActive = p.id === selectedId;
               return (
                 <li key={p.id}>
@@ -382,42 +466,32 @@ function PostList({
                     ].join(" ")}
                   >
                     <div className="flex items-center gap-2 mb-1.5">
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] uppercase tracking-wider font-medium px-1.5 py-0"
-                      >
+                      <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-medium px-1.5 py-0">
                         {SECTION_LABELS[p.section]}
                       </Badge>
-                      {p.isAnonymous && (
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] px-1.5 py-0 gap-1"
-                        >
-                          <UserCircle2 className="w-2.5 h-2.5" />
-                          Anonymous
-                        </Badge>
-                      )}
+                      {p.isAnonymous && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">Anonymous</Badge>}
+                      <span className="text-[11px] text-muted-foreground ml-auto">{relTime(p.lastActivityAt)}</span>
                     </div>
-                    <h3 className="font-serif font-medium text-base leading-snug text-foreground">
+                    <h3 className="font-serif text-[15px] font-semibold leading-tight text-foreground group-hover:text-primary transition-colors mb-1.5">
                       {p.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-3">
                       {p.excerpt}
                     </p>
-                    <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground">
-                      <span className="truncate">{p.authorName}</span>
-                      <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
-                      <span>{relTime(p.lastActivityAt)}</span>
-                      <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
-                      <span className="flex items-center gap-1">
-                        <MessageCircle className="w-3 h-3" />
-                        {p.commentCount}
+                    <div className="flex items-center justify-between mt-auto">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span className="text-xs font-medium">{p.commentCount}</span>
+                      </div>
+                      <span className="text-[11px] font-medium text-muted-foreground/70 text-right truncate max-w-[120px]">
+                        by {p.authorName}
                       </span>
                     </div>
                   </button>
                 </li>
               );
             })}
+            {posts?.length === 0 && <EmptyState message="No results found" />}
           </ul>
         )}
       </ScrollArea>
@@ -425,10 +499,16 @@ function PostList({
   );
 }
 
-function EmptyPostList({ section }: { section: SectionFilter }) {
-  const [, setLocation] = useLocation();
-  const label =
-    section === "all" ? "anywhere" : `in ${SECTION_LABELS[section]}`;
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="p-12 flex flex-col items-center justify-center text-center opacity-40">
+      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+        <Layers className="w-6 h-6" />
+      </div>
+      <p className="text-xs font-medium uppercase tracking-widest">{message}</p>
+    </div>
+  );
+}
   return (
     <div className="px-8 py-16 text-center">
       <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">

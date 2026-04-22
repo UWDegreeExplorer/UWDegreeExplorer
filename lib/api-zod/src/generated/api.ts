@@ -248,3 +248,15 @@ export const GetNotificationsResponse = zod.array(GetNotificationsResponseItem);
 export const GetUnreadCountResponse = zod.object({
   count: zod.number(),
 });
+
+/**
+ * @summary Get activity for the current user
+ */
+export const GetActivityResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  content: zod.string(),
+  type: zod.enum(["post", "comment"]),
+  createdAt: zod.coerce.date(),
+});
+export const GetActivityResponse = zod.array(GetActivityResponseItem);
