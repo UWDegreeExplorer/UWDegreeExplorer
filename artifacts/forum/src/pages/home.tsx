@@ -14,6 +14,8 @@ import {
   getListPostsQueryKey,
   getGetSectionStatsQueryKey,
   getGetRecentActivityQueryKey,
+  useCustomFetch,
+  useCustomMutation,
   type Section,
   type Comment,
 } from "@workspace/api-client-react";
@@ -183,12 +185,15 @@ function Header() {
 function SectionRail({
   active,
   onSelect,
-  unreadCount = 3,
 }: {
   active: SectionFilter;
   onSelect: (s: SectionFilter) => void;
-  unreadCount?: number;
 }) {
+  const { data: currentUserData } = useGetCurrentUser();
+  const { data: unreadData, refetch: refetchUnread } = useCustomFetch<any>("/notifications/unread-count");
+  const unreadCount = unreadData?.count ?? 0;
+  
+  const { mutate: markAsRead } = useCustomMutation<any, any>("/notifications/read-all", { method: "POST" });
   const { data: stats } = useGetSectionStats();
   const totalPosts = useMemo(
     () => (stats ?? []).reduce((sum, s) => sum + s.postCount, 0),
@@ -275,7 +280,10 @@ function SectionRail({
           <span>My Posts</span>
         </button>
         <button
-          onClick={() => onSelect("inbox")}
+          onClick={() => {
+            onSelect("inbox");
+            markAsRead({}, { onSuccess: () => refetchUnread() });
+          }}
           className={[
             "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors",
             active === "inbox"

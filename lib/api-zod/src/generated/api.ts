@@ -91,6 +91,7 @@ export const GetCurrentUserResponse = zod.object({
 export const ListPostsQueryParams = zod.object({
   section: zod.enum(["carpool", "academic", "roommate", "other"]).optional(),
   search: zod.coerce.string().optional(),
+  authorId: zod.coerce.number().optional(),
 });
 
 export const ListPostsResponseItem = zod.object({
@@ -226,3 +227,24 @@ export const GetRecentActivityResponseItem = zod.object({
 export const GetRecentActivityResponse = zod.array(
   GetRecentActivityResponseItem,
 );
+
+/**
+ * @summary Get notifications for the current user
+ */
+export const GetNotificationsResponseItem = zod.object({
+  id: zod.number(),
+  actorName: zod.string(),
+  type: zod.enum(["reply_to_post", "reply_to_comment"]),
+  postId: zod.number(),
+  postTitle: zod.string(),
+  isRead: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+export const GetNotificationsResponse = zod.array(GetNotificationsResponseItem);
+
+/**
+ * @summary Get unread notification count
+ */
+export const GetUnreadCountResponse = zod.object({
+  count: zod.number(),
+});

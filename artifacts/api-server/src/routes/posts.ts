@@ -18,10 +18,11 @@ router.get("/", async (req, res) => {
     res.status(400).json({ message: "Invalid query parameters" });
     return;
   }
-  const { section, search } = parsed.data;
+  const { section, search, authorId } = parsed.data as any;
 
   const filters = [];
   if (section) filters.push(eq(postsTable.section, section));
+  if (authorId) filters.push(eq(postsTable.authorId, Number(authorId)));
   if (search && search.trim().length > 0) {
     const term = `%${search.trim()}%`;
     filters.push(
@@ -308,6 +309,15 @@ router.post("/:id/comments", async (req, res) => {
       .where(eq(usersTable.id, post.authorId))
       .limit(1);
     if (authorUser) {
+      // Create in-app notification
+      await db.insert(require("@workspace/db").notificationsTable).values({
+        userId: post.authorId,
+        actorId: userId || 0,
+        type: "reply_to_post",
+        postId: post.id,
+        commentId: comment.id,
+      });
+
       const replyExcerpt = excerpt(body, 240);
       void sendReplyNotification({
         toEmail: authorUser.email,
