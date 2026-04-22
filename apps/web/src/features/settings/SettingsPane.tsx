@@ -421,7 +421,7 @@ export function SettingsPane() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogTitle className="text-2xl font-bold tracking-tight text-destructive">Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription className="text-foreground/90 py-2">
                     This action <strong className="text-destructive">cannot be undone</strong>. This will <strong className="text-destructive font-bold uppercase">permanently delete</strong> your account
                     and remove all personal data. Your posts and comments will be attributed to <strong>"Deleted User"</strong>.
