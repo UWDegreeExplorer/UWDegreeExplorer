@@ -138,7 +138,40 @@ pnpm dev
 - **Frontend**: http://localhost:5173
 - **Backend**: http://localhost:5001 (Proxied via `/api`)
 
-## Security & Best Practices
+
+## 🛡️ User Authentication & Security
+
+The system implements a multi-layered security and verification architecture to ensure a safe community environment.
+
+### 1. Verification System (Resend API)
+*   **Centralized Service**: All verification codes are managed by a dedicated service with a 5-minute TTL.
+*   **Email Provider**: Integration with **Resend HTTP API** for high-reliability mail delivery.
+*   **Rate Limiting**: 
+    *   **Per Email**: 1 code per 5 minutes, maximum 5 codes per day.
+    *   **Per IP**: Global rate limiting on API endpoints to prevent DDoS and brute force.
+
+### 2. Registration & Student Identity
+*   **Two-Step Registration**: Email verification is mandatory before account creation.
+*   **Automatic Verification**: Users registering with a `@uwaterloo.ca` email automatically receive the "Verified Student" badge.
+*   **Post-Registration Binding**: Existing users can bind their student email in Settings to receive their badge.
+*   **Privacy**: Anonymous posts automatically hide the verification badge even for verified users.
+
+### 3. Login Protection & Lockout
+*   **Password Security**: Industry-standard `bcrypt` hashing for all passwords (including temporary ones for Google OAuth users).
+*   **Account Lockout**: 
+    *   5 consecutive failed login attempts trigger a **15-minute account lockout**.
+    *   Lockout is enforced at the account level, protecting against distributed brute force attacks.
+*   **IP-Based Limiting**: Limits login attempts per IP to 5 per minute to slow down automated scanners.
+
+### 4. Account Deletion & Data Privacy
+*   **Secure Deletion**: Users can permanently delete their accounts from the Settings panel.
+*   **Attribution**: When an account is deleted, their posts and comments remain but are attributed to a generic **"Deleted User"** profile.
+*   **Badge Removal**: Verification badges are removed upon account deletion to maintain data accuracy.
+
+### 5. Secure Password Reset
+*   **Code-Based Reset**: Users can reset forgotten passwords by verifying their identity via their registered email.
+*   **Automatic Unlock**: A successful password reset automatically clears any existing account lockouts and failed attempt counters.
+
 
 - **Secrets**: Never commit `.env`. It is ignored by git. Use `.env.example` as a template.
 - **Session**: `trust proxy` is enabled in the backend to support secure cookies behind reverse proxies (like Supabase/Vercel).
