@@ -1,0 +1,316 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-primary-border: var(--sidebar-primary-border);
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-accent-border: var(--sidebar-accent-border);
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --font-sans: var(--app-font-sans);
+  --font-serif: var(--app-font-serif);
+  --font-mono: var(--app-font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* LIGHT MODE */
+:root {
+  --button-outline: rgba(0,0,0, .10);
+  --badge-outline: rgba(0,0,0, .05);
+
+  --opaque-button-border-intensity: -8;
+
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .08);
+
+  /* Warm paper background: #fdfbf7 */
+  --background: 40 33% 98%;
+  /* Deep forest green foreground: #0a1f0f */
+  --foreground: 134 51% 8%;
+
+  /* Soft borders: #e8e4da */
+  --border: 43 27% 88%;
+
+  --card: 40 33% 98%;
+  --card-foreground: 134 51% 8%;
+  --card-border: 43 27% 88%;
+
+  --sidebar: 40 33% 96%;
+  --sidebar-foreground: 134 51% 8%;
+  --sidebar-border: 43 27% 88%;
+  --sidebar-primary: 142 50% 16%;
+  --sidebar-primary-foreground: 40 33% 98%;
+  --sidebar-accent: 40 20% 90%;
+  --sidebar-accent-foreground: 134 51% 8%;
+  --sidebar-ring: 142 50% 16%;
+
+  --popover: 40 33% 98%;
+  --popover-foreground: 134 51% 8%;
+  --popover-border: 43 27% 88%;
+
+  /* Forest Green Primary: #143d1d */
+  --primary: 142 50% 16%;
+  --primary-foreground: 40 33% 98%;
+
+  /* Subtle secondary */
+  --secondary: 40 20% 92%;
+  --secondary-foreground: 142 50% 16%;
+
+  --muted: 40 15% 94%;
+  --muted-foreground: 134 10% 40%;
+
+  --accent: 40 25% 92%;
+  --accent-foreground: 142 50% 16%;
+
+  --destructive: 0 70% 40%;
+  --destructive-foreground: 40 33% 98%;
+
+  --input: 43 27% 88%;
+  --ring: 142 50% 16%;
+  
+  --chart-1: 142 50% 16%;
+  --chart-2: 24 80% 50%;
+  --chart-3: 200 60% 40%;
+  --chart-4: 280 40% 50%;
+  --chart-5: 350 40% 50%;
+
+  --app-font-sans: 'Inter', sans-serif;
+  --app-font-serif: 'Lora', serif;
+  --app-font-mono: Menlo, monospace;
+  
+  --radius: 0.375rem; 
+
+  --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0, 0.05);
+  --shadow-xs: 0px 1px 2px 0px rgba(0,0,0, 0.05);
+  --shadow-sm: 0px 1px 3px 0px rgba(0,0,0, 0.05), 0px 1px 2px -1px rgba(0,0,0, 0.05);
+  --shadow: 0px 2px 4px -1px rgba(0,0,0, 0.05), 0px 1px 2px -1px rgba(0,0,0, 0.05);
+  --shadow-md: 0px 4px 6px -1px rgba(0,0,0, 0.05), 0px 2px 4px -1px rgba(0,0,0, 0.05);
+  --shadow-lg: 0px 10px 15px -3px rgba(0,0,0, 0.05), 0px 4px 6px -2px rgba(0,0,0, 0.05);
+  --shadow-xl: 0px 20px 25px -5px rgba(0,0,0, 0.05), 0px 10px 10px -5px rgba(0,0,0, 0.05);
+  --shadow-2xl: 0px 25px 50px -12px rgba(0,0,0, 0.15);
+  
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+.dark {
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
+
+  --opaque-button-border-intensity: 9; 
+
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
+
+  /* Deep ink background */
+  --background: 142 40% 6%;
+  --foreground: 40 20% 90%;
+
+  --border: 142 30% 15%;
+
+  --card: 142 40% 6%;
+  --card-foreground: 40 20% 90%;
+  --card-border: 142 30% 15%;
+
+  --sidebar: 142 40% 5%;
+  --sidebar-foreground: 40 20% 90%;
+  --sidebar-border: 142 30% 15%;
+  --sidebar-primary: 40 20% 90%;
+  --sidebar-primary-foreground: 142 40% 6%;
+  --sidebar-accent: 142 30% 15%;
+  --sidebar-accent-foreground: 40 20% 90%;
+  --sidebar-ring: 40 20% 90%;
+
+  --popover: 142 40% 6%;
+  --popover-foreground: 40 20% 90%;
+  --popover-border: 142 30% 15%;
+
+  --primary: 40 20% 90%;
+  --primary-foreground: 142 40% 6%;
+
+  --secondary: 142 30% 15%;
+  --secondary-foreground: 40 20% 90%;
+
+  --muted: 142 30% 12%;
+  --muted-foreground: 142 10% 60%;
+
+  --accent: 142 30% 15%;
+  --accent-foreground: 40 20% 90%;
+
+  --destructive: 0 60% 40%;
+  --destructive-foreground: 40 20% 90%;
+
+  --input: 142 30% 15%;
+  --ring: 40 20% 90%;
+  
+  --chart-1: 40 20% 90%;
+  --chart-2: 24 60% 60%;
+  --chart-3: 200 50% 50%;
+  --chart-4: 280 30% 60%;
+  --chart-5: 350 30% 60%;
+
+  --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0, 0.3);
+  --shadow-xs: 0px 1px 2px 0px rgba(0,0,0, 0.3);
+  --shadow-sm: 0px 1px 3px 0px rgba(0,0,0, 0.3), 0px 1px 2px -1px rgba(0,0,0, 0.3);
+  --shadow: 0px 2px 4px -1px rgba(0,0,0, 0.3), 0px 1px 2px -1px rgba(0,0,0, 0.3);
+  --shadow-md: 0px 4px 6px -1px rgba(0,0,0, 0.3), 0px 2px 4px -1px rgba(0,0,0, 0.3);
+  --shadow-lg: 0px 10px 15px -3px rgba(0,0,0, 0.3), 0px 4px 6px -2px rgba(0,0,0, 0.3);
+  --shadow-xl: 0px 20px 25px -5px rgba(0,0,0, 0.3), 0px 10px 10px -5px rgba(0,0,0, 0.3);
+  --shadow-2xl: 0px 25px 50px -12px rgba(0,0,0, 0.5);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  
+  h1, h2, h3, h4, h5, h6, .font-serif {
+    font-family: var(--app-font-serif);
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  input[type="search"]::-webkit-search-cancel-button {
+    @apply hidden;
+  }
+
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+  }
+
+  .no-default-hover-elevate {}
+  .no-default-active-elevate {}
+
+  .toggle-elevate::before,
+  .toggle-elevate-2::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    border-radius: inherit;
+    z-index: -1;
+  }
+
+  .toggle-elevate.toggle-elevated::before {
+    background-color: var(--elevate-2);
+  }
+
+  .border.toggle-elevate::before {
+    inset: -1px;
+  }
+
+  .hover-elevate:not(.no-default-hover-elevate),
+  .active-elevate:not(.no-default-active-elevate),
+  .hover-elevate-2:not(.no-default-hover-elevate),
+  .active-elevate-2:not(.no-default-active-elevate) {
+    position: relative;
+    z-index: 0;
+  }
+
+  .hover-elevate:not(.no-default-hover-elevate)::after,
+  .active-elevate:not(.no-default-active-elevate)::after,
+  .hover-elevate-2:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:not(.no-default-active-elevate)::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    border-radius: inherit;
+    z-index: 999;
+  }
+
+  .hover-elevate:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-1);
+  }
+
+  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-2);
+  }
+
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
+    inset: -1px;
+  }
+}

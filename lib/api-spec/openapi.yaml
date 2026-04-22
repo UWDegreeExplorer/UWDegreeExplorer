@@ -3,20 +3,22 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Community forum API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: posts
+  - name: comments
+  - name: stats
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +26,230 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Register a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "200":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Username or email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Log in with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logoutUser
+      tags: [auth]
+      summary: Log out the current user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get the currently logged-in user (or null when anonymous)
+      responses:
+        "200":
+          description: Current user or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List posts, optionally filtered by section
+      parameters:
+        - in: query
+          name: section
+          required: false
+          schema:
+            $ref: "#/components/schemas/Section"
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A list of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PostSummary"
+    post:
+      operationId: createPost
+      tags: [posts]
+      summary: Create a new post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePostInput"
+      responses:
+        "200":
+          description: Created post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /posts/{id}:
+    get:
+      operationId: getPost
+      tags: [posts]
+      summary: Get a single post with its comments
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Post detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /posts/{id}/comments:
+    post:
+      operationId: createComment
+      tags: [comments]
+      summary: Reply to a post or to another comment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentInput"
+      responses:
+        "200":
+          description: Created comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stats/sections:
+    get:
+      operationId: getSectionStats
+      tags: [stats]
+      summary: Get post counts and recent activity per section
+      responses:
+        "200":
+          description: Section statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SectionStat"
+
+  /stats/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [stats]
+      summary: Get the latest community activity (new posts and replies)
+      responses:
+        "200":
+          description: Recent activity feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +257,230 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    OkResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required: [ok]
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    Section:
+      type: string
+      enum: [carpool, academic, roommate, other]
+
+    RegisterInput:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 60
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+          maxLength: 200
+      required: [username, displayName, email, password]
+
+    LoginInput:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required: [username, password]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+      required: [id, username, displayName, email]
+
+    CurrentUser:
+      type: object
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/User"
+            - type: "null"
+      required: [user]
+
+    CreatePostInput:
+      type: object
+      properties:
+        section:
+          $ref: "#/components/schemas/Section"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        body:
+          type: string
+          minLength: 1
+          maxLength: 10000
+        anonymous:
+          type: boolean
+      required: [section, title, body, anonymous]
+
+    CreateCommentInput:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        anonymous:
+          type: boolean
+        parentId:
+          type: integer
+          nullable: true
+      required: [body, anonymous]
+
+    PostSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        section:
+          $ref: "#/components/schemas/Section"
+        title:
+          type: string
+        excerpt:
+          type: string
+        authorName:
+          type: string
+        isAnonymous:
+          type: boolean
+        commentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        lastActivityAt:
+          type: string
+          format: date-time
+      required:
+        [
+          id,
+          section,
+          title,
+          excerpt,
+          authorName,
+          isAnonymous,
+          commentCount,
+          createdAt,
+          lastActivityAt,
+        ]
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        section:
+          $ref: "#/components/schemas/Section"
+        title:
+          type: string
+        body:
+          type: string
+        authorName:
+          type: string
+        isAnonymous:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        [id, section, title, body, authorName, isAnonymous, createdAt]
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        postId:
+          type: integer
+        parentId:
+          type: integer
+          nullable: true
+        body:
+          type: string
+        authorName:
+          type: string
+        isAnonymous:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        [id, postId, parentId, body, authorName, isAnonymous, createdAt]
+
+    PostDetail:
+      type: object
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+      required: [post, comments]
+
+    SectionStat:
+      type: object
+      properties:
+        section:
+          $ref: "#/components/schemas/Section"
+        label:
+          type: string
+        postCount:
+          type: integer
+        lastActivityAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [section, label, postCount, lastActivityAt]
+
+    ActivityItem:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [post, comment]
+        postId:
+          type: integer
+        postTitle:
+          type: string
+        section:
+          $ref: "#/components/schemas/Section"
+        authorName:
+          type: string
+        snippet:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [kind, postId, postTitle, section, authorName, snippet, createdAt]
