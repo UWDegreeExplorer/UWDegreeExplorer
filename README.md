@@ -1,52 +1,47 @@
 # Campus Forum Connect
 
-A polished, student-and-alumni community forum built with React, Vite, Express, and Drizzle ORM.
+A premium student-and-alumni community forum.
 
-## Local Setup
+## Local Development Setup
 
 This project uses `pnpm` workspaces. Ensure you have Node.js 18+ and `pnpm` installed.
 
-### 1. Install Dependencies
+### 1. Environment Configuration
+
+1.  Copy the example environment file:
+    ```bash
+    cp .env.example .env
+    ```
+2.  Open `.env` and fill in your `DATABASE_URL` (from Supabase or a local PostgreSQL).
+3.  Ensure `SESSION_SECRET` is set to a secure random string.
+
+### 2. Database Initialization
+
+This project uses Drizzle ORM with versioned migrations. To set up your database:
 
 ```bash
+# 1. Install dependencies
 pnpm install
+
+# 2. Run migrations to create tables
+pnpm --filter @workspace/db run migrate
 ```
 
-### 2. Environment Variables
+*Note: If you are making schema changes, use `pnpm --filter @workspace/db run generate` to create a new migration file.*
 
-Create a `.env` file in the root directory (or set them in your shell):
+### 3. Running the App
 
-```env
-DATABASE_URL=postgres://user:pass@localhost:5432/campus_forum
-SESSION_SECRET=your-secret-here
-PORT=5000
-```
-
-### 3. Run the Project
-
-You can run both the frontend and backend concurrently:
+Start both the frontend and backend concurrently:
 
 ```bash
 pnpm dev
 ```
 
-Or run them separately:
+- **Frontend**: http://localhost:5173
+- **Backend**: http://localhost:5001 (Proxied via `/api`)
 
-- **Frontend**: `pnpm --filter @workspace/forum dev` (runs on http://localhost:5173)
-- **Backend**: `pnpm --filter @workspace/api-server dev` (runs on http://localhost:5000)
+## Security & Best Practices
 
-## Features
-
-- **Sections**: Carpool, Academic, Roommate, and Other.
-- **Search**: Real-time search across all posts.
-- **Anonymous Posting**: Support for posting anonymously even when logged in.
-- **Threaded Discussions**: Indented reply chains for better readability.
-- **Admin Tools**: Built-in logic for administrative post management.
-
-## Project Structure
-
-- `artifacts/forum`: React frontend using Tailwind CSS v4 and Radix UI.
-- `artifacts/api-server`: Express backend with PostgreSQL integration.
-- `lib/db`: Database schema and Drizzle configurations.
-- `lib/api-client-react`: Generated API hooks using Orval.
-- `lib/api-spec`: OpenAPI specifications.
+- **Secrets**: Never commit `.env`. It is ignored by git. Use `.env.example` as a template.
+- **Session**: `trust proxy` is enabled in the backend to support secure cookies behind reverse proxies (like Supabase/Vercel).
+- **CORS**: Configured to allow credentials for session-based authentication.
