@@ -43,6 +43,7 @@ export const RegisterUserResponse = zod.object({
   username: zod.string(),
   displayName: zod.string(),
   email: zod.string(),
+  isAdmin: zod.boolean(),
 });
 
 /**
@@ -58,6 +59,7 @@ export const LoginUserResponse = zod.object({
   username: zod.string(),
   displayName: zod.string(),
   email: zod.string(),
+  isAdmin: zod.boolean(),
 });
 
 /**
@@ -77,6 +79,7 @@ export const GetCurrentUserResponse = zod.object({
       username: zod.string(),
       displayName: zod.string(),
       email: zod.string(),
+      isAdmin: zod.boolean(),
     }),
     zod.null(),
   ]),
@@ -122,9 +125,11 @@ export const CreatePostResponse = zod.object({
   section: zod.enum(["carpool", "academic", "roommate", "other"]),
   title: zod.string(),
   body: zod.string(),
+  authorId: zod.number().nullable(),
   authorName: zod.string(),
   isAnonymous: zod.boolean(),
   createdAt: zod.coerce.date(),
+  canDelete: zod.boolean(),
 });
 
 /**
@@ -140,9 +145,11 @@ export const GetPostResponse = zod.object({
     section: zod.enum(["carpool", "academic", "roommate", "other"]),
     title: zod.string(),
     body: zod.string(),
+    authorId: zod.number().nullable(),
     authorName: zod.string(),
     isAnonymous: zod.boolean(),
     createdAt: zod.coerce.date(),
+    canDelete: zod.boolean(),
   }),
   comments: zod.array(
     zod.object({
@@ -155,6 +162,17 @@ export const GetPostResponse = zod.object({
       createdAt: zod.coerce.date(),
     }),
   ),
+});
+
+/**
+ * @summary Delete a post (author or admin only)
+ */
+export const DeletePostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeletePostResponse = zod.object({
+  ok: zod.boolean(),
 });
 
 /**

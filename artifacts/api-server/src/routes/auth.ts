@@ -50,6 +50,7 @@ router.post("/register", async (req, res) => {
     username: user.username,
     displayName: user.displayName,
     email: user.email,
+    isAdmin: user.isAdmin,
   });
 });
 
@@ -84,6 +85,7 @@ router.post("/login", async (req, res) => {
     username: user.username,
     displayName: user.displayName,
     email: user.email,
+    isAdmin: user.isAdmin,
   });
 });
 
@@ -113,6 +115,7 @@ router.get("/me", async (req, res) => {
       username: user.username,
       displayName: user.displayName,
       email: user.email,
+      isAdmin: user.isAdmin,
     },
   });
 });

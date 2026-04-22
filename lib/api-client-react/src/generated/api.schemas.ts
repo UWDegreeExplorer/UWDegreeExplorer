@@ -55,6 +55,7 @@ export interface User {
   username: string;
   displayName: string;
   email: string;
+  isAdmin: boolean;
 }
 
 export interface CurrentUser {
@@ -103,9 +104,11 @@ export interface Post {
   section: Section;
   title: string;
   body: string;
+  authorId: number | null;
   authorName: string;
   isAnonymous: boolean;
   createdAt: string;
+  canDelete: boolean;
 }
 
 export interface Comment {

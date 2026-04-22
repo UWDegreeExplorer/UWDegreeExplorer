@@ -12,7 +12,9 @@ export interface Post {
   section: Section;
   title: string;
   body: string;
+  authorId: number | null;
   authorName: string;
   isAnonymous: boolean;
   createdAt: Date;
+  canDelete: boolean;
 }

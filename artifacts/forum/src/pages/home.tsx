@@ -6,6 +6,7 @@ import {
   useListPosts,
   useGetPost,
   useCreateComment,
+  useDeletePost,
   useGetSectionStats,
   useGetRecentActivity,
   getGetCurrentUserQueryKey,
@@ -28,6 +29,8 @@ import {
   PencilLine,
   Reply,
   Send,
+  Shield,
+  Trash2,
   User as UserIcon,
   UserCircle2,
 } from "lucide-react";
@@ -45,6 +48,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 const SECTION_LABELS: Record<Section, string> = {
@@ -549,10 +563,43 @@ function ReplyComposer({
 }
 
 function PostDetailPane({ postId }: { postId: number }) {
+  const [, setLocation] = useLocation();
   const { data, isLoading } = useGetPost(postId);
   const { data: currentUserData } = useGetCurrentUser();
   const currentUser = currentUserData?.user;
   const isAnonymousMode = !currentUser;
+  const deletePost = useDeletePost();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const handleDelete = () => {
+    deletePost.mutate(
+      { id: postId },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+          queryClient.invalidateQueries({
+            queryKey: getGetSectionStatsQueryKey(),
+          });
+          queryClient.invalidateQueries({
+            queryKey: getGetRecentActivityQueryKey(),
+          });
+          toast({
+            title: "Post deleted",
+            description: "The post and all its replies have been removed.",
+          });
+          setLocation("/");
+        },
+        onError: (err: any) => {
+          toast({
+            variant: "destructive",
+            title: "Couldn't delete post",
+            description: err?.message || "Please try again.",
+          });
+        },
+      },
+    );
+  };
 
   const childrenByParent = useMemo(() => {
     const map = new Map<number | null, Comment[]>();
@@ -588,18 +635,70 @@ function PostDetailPane({ postId }: { postId: number }) {
   return (
     <ScrollArea className="flex-1">
       <article className="max-w-3xl mx-auto px-10 py-10">
-        <div className="flex items-center gap-2 mb-4">
-          <Badge
-            variant="outline"
-            className="text-[10px] uppercase tracking-wider font-medium px-2 py-0.5"
-          >
-            {SECTION_LABELS[post.section]}
-          </Badge>
-          {post.isAnonymous && (
-            <Badge variant="secondary" className="text-[10px] gap-1 px-2 py-0.5">
-              <UserCircle2 className="w-3 h-3" />
-              Anonymous
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="text-[10px] uppercase tracking-wider font-medium px-2 py-0.5"
+            >
+              {SECTION_LABELS[post.section]}
             </Badge>
+            {post.isAnonymous && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] gap-1 px-2 py-0.5"
+              >
+                <UserCircle2 className="w-3 h-3" />
+                Anonymous
+              </Badge>
+            )}
+          </div>
+          {post.canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-destructive gap-1.5 h-8"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete
+                  {currentUser?.isAdmin &&
+                    post.authorId !== currentUser.id && (
+                      <Badge
+                        variant="outline"
+                        className="ml-1 text-[10px] gap-1 px-1.5 py-0"
+                      >
+                        <Shield className="w-2.5 h-2.5" />
+                        admin
+                      </Badge>
+                    )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently remove the post and all{" "}
+                    {data.comments.length}{" "}
+                    {data.comments.length === 1 ? "reply" : "replies"} on it.
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deletePost.isPending}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={deletePost.isPending}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deletePost.isPending ? "Deleting…" : "Delete post"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
 

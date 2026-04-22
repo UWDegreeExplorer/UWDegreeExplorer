@@ -141,15 +141,31 @@ router.get("/:id", async (req, res) => {
     .where(eq(commentsTable.postId, id))
     .orderBy(commentsTable.createdAt);
 
+  const sessionUserId = req.session.userId ?? null;
+  let viewerIsAdmin = false;
+  if (sessionUserId) {
+    const [viewer] = await db
+      .select({ isAdmin: usersTable.isAdmin })
+      .from(usersTable)
+      .where(eq(usersTable.id, sessionUserId))
+      .limit(1);
+    viewerIsAdmin = viewer?.isAdmin ?? false;
+  }
+  const canDelete =
+    viewerIsAdmin ||
+    (sessionUserId != null && post.authorId === sessionUserId);
+
   res.json({
     post: {
       id: post.id,
       section: post.section,
       title: post.title,
       body: post.body,
+      authorId: post.authorId,
       authorName: post.authorNameSnapshot,
       isAnonymous: post.isAnonymous,
       createdAt: post.createdAt.toISOString(),
+      canDelete,
     },
     comments: comments.map((c) => ({
       id: c.id,
@@ -161,6 +177,50 @@ router.get("/:id", async (req, res) => {
       createdAt: c.createdAt.toISOString(),
     })),
   });
+});
+
+router.delete("/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    res.status(404).json({ message: "Post not found" });
+    return;
+  }
+
+  const sessionUserId = req.session.userId;
+  if (!sessionUserId) {
+    res.status(401).json({ message: "You must be signed in to delete posts" });
+    return;
+  }
+
+  const [post] = await db
+    .select()
+    .from(postsTable)
+    .where(eq(postsTable.id, id))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ message: "Post not found" });
+    return;
+  }
+
+  const [viewer] = await db
+    .select({ isAdmin: usersTable.isAdmin })
+    .from(usersTable)
+    .where(eq(usersTable.id, sessionUserId))
+    .limit(1);
+  const isAdmin = viewer?.isAdmin ?? false;
+  const isAuthor = post.authorId != null && post.authorId === sessionUserId;
+
+  if (!isAdmin && !isAuthor) {
+    res
+      .status(403)
+      .json({ message: "You don't have permission to delete this post" });
+    return;
+  }
+
+  await db.delete(commentsTable).where(eq(commentsTable.postId, id));
+  await db.delete(postsTable).where(eq(postsTable.id, id));
+
+  res.json({ ok: true });
 });
 
 router.post("/:id/comments", async (req, res) => {
