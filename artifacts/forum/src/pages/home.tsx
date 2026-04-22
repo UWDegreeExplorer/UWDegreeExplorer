@@ -354,7 +354,10 @@ function PostList({
     }
   });
 
-  const isLoading = postsLoading || notifyLoading || activityLoading;
+  const isLoading = 
+    (section === "inbox" ? notifyLoading : 
+     section === "my-posts" ? activityLoading : 
+     postsLoading);
 
   return (
     <div className="w-[420px] border-r border-border flex flex-col shrink-0 bg-background">
