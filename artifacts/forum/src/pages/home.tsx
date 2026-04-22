@@ -34,6 +34,10 @@ import {
   Trash2,
   User as UserIcon,
   UserCircle2,
+  Bell,
+  Inbox as InboxIcon,
+  FileText,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,7 +82,7 @@ const SECTION_ICONS: Record<Section, typeof Car> = {
   other: Layers,
 };
 
-type SectionFilter = Section | "all";
+type SectionFilter = Section | "all" | "my-posts" | "inbox";
 
 function relTime(iso: string): string {
   try {
@@ -179,9 +183,11 @@ function Header() {
 function SectionRail({
   active,
   onSelect,
+  unreadCount = 3,
 }: {
   active: SectionFilter;
   onSelect: (s: SectionFilter) => void;
+  unreadCount?: number;
 }) {
   const { data: stats } = useGetSectionStats();
   const totalPosts = useMemo(
@@ -219,7 +225,7 @@ function SectionRail({
           Sections
         </h2>
       </div>
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+      <nav className="px-3 space-y-0.5 overflow-y-auto">
         {items.map(({ key, label, icon: Icon, count }) => {
           const isActive = active === key;
           return (
@@ -249,6 +255,45 @@ function SectionRail({
           );
         })}
       </nav>
+
+      <div className="px-5 mt-6 pb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Personal
+        </h2>
+      </div>
+      <nav className="flex-1 px-3 space-y-0.5">
+        <button
+          onClick={() => onSelect("my-posts")}
+          className={[
+            "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            active === "my-posts"
+              ? "bg-primary/10 text-primary"
+              : "text-foreground/80 hover:bg-accent hover:text-foreground",
+          ].join(" ")}
+        >
+          <FileText className="w-4 h-4 shrink-0" />
+          <span>My Posts</span>
+        </button>
+        <button
+          onClick={() => onSelect("inbox")}
+          className={[
+            "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            active === "inbox"
+              ? "bg-primary/10 text-primary"
+              : "text-foreground/80 hover:bg-accent hover:text-foreground",
+          ].join(" ")}
+        >
+          <span className="flex items-center gap-3">
+            <InboxIcon className="w-4 h-4 shrink-0" />
+            <span>Inbox</span>
+          </span>
+          {unreadCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold ring-1 ring-inset ring-emerald-500/20 leading-none">
+              {unreadCount}
+            </span>
+          )}
+        </button>
+      </nav>
       <div className="p-4 border-t border-border">
         <p className="text-xs text-muted-foreground leading-relaxed">
           A quiet community board for students and alumni. Browse anonymously or
@@ -272,9 +317,13 @@ function PostList({
   search: string;
   onSearchChange: (val: string) => void;
 }) {
+  const { data: currentUserData } = useGetCurrentUser();
+  const currentUser = currentUserData?.user;
+
   const params = {
-    section: section === "all" ? undefined : section,
+    section: (section === "all" || section === "my-posts" || section === "inbox") ? undefined : section,
     search: search.trim() || undefined,
+    authorId: section === "my-posts" ? currentUser?.id : undefined,
   };
   const { data: posts, isLoading } = useListPosts(params);
 
@@ -282,7 +331,10 @@ function PostList({
     <div className="w-[420px] border-r border-border flex flex-col shrink-0 bg-background">
       <div className="px-6 py-5 border-b border-border bg-card/30 shrink-0">
         <h1 className="font-serif text-2xl font-medium tracking-tight">
-          {section === "all" ? "All Discussions" : SECTION_LABELS[section]}
+          {section === "all" ? "All Discussions" : 
+           section === "my-posts" ? "My Activity" :
+           section === "inbox" ? "Notifications" :
+           SECTION_LABELS[section]}
         </h1>
         <div className="flex items-center justify-between mt-1 gap-4">
           <p className="text-sm text-muted-foreground shrink-0">
