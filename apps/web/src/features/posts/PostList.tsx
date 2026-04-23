@@ -34,11 +34,6 @@ export function PostList({
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const toggleLikeMutation = useCustomMutation<any, any>((id: number) => ({
-    url: `/api/likes/posts/${id}/toggle`,
-    method: "POST"
-  }));
-
   const [categoryFilter, setCategoryFilter] = useState<Section | "all">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "post" | "comment">("all");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
@@ -139,25 +134,26 @@ export function PostList({
     return items;
   }, [posts, activity, bookmarks, drafts, likedData, section, categoryFilter, typeFilter, sortOrder, search]);
 
-  const handleLike = (e: React.MouseEvent, id: number) => {
+  const handleLike = async (e: React.MouseEvent, id: number, type: "post" | "comment" = "post") => {
     e.stopPropagation();
     if (!currentUser) {
-      toast({ title: "Please sign in", description: "You need to be logged in to like posts." });
+      toast({ title: "Please sign in", description: "You need to be logged in to like items." });
       return;
     }
 
-    toggleLikeMutation.mutate(id, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListPostsQueryKey({ section: (section === "all" || section === "likes" || section === "my-posts" || section === "bookmarks") ? undefined : section } as any) });
-        queryClient.invalidateQueries({ queryKey: ["/posts/activity"] });
-        queryClient.invalidateQueries({ queryKey: ["/posts/bookmarks"] });
-        queryClient.invalidateQueries({ queryKey: ["/likes/me"] });
-        queryClient.invalidateQueries({ queryKey: ["posts", id] });
-      },
-      onError: (err: any) => {
-        toast({ variant: "destructive", title: "Error", description: err.message });
-      }
-    });
+    try {
+      const url = type === "post" ? `/api/likes/posts/${id}/toggle` : `/api/likes/comments/${id}/toggle`;
+      await customFetch(url, { method: "POST" });
+      
+      // Broad invalidation to catch all lists
+      queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["/posts/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/posts/bookmarks"] });
+      queryClient.invalidateQueries({ queryKey: ["/likes/me"] });
+      queryClient.invalidateQueries({ queryKey: ["posts", id] });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
   };
 
   return (
@@ -384,7 +380,7 @@ export function PostList({
                       >
                         <div className="flex items-center gap-2 mb-1.5">
                           <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-tight">
-                            {p.type ? p.type : SECTION_LABELS[p.section as Section]}
+                            {p.type && p.type !== "post" ? p.type : SECTION_LABELS[p.section as Section]}
                           </Badge>
                           {p.isAnonymous && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Anonymous</Badge>}
                           <span className="text-[11px] text-muted-foreground ml-auto">{relTime(isPost ? p.lastActivityAt : p.createdAt)}</span>
@@ -403,7 +399,7 @@ export function PostList({
                             </div>
                             <div className="flex items-center gap-1.5">
                               <button 
-                                onClick={(e) => handleLike(e, p.id)}
+                                onClick={(e) => handleLike(e, p.id, p.type === "comment" ? "comment" : "post")}
                                 className={["flex items-center gap-1.5 transition-colors", p.isLiked ? "text-red-500" : "hover:text-red-500"].join(" ")}
                               >
                                 <Heart className={["w-3.5 h-3.5", p.isLiked ? "fill-current" : ""].join(" ")} />
@@ -414,16 +410,16 @@ export function PostList({
                               <Bookmark className={["w-3.5 h-3.5", p.isBookmarked ? "fill-primary text-primary" : ""].join(" ")} />
                               <span className="text-xs font-medium">{p.bookmarkCount ?? 0}</span>
                             </div>
-                      </div>
-                      <span className="text-[11px] font-medium text-muted-foreground/70 text-right flex items-center gap-1 justify-end truncate max-w-[150px]">
-                        by {p.isAnonymous && section === "my-posts" ? "Anonymous (Me)" : p.authorName}
-                        {p.isStudentVerified && !p.isAnonymous && <VerifiedBadge className="w-3 h-3" />}
-                      </span>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
+                          </div>
+                          <span className="text-[11px] font-medium text-muted-foreground/70 text-right flex items-center gap-1 justify-end truncate max-w-[150px]">
+                            by {p.isAnonymous && section === "my-posts" ? "Anonymous (Me)" : p.authorName}
+                            {p.isStudentVerified && !p.isAnonymous && <VerifiedBadge className="w-3 h-3" />}
+                          </span>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
             {filteredItems.length === 0 && <EmptyState message="No matching results found" />}
           </ul>
         )}

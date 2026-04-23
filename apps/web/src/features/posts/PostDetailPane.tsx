@@ -34,36 +34,17 @@ function CommentNode({
   const { data: userData } = useGetCurrentUser();
   const currentUser = userData?.user;
 
-  const toggleLikeMutation = useCustomMutation<any, any>(`/api/likes/comments/${comment.id}/toggle`, {
-    fetchOptions: { method: "POST" },
-    onSuccess: (res: { liked: boolean }) => {
-      queryClient.setQueryData(getGetPostQueryKey(postId), (old: any) => {
-        if (!old || !old.comments) return old;
-        return {
-          ...old,
-          comments: old.comments.map((c: any) => 
-            c.id === comment.id 
-              ? { 
-                  ...c, 
-                  isLiked: res.liked, 
-                  likeCount: res.liked ? (c.likeCount + 1) : Math.max(0, c.likeCount - 1) 
-                } 
-              : c
-          )
-        };
-      });
-    },
-    onError: (err: any) => {
-      toast({ variant: "destructive", title: "Error", description: err.message });
-    }
-  });
-
-  const handleLike = () => {
+  const handleLike = async () => {
     if (!currentUser) {
       toast({ title: "Please sign in", description: "You need to be logged in to like comments." });
       return;
     }
-    toggleLikeMutation.mutate({});
+    try {
+      await customFetch(`/api/likes/comments/${comment.id}/toggle`, { method: "POST" });
+      queryClient.invalidateQueries({ queryKey: getGetPostQueryKey(postId) });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
   };
 
   const children = childrenByParent.get(comment.id) ?? [];
@@ -111,7 +92,6 @@ function CommentNode({
             size="sm"
             className={["h-7 px-2 text-xs gap-1.5 transition-colors", (comment as any).isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"].join(" ")}
             onClick={handleLike}
-            disabled={toggleLikeMutation.isPending}
           >
             <Heart className={["w-3 h-3", (comment as any).isLiked ? "fill-current" : ""].join(" ")} />
             <span>{(comment as any).likeCount || 0}</span>
@@ -322,27 +302,20 @@ export function PostDetailPane({ postId }: { postId: number }) {
     }
   });
 
-  const { mutate: toggleLike, isPending: likePending } = useCustomMutation<any, any>(`/api/likes/posts/${postId}/toggle`, {
-    fetchOptions: { method: "POST" },
-    onSuccess: (res: { liked: boolean }) => {
-      queryClient.setQueryData(getGetPostQueryKey(postId), (old: any) => {
-        if (!old || !old.post) return old;
-        return {
-          ...old,
-          post: {
-            ...old.post,
-            isLiked: res.liked,
-            likeCount: res.liked ? (old.post.likeCount + 1) : Math.max(0, old.post.likeCount - 1)
-          }
-        };
-      });
+  const handleToggleLike = async () => {
+    if (!currentUser) {
+      toast({ title: "Please sign in", description: "You need to be logged in to like posts." });
+      return;
+    }
+    try {
+      await customFetch(`/api/likes/posts/${postId}/toggle`, { method: "POST" });
+      queryClient.invalidateQueries({ queryKey: getGetPostQueryKey(postId) });
       queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
       queryClient.invalidateQueries({ queryKey: ["/likes/me"] });
-    },
-    onError: (err: any) => {
+    } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
     }
-  });
+  };
 
   const handleDelete = () => {
     deletePost.mutate(
@@ -449,15 +422,11 @@ export function PostDetailPane({ postId }: { postId: number }) {
             <Button
               variant={(post as any).isLiked ? "default" : "outline"}
               size="sm"
-              disabled={!currentUser || likePending}
-              onClick={() => toggleLike({})}
+              disabled={!currentUser}
+              onClick={handleToggleLike}
               className={["h-8 gap-1.5", (post as any).isLiked ? "bg-red-50 hover:bg-red-100 border-red-200 text-red-600" : "text-muted-foreground hover:text-red-600 hover:bg-red-50 hover:border-red-100"].join(" ")}
             >
-              {likePending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Heart className={["w-3.5 h-3.5", (post as any).isLiked ? "fill-current" : ""].join(" ")} />
-              )}
+              <Heart className={["w-3.5 h-3.5", (post as any).isLiked ? "fill-current" : ""].join(" ")} />
               <span>{(post as any).isLiked ? "Liked" : "Like"}</span>
               {(post as any).likeCount > 0 && (
                 <Badge variant={(post as any).isLiked ? "secondary" : "outline"} className={["ml-0.5 h-4 px-1 text-[9px]", (post as any).isLiked ? "bg-red-100 text-red-700 border-none" : ""].join(" ")}>
