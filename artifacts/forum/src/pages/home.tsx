@@ -591,6 +591,7 @@ function PostList({
             })}
             {filteredItems.length === 0 && <EmptyState message="No matching results found" />}
           </ul>
+        </div>
         )}
       </ScrollArea>
     </div>

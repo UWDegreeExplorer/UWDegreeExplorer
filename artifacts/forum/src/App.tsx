@@ -8,7 +8,16 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import NewPost from "@/pages/new-post";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // Keep data fresh for 60 seconds by default
+      gcTime: 5 * 60 * 1000, // Cache data for 5 minutes
+      retry: 1,
+      refetchOnWindowFocus: false, // Prevent unnecessary refetching when switching tabs
+    },
+  },
+});
 
 function Router() {
   return (

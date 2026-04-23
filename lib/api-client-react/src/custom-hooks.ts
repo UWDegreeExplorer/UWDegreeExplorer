@@ -9,7 +9,6 @@ export function useCustomFetch<TData = any, TError = any>(
   return useQuery<TData, TError>({
     queryKey: [url, fetchOptions],
     queryFn: () => customFetch<TData>(`/api${url}`, fetchOptions),
-    staleTime: 60000, // 60 seconds of fresh data
     ...queryOptions as any,
   });
 }
