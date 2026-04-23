@@ -278,7 +278,7 @@ function SectionRail({
           ].join(" ")}
         >
           <FileText className="w-4 h-4 shrink-0" />
-          <span>My Posts</span>
+          <span>My Activity</span>
         </button>
         <button
           onClick={() => {

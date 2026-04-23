@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, postsTable, commentsTable, usersTable } from "@workspace/db";
+import { db, postsTable, commentsTable, usersTable, notificationsTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import {
   CreatePostBody,
@@ -347,9 +347,9 @@ router.post("/:id/comments", async (req, res) => {
       .limit(1);
     if (authorUser) {
       // Create in-app notification
-      await db.insert(require("@workspace/db").notificationsTable).values({
+      await db.insert(notificationsTable).values({
         userId: post.authorId,
-        actorId: userId || 0,
+        actorId: userId,
         type: "reply_to_post",
         postId: post.id,
         commentId: comment.id,
@@ -363,6 +363,24 @@ router.post("/:id/comments", async (req, res) => {
         postId: post.id,
         replierName: authorNameSnapshot,
         replyExcerpt,
+      });
+    }
+  }
+
+  if (parentId != null) {
+    const [parentComment] = await db
+      .select()
+      .from(commentsTable)
+      .where(eq(commentsTable.id, parentId))
+      .limit(1);
+    
+    if (parentComment && parentComment.authorId && parentComment.authorId !== userId) {
+      await db.insert(notificationsTable).values({
+        userId: parentComment.authorId,
+        actorId: userId,
+        type: "reply_to_comment",
+        postId: post.id,
+        commentId: comment.id,
       });
     }
   }

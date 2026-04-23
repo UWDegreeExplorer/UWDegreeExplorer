@@ -38,13 +38,14 @@ router.get("/", async (req, res) => {
     })
     .from(notificationsTable)
     .innerJoin(postsTable, eq(notificationsTable.postId, postsTable.id))
-    .innerJoin(usersTable, eq(notificationsTable.actorId, usersTable.id))
+    .leftJoin(usersTable, eq(notificationsTable.actorId, usersTable.id))
     .where(eq(notificationsTable.userId, userId))
     .orderBy(desc(notificationsTable.createdAt))
     .limit(50);
 
   res.json(rows.map(r => ({
     ...r,
+    actorName: r.actorName || "Anonymous",
     createdAt: r.createdAt.toISOString()
   })));
 });
