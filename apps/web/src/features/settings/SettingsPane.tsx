@@ -191,7 +191,63 @@ export function SettingsPane() {
         </header>
 
         <div className="space-y-8">
+          
           <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" /> Security
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Account Password</p>
+                  <p className="text-xs text-muted-foreground/70">Change your login password to keep your account secure.</p>
+                </div>
+                <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8">Change Password</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Change Password</DialogTitle>
+                      <DialogDescription>
+                        Enter your current password and choose a new one.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="current">Current Password</Label>
+                        <Input 
+                          id="current" 
+                          type="password" 
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="new">New Password</Label>
+                        <Input 
+                          id="new" 
+                          type="password" 
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleChangePassword} disabled={isChangingPassword}>
+                        {isChangingPassword ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        Update Password
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden"
             <div className="px-6 py-4 border-b border-border bg-muted/30">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Profile Information
