@@ -65,7 +65,10 @@ router.get("/", async (req, res) => {
 // GET /api/me/activity - Unified feed of user's posts and comments
 router.get("/activity", async (req, res) => {
   const userId = req.session.userId;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
   const userPosts = await db
     .select({
@@ -412,10 +415,16 @@ router.post("/:id/comments", async (req, res) => {
 // POST /api/posts/:id/bookmark - Toggle bookmark
 router.post("/:id/bookmark", async (req, res) => {
   const userId = req.session.userId;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
   const id = parseInt(req.params.id);
-  if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+  if (isNaN(id)) {
+    res.status(400).json({ message: "Invalid ID" });
+    return;
+  }
 
   const [existing] = await db
     .select()
@@ -440,7 +449,10 @@ router.post("/:id/bookmark", async (req, res) => {
 // GET /api/posts/bookmarks - Get user's bookmarked posts
 router.get("/bookmarks", async (req, res) => {
   const userId = req.session.userId;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
   const rows = await db
     .select({

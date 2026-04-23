@@ -3,19 +3,19 @@ import { customFetch, type CustomFetchOptions } from "./custom-fetch";
 
 export function useCustomFetch<TData = any, TError = any>(
   url: string,
-  options?: UseQueryOptions<TData, TError> & { fetchOptions?: CustomFetchOptions }
+  options?: Omit<UseQueryOptions<TData, TError>, "queryKey" | "queryFn"> & { fetchOptions?: CustomFetchOptions }
 ) {
   const { fetchOptions, ...queryOptions } = options || {};
   return useQuery<TData, TError>({
     queryKey: [url, fetchOptions],
     queryFn: () => customFetch<TData>(`/api${url}`, fetchOptions),
-    ...queryOptions,
+    ...queryOptions as any,
   });
 }
 
 export function useCustomMutation<TData = any, TError = any, TVariables = any>(
   url: string,
-  options?: UseMutationOptions<TData, TError, TVariables> & { fetchOptions?: CustomFetchOptions }
+  options?: Omit<UseMutationOptions<TData, TError, TVariables>, "mutationFn"> & { fetchOptions?: CustomFetchOptions }
 ) {
   const { fetchOptions, ...mutationOptions } = options || {};
   return useMutation<TData, TError, TVariables>({

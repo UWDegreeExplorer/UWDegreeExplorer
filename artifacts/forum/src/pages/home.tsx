@@ -236,7 +236,7 @@ function SectionRail({
         </div>
         {(Object.keys(SECTION_LABELS) as Section[]).map((s) => {
           const Icon = SECTION_ICONS[s];
-          const count = stats?.[s] ?? 0;
+          const count = (stats as any)?.[s] ?? 0;
           return (
             <button
               key={s}
@@ -345,9 +345,11 @@ function PostList({
     section: (section === "all" || section === "my-posts" || section === "inbox" || section === "bookmarks") ? undefined : section,
     search: search.trim() || undefined,
     authorId: section === "my-posts" ? currentUser?.id : undefined,
-  }, {
-    enabled: section !== "inbox" && section !== "my-posts" && section !== "bookmarks"
-  });
+  } as any, {
+    query: {
+      enabled: section !== "inbox" && section !== "my-posts" && section !== "bookmarks"
+    }
+  } as any);
 
   const { data: notifications, isLoading: notifyLoading, refetch: refetchNotify } = useCustomFetch<any[]>("/notifications", {
     enabled: section === "inbox" && !!currentUser,
@@ -362,7 +364,7 @@ function PostList({
   });
 
   const { mutate: markAllRead } = useCustomMutation<any, any>("/notifications/read-all", {
-    method: "POST",
+    fetchOptions: { method: "POST" },
     onSuccess: () => {
       refetchNotify();
       queryClient.invalidateQueries({ queryKey: ["/notifications/unread-count"] });
@@ -418,7 +420,7 @@ function PostList({
              SECTION_LABELS[section as Section]}
           </h1>
           {section === "inbox" && notifications && notifications.length > 0 && (
-            <Button variant="ghost" size="xs" onClick={() => markAllRead({})} className="text-xs text-muted-foreground hover:text-primary">
+            <Button variant="ghost" size="sm" onClick={() => markAllRead({})} className="text-xs text-muted-foreground hover:text-primary">
               Mark all read
             </Button>
           )}
@@ -440,7 +442,7 @@ function PostList({
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="xs" className="h-7 text-[10px] gap-1 px-2 border-dashed">
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2 border-dashed">
                     <Filter className="w-3 h-3" />
                     {categoryFilter === "all" ? "All Categories" : SECTION_LABELS[categoryFilter as Section]}
                   </Button>
@@ -456,7 +458,7 @@ function PostList({
               {(section === "my-posts" || section === "bookmarks") && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="xs" className="h-7 text-[10px] gap-1 px-2 border-dashed">
+                    <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2 border-dashed">
                       <Layers className="w-3 h-3" />
                       {typeFilter === "all" ? "All Types" : typeFilter.charAt(0).toUpperCase() + typeFilter.slice(1) + "s"}
                     </Button>
@@ -471,7 +473,7 @@ function PostList({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="xs" className="h-7 text-[10px] gap-1 px-2 border-dashed ml-auto">
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2 border-dashed ml-auto">
                     <ArrowUpDown className="w-3 h-3" />
                     {sortOrder === "newest" ? "Newest" : "Oldest"}
                   </Button>
@@ -788,7 +790,7 @@ function PostDetailPane({ postId }: { postId: number }) {
   const { toast } = useToast();
 
   const { mutate: toggleBookmark, isPending: bookmarkPending } = useCustomMutation<any, any>(`/posts/${postId}/bookmark`, {
-    method: "POST",
+    fetchOptions: { method: "POST" },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: getGetPostQueryKey(postId) });
       queryClient.invalidateQueries({ queryKey: ["/posts/bookmarks"] });

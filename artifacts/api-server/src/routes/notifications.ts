@@ -8,7 +8,8 @@ const router: IRouter = Router();
 router.get("/unread-count", async (req, res) => {
   const userId = req.session.userId;
   if (!userId) {
-    return res.json({ count: 0 });
+    res.json({ count: 0 });
+    return;
   }
 
   const [row] = await db
@@ -23,7 +24,8 @@ router.get("/unread-count", async (req, res) => {
 router.get("/", async (req, res) => {
   const userId = req.session.userId;
   if (!userId) {
-    return res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
+    return;
   }
 
   const rows = await db
@@ -53,7 +55,10 @@ router.get("/", async (req, res) => {
 // Mark all as read
 router.post("/read-all", async (req, res) => {
   const userId = req.session.userId;
-  if (!userId) return res.status(401).end();
+  if (!userId) {
+    res.status(401).end();
+    return;
+  }
 
   await db
     .update(notificationsTable)

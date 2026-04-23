@@ -95,6 +95,8 @@ export interface PostSummary {
   authorName: string;
   isAnonymous: boolean;
   commentCount: number;
+  bookmarkCount: number;
+  isBookmarked: boolean;
   createdAt: string;
   lastActivityAt: string;
 }
@@ -109,6 +111,8 @@ export interface Post {
   isAnonymous: boolean;
   createdAt: string;
   canDelete: boolean;
+  bookmarkCount: number;
+  isBookmarked: boolean;
 }
 
 export interface Comment {
@@ -154,4 +158,5 @@ export interface ActivityItem {
 export type ListPostsParams = {
   section?: Section;
   search?: string;
+  authorId?: number;
 };

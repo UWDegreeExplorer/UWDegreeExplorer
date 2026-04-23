@@ -102,6 +102,8 @@ export const ListPostsResponseItem = zod.object({
   authorName: zod.string(),
   isAnonymous: zod.boolean(),
   commentCount: zod.number(),
+  bookmarkCount: zod.number(),
+  isBookmarked: zod.boolean(),
   createdAt: zod.coerce.date(),
   lastActivityAt: zod.coerce.date(),
 });
@@ -151,6 +153,8 @@ export const GetPostResponse = zod.object({
     isAnonymous: zod.boolean(),
     createdAt: zod.coerce.date(),
     canDelete: zod.boolean(),
+    bookmarkCount: zod.number(),
+    isBookmarked: zod.boolean(),
   }),
   comments: zod.array(
     zod.object({
@@ -258,6 +262,8 @@ export const GetActivityResponseItem = zod.object({
   title: zod.string(),
   content: zod.string(),
   type: zod.enum(["post", "comment"]),
+  bookmarkCount: zod.number().optional(),
+  isBookmarked: zod.boolean().optional(),
   createdAt: zod.coerce.date(),
 });
 export const GetActivityResponse = zod.array(GetActivityResponseItem);
