@@ -747,7 +747,7 @@ function ReplyComposer({
         <p className="text-sm text-muted-foreground text-center">
           Sign in to join the discussion and share your thoughts.
         </p>
-        <Button size="sm" variant="outline" onClick={() => window.location.href = "/auth"} className="gap-2">
+        <Button size="sm" variant="outline" onClick={() => window.location.href = "/login"} className="gap-2">
           <UserCircle2 className="w-4 h-4" />
           Sign In / Sign Up
         </Button>
