@@ -59,7 +59,6 @@ router.post("/register", async (req, res) => {
     email: user.email,
     isAdmin: user.isAdmin,
     isStudentVerified: user.isStudentVerified,
-    createdAt: user.createdAt,
     studentEmail: user.studentEmail,
     createdAt: user.createdAt,
   });
@@ -72,7 +71,6 @@ router.post("/login", async (req, res) => {
     return;
   }
   const { username, password } = parsed.data;
-  console.log(`[Login Debug] Starting login for: ${username}`);
 
   const [user] = await db
     .select()
@@ -84,37 +82,21 @@ router.post("/login", async (req, res) => {
     res.status(401).json({ message: "Invalid credentials" });
     return;
   }
-  console.log(`[Login Debug] User ${user.username} found. Attempts: ${user.loginAttempts}, Lockout: ${user.lockoutUntil}`);
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) {
-    // Increment failed attempts
     const newAttempts = user.loginAttempts + 1;
     let lockoutUntil = user.lockoutUntil;
-    
     if (newAttempts >= 5) {
-      lockoutUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 mins
+      lockoutUntil = new Date(Date.now() + 15 * 60 * 1000);
     }
-    
-    await db
-      .update(usersTable)
-      .set({ loginAttempts: newAttempts, lockoutUntil })
-      .where(eq(usersTable.id, user.id));
-
-    res.status(401).json({ 
-      message: newAttempts >= 5 
-        ? "Too many failed attempts. Your account has been locked for 15 minutes." 
-        : "Invalid credentials" 
-    });
+    await db.update(usersTable).set({ loginAttempts: newAttempts, lockoutUntil }).where(eq(usersTable.id, user.id));
+    res.status(401).json({ message: newAttempts >= 5 ? "Account locked for 15 minutes." : "Invalid credentials" });
     return;
   }
 
-  // Success: Reset attempts
   if (user.loginAttempts > 0 || user.lockoutUntil) {
-    await db
-      .update(usersTable)
-      .set({ loginAttempts: 0, lockoutUntil: null })
-      .where(eq(usersTable.id, user.id));
+    await db.update(usersTable).set({ loginAttempts: 0, lockoutUntil: null }).where(eq(usersTable.id, user.id));
   }
 
   req.session.userId = user.id;
@@ -125,7 +107,6 @@ router.post("/login", async (req, res) => {
     email: user.email,
     isAdmin: user.isAdmin,
     isStudentVerified: user.isStudentVerified,
-    createdAt: user.createdAt,
     studentEmail: user.studentEmail,
     createdAt: user.createdAt,
   });
@@ -133,79 +114,32 @@ router.post("/login", async (req, res) => {
 
 router.post("/google", async (req, res) => {
   const parsed = GoogleLoginBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ message: "Invalid Google token data" });
-    return;
-  }
+  if (!parsed.success) return res.status(400).json({ message: "Invalid Google data" });
   const { accessToken } = parsed.data;
 
   try {
-    const tokenInfo = await googleClient.getTokenInfo(accessToken);
-    
-    if (!tokenInfo.email) {
-      res.status(401).json({ message: "Invalid Google token (no email)" });
-      return;
-    }
-
-    const email = tokenInfo.email;
-    // Note: getTokenInfo doesn't give name/picture easily.
-    // We might need to fetch userinfo with the token.
     const userRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`);
     const googleUser = await userRes.json() as any;
-    
-    const { name, picture, email_verified } = googleUser;
+    const { name, picture, email, email_verified } = googleUser;
 
-    if (!email_verified) {
-      res.status(401).json({ message: "Google email is not verified" });
-      return;
-    }
+    if (!email_verified) return res.status(401).json({ message: "Email not verified" });
 
-    // 1. Find existing user by email
-    let [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, email))
-      .limit(1);
+    let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
 
     if (!user) {
-      // 2. Create new user if not found
       const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
-      let username = baseUsername;
-      let attempts = 0;
       const randomPass = Math.random().toString(36).slice(-16);
       const passwordHash = await bcrypt.hash(randomPass, 10);
-
-      while (attempts < 5) {
-        try {
-          [user] = await db
-            .insert(usersTable)
-            .values({
-              username,
-              displayName: name || username,
-              email,
-              passwordHash,
-              avatarUrl: picture || null,
-            })
-            .returning();
-          break; // Success!
-        } catch (err: any) {
-          // PostgreSQL unique_violation error code is 23505
-          const isUsernameCollision = err.code === "23505" && (err.detail?.includes("username") || err.message?.includes("username"));
-          
-          if (isUsernameCollision && attempts < 4) {
-            username = `${baseUsername}${Math.random().toString(36).slice(-4)}`;
-            attempts++;
-          } else {
-            throw err; // Re-throw if it's not a username collision or we're out of attempts
-          }
-        }
-      }
+      [user] = await db.insert(usersTable).values({
+        username: `${baseUsername}${Math.random().toString(36).slice(-4)}`,
+        displayName: name || baseUsername,
+        email,
+        passwordHash,
+        avatarUrl: picture || null,
+      }).returning();
     }
 
-    if (!user) {
-      res.status(500).json({ message: "Failed to process Google login" });
-      return;
-    }
+    if (!user) return res.status(500).json({ message: "Auth failed" });
 
     req.session.userId = user.id;
     res.json({
@@ -214,38 +148,24 @@ router.post("/google", async (req, res) => {
       displayName: user.displayName,
       email: user.email,
       isAdmin: user.isAdmin,
-      avatarUrl: picture || user.avatarUrl || null,
       isStudentVerified: user.isStudentVerified,
-    createdAt: user.createdAt,
       studentEmail: user.studentEmail,
-    createdAt: user.createdAt,
-  });
+      createdAt: user.createdAt,
+      avatarUrl: picture || user.avatarUrl || null,
+    });
   } catch (error) {
-    console.error("Google verify error:", error);
-    res.status(401).json({ message: "Google authentication failed" });
+    res.status(401).json({ message: "Google auth failed" });
   }
 });
 
 router.post("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.json({ ok: true });
-  });
+  req.session.destroy(() => res.json({ ok: true }));
 });
 
 router.get("/me", async (req, res) => {
-  if (!req.session.userId) {
-    res.json({ user: null });
-    return;
-  }
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, req.session.userId))
-    .limit(1);
-  if (!user) {
-    res.json({ user: null });
-    return;
-  }
+  if (!req.session.userId) return res.json({ user: null });
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
+  if (!user) return res.json({ user: null });
   res.json({
     user: {
       id: user.id,
@@ -253,160 +173,65 @@ router.get("/me", async (req, res) => {
       displayName: user.displayName,
       email: user.email,
       isAdmin: user.isAdmin,
-      avatarUrl: user.avatarUrl ?? null,
       isStudentVerified: user.isStudentVerified,
-    createdAt: user.createdAt,
       studentEmail: user.studentEmail,
+      createdAt: user.createdAt,
+      avatarUrl: user.avatarUrl ?? null,
     },
   });
 });
 
 router.patch("/me", async (req, res) => {
-  if (!req.session.userId) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
+  if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
   const parsed = UpdateCurrentUserBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ message: "Invalid update data" });
-    return;
-  }
-
+  if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
   const { username, displayName, email } = parsed.data;
 
   try {
-    // 1. Check if user exists
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, req.session.userId))
-      .limit(1);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    // 2. Check for username/email collisions if they are changing
-    if (username && username !== user.username) {
-      const [collision] = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.username, username))
-        .limit(1);
-      if (collision) {
-        res.status(400).json({ message: "Username already taken" });
-        return;
-      }
-    }
-
-    if (email && email !== user.email) {
-      const [collision] = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.email, email))
-        .limit(1);
-      if (collision) {
-        res.status(400).json({ message: "Email already taken" });
-        return;
-      }
-    }
-
-    // 3. Update user
-    const [updatedUser] = await db
-      .update(usersTable)
-      .set({
-        ...(username && { username }),
-        ...(displayName && { displayName }),
-        ...(email && { email }),
-      })
-      .where(eq(usersTable.id, req.session.userId))
-      .returning();
+    const [updatedUser] = await db.update(usersTable).set({
+      ...(username && { username }),
+      ...(displayName && { displayName }),
+      ...(email && { email }),
+    }).where(eq(usersTable.id, req.session.userId)).returning();
 
     const { passwordHash: _, ...userWithoutPassword } = updatedUser;
     res.json(userWithoutPassword);
   } catch (error) {
-    console.error("Update user error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Internal error" });
   }
 });
 
-
 router.post("/register/send-code", async (req, res) => {
   const parsed = RegisterUserBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ message: "Invalid registration data" });
-    return;
-  }
+  if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
   const { username, email, password } = parsed.data;
+  const existing = await db.select().from(usersTable).where(or(eq(usersTable.username, username), eq(usersTable.email, email))).limit(1);
+  if (existing.length > 0) return res.status(409).json({ message: "In use" });
+
   const passwordHash = await bcrypt.hash(password, 10);
-  const pendingData = { ...parsed.data, password: passwordHash };
-
-  // Check if username or email already in use
-  const existing = await db
-    .select()
-    .from(usersTable)
-    .where(or(eq(usersTable.username, username), eq(usersTable.email, email)))
-    .limit(1);
-
-  if (existing.length > 0) {
-    res.status(409).json({ message: "Username or email already in use" });
-    return;
-  }
-
-  const result = await requestVerificationCode(email, pendingData);
-  if (!result.success) {
-    res.status(429).json({ message: result.message });
-    return;
-  }
-
+  const result = await requestVerificationCode(email, { ...parsed.data, password: passwordHash });
+  if (!result.success) return res.status(429).json({ message: result.message });
   res.json({ message: result.message });
 });
 
 router.post("/register/verify", async (req, res) => {
   const { email, code } = req.body;
-  if (!email || !code) {
-    res.status(400).json({ message: "Email and code are required" });
-    return;
-  }
-
   const result = await verifyCode(email, code);
-  if (!result.success) {
-    res.status(400).json({ message: result.message });
-    return;
-  }
+  if (!result.success || !result.pendingUserData) return res.status(400).json({ message: "Invalid" });
 
-  const userData = result.pendingUserData;
-  if (!userData) {
-    res.status(400).json({ message: "No pending registration found for this email" });
-    return;
-  }
-
-  const { username, displayName, password: passwordHash } = userData;
-  
+  const { username, displayName, password: passwordHash } = result.pendingUserData;
   const isUWaterloo = email.endsWith("@uwaterloo.ca");
 
-  const [user] = await db
-    .insert(usersTable)
-    .values({
-      username,
-      displayName,
-      email,
-      passwordHash,
-      studentEmail: isUWaterloo ? email : null,
-      isStudentVerified: isUWaterloo,
-    })
-    .returning();
+  const [user] = await db.insert(usersTable).values({
+    username, displayName, email, passwordHash,
+    studentEmail: isUWaterloo ? email : null,
+    isStudentVerified: isUWaterloo,
+  }).returning();
 
-  if (!user) {
-    res.status(500).json({ message: "Failed to create user" });
-    return;
-  }
-
-  // Cleanup: Delete the verification record after successful registration
   await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.email, email));
-
   req.session.userId = user.id;
   res.json({
     id: user.id,
@@ -415,125 +240,47 @@ router.post("/register/verify", async (req, res) => {
     email: user.email,
     isAdmin: user.isAdmin,
     isStudentVerified: user.isStudentVerified,
-    createdAt: user.createdAt,
     studentEmail: user.studentEmail,
     createdAt: user.createdAt,
   });
 });
 
-
 router.delete("/me", async (req, res) => {
-  if (!req.session.userId) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
-  const userId = req.session.userId;
-
-  try {
-    // Delete the user record. Foreign keys are set to 'set null' for posts/comments.
-    await db.delete(usersTable).where(eq(usersTable.id, userId));
-
-    // Destroy session
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Session destruction error:", err);
-        res.status(500).json({ message: "Failed to logout after account deletion" });
-        return;
-      }
-      res.json({ message: "Account successfully deleted" });
-    });
-  } catch (err) {
-    console.error("Delete account error:", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
+  if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+  await db.delete(usersTable).where(eq(usersTable.id, req.session.userId));
+  req.session.destroy(() => res.json({ message: "Deleted" }));
 });
 
-
-
-
-// --- Reset Password Routes ---
+// --- Password Routes ---
 router.post("/reset-password/send-code", async (req, res) => {
   const { email } = req.body;
-  if (!email) {
-    res.status(400).json({ message: "Email is required" });
-    return;
-  }
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-  if (!user) {
-    res.status(404).json({ message: "No account found with this email address." });
-    return;
-  }
+  if (!user) return res.status(404).json({ message: "Not found" });
   const result = await requestVerificationCode(email);
-  if (!result.success) {
-    res.status(429).json({ message: result.message });
-    return;
-  }
-  res.json({ message: "Verification code sent to your email." });
+  if (!result.success) return res.status(429).json({ message: result.message });
+  res.json({ message: "Sent" });
 });
 
 router.post("/reset-password/verify", async (req, res) => {
   const { email, code, newPassword } = req.body;
-  if (!email || !code || !newPassword) {
-    res.status(400).json({ message: "Missing fields" });
-    return;
-  }
-  if (newPassword.length < 6) {
-    res.status(400).json({ message: "Password too short" });
-    return;
-  }
+  if (!email || !code || !newPassword || newPassword.length < 6) return res.status(400).json({ message: "Invalid" });
   const result = await verifyCode(email, code);
-  if (!result.success) {
-    res.status(400).json({ message: result.message });
-    return;
-  }
+  if (!result.success) return res.status(400).json({ message: result.message });
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await db.update(usersTable).set({ passwordHash, loginAttempts: 0, lockoutUntil: null }).where(eq(usersTable.email, email));
   await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.email, email));
-  res.json({ message: "Password reset successful." });
+  res.json({ message: "Success" });
 });
 
-
 router.post("/change-password", async (req, res) => {
-  if (!req.session.userId) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
+  if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
   const { currentPassword, newPassword } = req.body;
-  if (!newPassword || newPassword.length < 6) {
-    res.status(400).json({ message: "New password must be at least 6 characters" });
-    return;
-  }
-
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, req.session.userId))
-    .limit(1);
-
-  if (!user) {
-    res.status(404).json({ message: "User not found" });
-    return;
-  }
-
-  // If user has a password set (not a "fresh" Google user who hasn't set one yet)
-  // we check if they provided the correct current password.
-  // Note: For simplicity, we treat all users as having a password (since Google login sets a random one).
-  const isMatch = await bcrypt.compare(currentPassword || "", user.passwordHash);
-  
-  // Security Exception: If it's a Google user who forgot their random-generated password,
-  // they should use the "Forgot Password" flow from login page.
-  // BUT for the Settings page, we'll require current password for safety.
-  if (!isMatch) {
-    res.status(400).json({ message: "Current password is incorrect" });
-    return;
-  }
-
+  if (!newPassword || newPassword.length < 6) return res.status(400).json({ message: "Invalid" });
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
+  if (!user || !(await bcrypt.compare(currentPassword || "", user.passwordHash))) return res.status(400).json({ message: "Incorrect password" });
   const newHash = await bcrypt.hash(newPassword, 10);
   await db.update(usersTable).set({ passwordHash: newHash }).where(eq(usersTable.id, user.id));
-
-  res.json({ message: "Password updated successfully" });
+  res.json({ message: "Updated" });
 });
 
 export default router;
