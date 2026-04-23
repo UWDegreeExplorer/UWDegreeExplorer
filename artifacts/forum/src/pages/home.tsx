@@ -360,15 +360,15 @@ function PostList({
   } as any);
 
   const { data: notifications, isLoading: notifyLoading, refetch: refetchNotify } = useCustomFetch<any[]>("/notifications", {
-    enabled: section === "inbox" && !!currentUser,
+    enabled: section === "inbox",
   });
 
   const { data: activity, isLoading: activityLoading } = useCustomFetch<any[]>("/posts/activity", {
-    enabled: section === "my-posts" && !!currentUser,
+    enabled: section === "my-posts",
   });
 
   const { data: bookmarks, isLoading: bookmarkLoading } = useCustomFetch<any[]>("/posts/bookmarks", {
-    enabled: section === "bookmarks" && !!currentUser,
+    enabled: section === "bookmarks",
   });
 
   const { mutate: markAllRead } = useCustomMutation<any, any>("/notifications/read-all", {

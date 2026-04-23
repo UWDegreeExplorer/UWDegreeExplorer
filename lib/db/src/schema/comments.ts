@@ -5,6 +5,7 @@ import {
   timestamp,
   integer,
   boolean,
+  index,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 import { postsTable } from "./posts";
@@ -24,6 +25,11 @@ export const commentsTable = pgTable("comments", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+}, (table) => {
+  return {
+    authorIdIdx: index("comments_author_id_idx").on(table.authorId),
+    postIdIdx: index("comments_post_id_idx").on(table.postId),
+  };
 });
 
 export type Comment = typeof commentsTable.$inferSelect;

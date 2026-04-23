@@ -85,13 +85,14 @@ router.get("/activity", async (req, res) => {
   const userComments = await db
     .select({
       id: commentsTable.id,
-      postId: commentsTable.postId, // 关键补全
-      title: sql<string>`(SELECT title FROM ${postsTable} WHERE id = ${commentsTable.postId})`,
+      postId: commentsTable.postId,
+      title: postsTable.title,
       content: commentsTable.body,
       createdAt: commentsTable.createdAt,
       type: sql<string>`'comment'`,
     })
     .from(commentsTable)
+    .leftJoin(postsTable, eq(commentsTable.postId, postsTable.id))
     .where(eq(commentsTable.authorId, userId));
 
   const combined = [...userPosts, ...userComments].sort(

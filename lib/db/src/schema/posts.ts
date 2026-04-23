@@ -5,6 +5,7 @@ import {
   timestamp,
   integer,
   boolean,
+  index,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
@@ -32,6 +33,10 @@ export const postsTable = pgTable("posts", {
   lastActivityAt: timestamp("last_activity_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+}, (table) => {
+  return {
+    authorIdIdx: index("posts_author_id_idx").on(table.authorId),
+  };
 });
 
 export type Post = typeof postsTable.$inferSelect;
