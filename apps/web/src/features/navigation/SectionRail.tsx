@@ -1,6 +1,6 @@
 import { useGetCurrentUser, useGetSectionStats, useCustomFetch, type Section } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen, PencilLine, Home as HomeIcon, Layers, User as UserIcon, FileText, Bookmark, FileEdit, Inbox as InboxIcon } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PencilLine, Home as HomeIcon, Layers, User as UserIcon, FileText, Bookmark, FileEdit, Inbox as InboxIcon, Heart } from "lucide-react";
 import { type SectionFilter, SECTION_LABELS, SECTION_ICONS } from "@/lib/constants";
 
 export function SectionRail({
@@ -126,7 +126,7 @@ export function SectionRail({
               title="Personal"
               className={[
                 "w-full flex items-center justify-center h-10 w-10 mx-auto rounded-md text-sm font-medium transition-all relative",
-                (active === "my-posts" || active === "bookmarks" || active === "drafts" || active === "inbox")
+                (active === "my-posts" || active === "bookmarks" || active === "likes" || active === "drafts" || active === "inbox")
                   ? "bg-primary/10 text-primary"
                   : "text-foreground/80 hover:bg-accent hover:text-foreground",
               ].join(" ")}
@@ -165,6 +165,19 @@ export function SectionRail({
               >
                 <Bookmark className="w-4 h-4 shrink-0" />
                 <span>Bookmarks</span>
+              </button>
+
+              <button
+                onClick={() => onSelect("likes")}
+                className={[
+                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
+                  active === "likes"
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground/80 hover:bg-accent hover:text-foreground",
+                ].join(" ")}
+              >
+                <Heart className="w-4 h-4 shrink-0" />
+                <span>Likes</span>
               </button>
 
               <button

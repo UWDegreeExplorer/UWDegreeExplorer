@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Filter, ArrowUpDown, Loader2, FileEdit, Trash2, MessageSquare, Bookmark, Layers } from "lucide-react";
+import { Search, Filter, ArrowUpDown, Loader2, FileEdit, Trash2, MessageSquare, Bookmark, Layers, Heart } from "lucide-react";
 import { type SectionFilter, SECTION_LABELS } from "@/lib/constants";
 import { relTime, excerpt } from "@/lib/utils";
 import { ReplyComposer } from "./PostDetailPane";
@@ -33,6 +33,11 @@ export function PostList({
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  const toggleLikeMutation = useCustomMutation<any, any>((id: number) => ({
+    url: `/api/likes/posts/${id}/toggle`,
+    method: "POST"
+  }));
 
   const [categoryFilter, setCategoryFilter] = useState<Section | "all">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "post" | "comment">("all");
@@ -64,6 +69,10 @@ export function PostList({
     enabled: section === "drafts",
   });
 
+  const { data: likedData, isLoading: likesLoading, isFetching: isFetchingLikes } = useCustomFetch<any>("/likes/me", {
+    enabled: section === "likes",
+  });
+
   const { mutate: markAllRead } = useCustomMutation<any, any>("/notifications/read-all", {
     fetchOptions: { method: "POST" },
     onSuccess: () => {
@@ -77,6 +86,7 @@ export function PostList({
      section === "my-posts" ? activityLoading : 
      section === "bookmarks" ? bookmarkLoading :
      section === "drafts" ? draftsLoading :
+     section === "likes" ? likesLoading :
      postsLoading);
 
   const isFetching = 
@@ -84,6 +94,7 @@ export function PostList({
      section === "my-posts" ? isFetchingActivity : 
      section === "bookmarks" ? isFetchingBookmark :
      section === "drafts" ? isFetchingDrafts :
+     section === "likes" ? isFetchingLikes :
      isFetchingPosts);
 
   const filteredItems = useMemo(() => {
@@ -91,6 +102,16 @@ export function PostList({
     if (section === "my-posts") items = [...(activity ?? [])];
     else if (section === "bookmarks") items = [...(bookmarks ?? [])];
     else if (section === "drafts") items = [...(drafts ?? [])];
+    else if (section === "likes") {
+      const posts = (likedData?.posts || []).map((p: any) => ({ ...p, type: "post" }));
+      const comments = (likedData?.comments || []).map((c: any) => ({ 
+        ...c, 
+        type: "comment", 
+        title: `Reply: ${excerpt(c.body, 40)}`,
+        content: c.body // Map body to content for consistent rendering
+      }));
+      items = [...posts, ...comments];
+    }
     else items = [...(posts ?? [])];
 
     if (categoryFilter !== "all" && section !== "inbox") {
@@ -110,13 +131,34 @@ export function PostList({
     }
 
     items.sort((a, b) => {
-      const da = new Date(a.createdAt).getTime();
-      const db = new Date(b.createdAt).getTime();
-      return sortOrder === "newest" ? db - da : da - db;
+      const timeA = section === "likes" ? new Date(a.likedAt).getTime() : new Date(a.createdAt).getTime();
+      const timeB = section === "likes" ? new Date(b.likedAt).getTime() : new Date(b.createdAt).getTime();
+      return sortOrder === "newest" ? timeB - timeA : timeA - timeB;
     });
 
     return items;
-  }, [posts, activity, bookmarks, section, categoryFilter, typeFilter, sortOrder, search]);
+  }, [posts, activity, bookmarks, drafts, likedData, section, categoryFilter, typeFilter, sortOrder, search]);
+
+  const handleLike = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (!currentUser) {
+      toast({ title: "Please sign in", description: "You need to be logged in to like posts." });
+      return;
+    }
+
+    toggleLikeMutation.mutate(id, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListPostsQueryKey({ section: (section === "all" || section === "likes" || section === "my-posts" || section === "bookmarks") ? undefined : section } as any) });
+        queryClient.invalidateQueries({ queryKey: ["/posts/activity"] });
+        queryClient.invalidateQueries({ queryKey: ["/posts/bookmarks"] });
+        queryClient.invalidateQueries({ queryKey: ["/likes/me"] });
+        queryClient.invalidateQueries({ queryKey: ["posts", id] });
+      },
+      onError: (err: any) => {
+        toast({ variant: "destructive", title: "Error", description: err.message });
+      }
+    });
+  };
 
   return (
     <div className="w-full h-full border-r border-border flex flex-col min-w-0 bg-background">
@@ -327,10 +369,12 @@ export function PostList({
                 {Array.isArray(filteredItems) && filteredItems.map((p) => {
                   const isActive = p.id === selectedId;
                   const isPost = p.type === "post" || p.type === undefined;
+                  const postId = isPost ? p.id : p.postId;
+
                   return (
                     <li key={`${p.type || 'post'}-${p.id}`}>
                       <button
-                        onClick={() => onSelect(isPost ? p.id : p.postId)}
+                        onClick={() => onSelect(postId)}
                         className={[
                           "w-full text-left px-6 py-4 transition-colors",
                           isActive
@@ -356,6 +400,15 @@ export function PostList({
                             <div className="flex items-center gap-1.5">
                               <MessageSquare className="w-3.5 h-3.5" />
                               <span className="text-xs font-medium">{p.commentCount ?? 0}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button 
+                                onClick={(e) => handleLike(e, p.id)}
+                                className={["flex items-center gap-1.5 transition-colors", p.isLiked ? "text-red-500" : "hover:text-red-500"].join(" ")}
+                              >
+                                <Heart className={["w-3.5 h-3.5", p.isLiked ? "fill-current" : ""].join(" ")} />
+                                <span className="text-xs font-medium">{p.likeCount ?? 0}</span>
+                              </button>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Bookmark className={["w-3.5 h-3.5", p.isBookmarked ? "fill-primary text-primary" : ""].join(" ")} />

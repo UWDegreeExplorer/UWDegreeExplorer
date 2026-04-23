@@ -163,7 +163,9 @@ export default function Home() {
       setLocation("/bookmarks");
     } else if (s === "my-posts") {
       setLocation("/activity");
-    } else if (matchPost || matchSettings || matchBookmarks || matchActivity) {
+    } else if (s === "likes") {
+      setLocation("/likes");
+    } else if (matchPost || matchSettings || matchBookmarks || matchActivity || matchLikes) {
       setLocation("/");
     }
   };
@@ -171,6 +173,7 @@ export default function Home() {
   const [matchSettings] = useRoute("/settings");
   const [matchBookmarks] = useRoute("/bookmarks");
   const [matchActivity] = useRoute("/activity");
+  const [matchLikes] = useRoute("/likes");
 
   useEffect(() => {
     if (matchSettings) {
@@ -179,6 +182,8 @@ export default function Home() {
       setActiveSection("bookmarks");
     } else if (matchActivity) {
       setActiveSection("my-posts");
+    } else if (matchLikes) {
+      setActiveSection("likes");
     }
   }, [matchSettings, matchBookmarks, matchActivity]);
 

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, postsTable, commentsTable, usersTable, notificationsTable, bookmarksTable, draftsTable } from "@workspace/db";
+import { db, postsTable, commentsTable, usersTable, notificationsTable, bookmarksTable, draftsTable, likesTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import {
   CreatePostBody,
@@ -45,12 +45,18 @@ router.get("/", async (req, res) => {
       commentCount: sql<number>`(SELECT COUNT(*) FROM ${commentsTable} WHERE post_id = ${postsTable.id})`,
       bookmarkCount: sql<number>`(SELECT COUNT(*) FROM ${bookmarksTable} WHERE post_id = ${postsTable.id})`,
       isBookmarked: sql<boolean>`CASE WHEN ${bookmarksTable.id} IS NOT NULL THEN TRUE ELSE FALSE END`,
+      likeCount: sql<number>`(SELECT COUNT(*) FROM ${likesTable} WHERE post_id = ${postsTable.id})`,
+      isLiked: sql<boolean>`CASE WHEN ${likesTable.id} IS NOT NULL THEN TRUE ELSE FALSE END`,
     })
     .from(postsTable)
     .leftJoin(usersTable, eq(postsTable.authorId, usersTable.id))
     .leftJoin(bookmarksTable, and(
       eq(bookmarksTable.postId, postsTable.id),
       eq(bookmarksTable.userId, userId || -1)
+    ))
+    .leftJoin(likesTable, and(
+      eq(likesTable.postId, postsTable.id),
+      eq(likesTable.userId, userId || -1)
     ))
     .where(filters.length > 0 ? and(...filters) : undefined)
     .orderBy(desc(postsTable.lastActivityAt));
@@ -63,6 +69,8 @@ router.get("/", async (req, res) => {
       commentCount: Number(r.commentCount),
       bookmarkCount: Number(r.bookmarkCount),
       isBookmarked: Boolean(r.isBookmarked),
+      likeCount: Number(r.likeCount),
+      isLiked: Boolean(r.isLiked),
       isStudentVerified: Boolean(r.isStudentVerified),
       createdAt: r.createdAt.toISOString(),
       lastActivityAt: r.lastActivityAt.toISOString(),
@@ -153,18 +161,31 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
+  const sessionUserId = req.session.userId ?? null;
+
   const commentsData = await db
     .select({
       comment: commentsTable,
       isStudentVerified: usersTable.isStudentVerified,
+      likeCount: sql<number>`(SELECT COUNT(*) FROM ${likesTable} WHERE comment_id = ${commentsTable.id})`,
+      isLiked: sql<boolean>`CASE WHEN ${likesTable.id} IS NOT NULL THEN TRUE ELSE FALSE END`,
     })
     .from(commentsTable)
     .leftJoin(usersTable, eq(commentsTable.authorId, usersTable.id))
+    .leftJoin(likesTable, and(
+      eq(likesTable.commentId, commentsTable.id),
+      eq(likesTable.userId, sessionUserId || -1)
+    ))
     .where(eq(commentsTable.postId, id))
     .orderBy(commentsTable.createdAt);
-  const comments = commentsData.map(c => ({ ...c.comment, isStudentVerified: c.isStudentVerified }));
 
-  const sessionUserId = req.session.userId ?? null;
+  const comments = commentsData.map(c => ({ 
+    ...c.comment, 
+    isStudentVerified: c.isStudentVerified,
+    likeCount: Number(c.likeCount),
+    isLiked: Boolean(c.isLiked)
+  }));
+
   let viewerIsAdmin = false;
   if (sessionUserId) {
     const [viewer] = await db
@@ -183,11 +204,17 @@ router.get("/:id", async (req, res) => {
     .select({
       bookmarkCount: sql<number>`CAST((SELECT COUNT(*) FROM ${bookmarksTable} WHERE post_id = ${postsTable.id}) AS INTEGER)`,
       isBookmarked: sql<boolean>`CASE WHEN ${bookmarksTable.id} IS NOT NULL THEN TRUE ELSE FALSE END`,
+      likeCount: sql<number>`CAST((SELECT COUNT(*) FROM ${likesTable} WHERE post_id = ${postsTable.id}) AS INTEGER)`,
+      isLiked: sql<boolean>`CASE WHEN ${likesTable.id} IS NOT NULL THEN TRUE ELSE FALSE END`,
     })
     .from(postsTable)
     .leftJoin(bookmarksTable, and(
       eq(bookmarksTable.postId, postsTable.id),
       eq(bookmarksTable.userId, userId || -1)
+    ))
+    .leftJoin(likesTable, and(
+      eq(likesTable.postId, postsTable.id),
+      eq(likesTable.userId, userId || -1)
     ))
     .where(eq(postsTable.id, id))
     .limit(1);
@@ -196,6 +223,8 @@ router.get("/:id", async (req, res) => {
   const finalMetadata = {
     bookmarkCount: Number(data?.bookmarkCount ?? 0),
     isBookmarked: Boolean(data?.isBookmarked),
+    likeCount: Number(data?.likeCount ?? 0),
+    isLiked: Boolean(data?.isLiked),
   };
 
   res.json({

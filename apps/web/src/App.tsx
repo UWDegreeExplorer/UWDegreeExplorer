@@ -29,6 +29,7 @@ function Router() {
       <Route path="/new" component={NewPost} />
       <Route path="/settings" component={Home} />
       <Route path="/bookmarks" component={Home} />
+      <Route path="/likes" component={Home} />
       <Route path="/activity" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />

@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { UserCircle2, Loader2, Bookmark, Trash2, MessageCircle, Reply, Send } from "lucide-react";
+import { UserCircle2, Loader2, Bookmark, Trash2, MessageCircle, Reply, Send, Heart } from "lucide-react";
 
 function CommentNode({
   comment,
@@ -29,6 +29,43 @@ function CommentNode({
   isAnonymousMode: boolean;
 }) {
   const [showReply, setShowReply] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: userData } = useGetCurrentUser();
+  const currentUser = userData?.user;
+
+  const toggleLikeMutation = useCustomMutation<any, any>(`/api/likes/comments/${comment.id}/toggle`, {
+    fetchOptions: { method: "POST" },
+    onSuccess: (res: { liked: boolean }) => {
+      queryClient.setQueryData(getGetPostQueryKey(postId), (old: any) => {
+        if (!old || !old.comments) return old;
+        return {
+          ...old,
+          comments: old.comments.map((c: any) => 
+            c.id === comment.id 
+              ? { 
+                  ...c, 
+                  isLiked: res.liked, 
+                  likeCount: res.liked ? (c.likeCount + 1) : Math.max(0, c.likeCount - 1) 
+                } 
+              : c
+          )
+        };
+      });
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
+  });
+
+  const handleLike = () => {
+    if (!currentUser) {
+      toast({ title: "Please sign in", description: "You need to be logged in to like comments." });
+      return;
+    }
+    toggleLikeMutation.mutate({});
+  };
+
   const children = childrenByParent.get(comment.id) ?? [];
   const indent = Math.min(depth, 3);
 
@@ -59,7 +96,7 @@ function CommentNode({
         <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
           {comment.body}
         </p>
-        <div className="mt-2 -ml-1">
+        <div className="mt-2 -ml-1 flex items-center gap-1">
           <Button
             variant="ghost"
             size="sm"
@@ -68,6 +105,16 @@ function CommentNode({
           >
             <Reply className="w-3 h-3" />
             Reply
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={["h-7 px-2 text-xs gap-1.5 transition-colors", (comment as any).isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"].join(" ")}
+            onClick={handleLike}
+            disabled={toggleLikeMutation.isPending}
+          >
+            <Heart className={["w-3 h-3", (comment as any).isLiked ? "fill-current" : ""].join(" ")} />
+            <span>{(comment as any).likeCount || 0}</span>
           </Button>
         </div>
         {showReply && (
@@ -275,6 +322,28 @@ export function PostDetailPane({ postId }: { postId: number }) {
     }
   });
 
+  const { mutate: toggleLike, isPending: likePending } = useCustomMutation<any, any>(`/api/likes/posts/${postId}/toggle`, {
+    fetchOptions: { method: "POST" },
+    onSuccess: (res: { liked: boolean }) => {
+      queryClient.setQueryData(getGetPostQueryKey(postId), (old: any) => {
+        if (!old || !old.post) return old;
+        return {
+          ...old,
+          post: {
+            ...old.post,
+            isLiked: res.liked,
+            likeCount: res.liked ? (old.post.likeCount + 1) : Math.max(0, old.post.likeCount - 1)
+          }
+        };
+      });
+      queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["/likes/me"] });
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
+  });
+
   const handleDelete = () => {
     deletePost.mutate(
       { id: postId },
@@ -373,6 +442,26 @@ export function PostDetailPane({ postId }: { postId: number }) {
               {post.bookmarkCount > 0 && (
                 <Badge variant={post.isBookmarked ? "secondary" : "outline"} className="ml-0.5 h-4 px-1 text-[9px]">
                   {post.bookmarkCount}
+                </Badge>
+              )}
+            </Button>
+
+            <Button
+              variant={(post as any).isLiked ? "default" : "outline"}
+              size="sm"
+              disabled={!currentUser || likePending}
+              onClick={() => toggleLike({})}
+              className={["h-8 gap-1.5", (post as any).isLiked ? "bg-red-50 hover:bg-red-100 border-red-200 text-red-600" : "text-muted-foreground hover:text-red-600 hover:bg-red-50 hover:border-red-100"].join(" ")}
+            >
+              {likePending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Heart className={["w-3.5 h-3.5", (post as any).isLiked ? "fill-current" : ""].join(" ")} />
+              )}
+              <span>{(post as any).isLiked ? "Liked" : "Like"}</span>
+              {(post as any).likeCount > 0 && (
+                <Badge variant={(post as any).isLiked ? "secondary" : "outline"} className={["ml-0.5 h-4 px-1 text-[9px]", (post as any).isLiked ? "bg-red-100 text-red-700 border-none" : ""].join(" ")}>
+                  {(post as any).likeCount}
                 </Badge>
               )}
             </Button>
