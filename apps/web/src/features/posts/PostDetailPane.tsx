@@ -40,7 +40,7 @@ function CommentNode({
       return;
     }
     try {
-      await customFetch(`/api/likes/comments/${comment.id}/toggle`, { method: "POST" });
+      await customFetch(`/likes/comments/${comment.id}/toggle`, { method: "POST" });
       queryClient.invalidateQueries({ queryKey: getGetPostQueryKey(postId) });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
@@ -308,7 +308,7 @@ export function PostDetailPane({ postId }: { postId: number }) {
       return;
     }
     try {
-      await customFetch(`/api/likes/posts/${postId}/toggle`, { method: "POST" });
+      await customFetch(`/likes/posts/${postId}/toggle`, { method: "POST" });
       queryClient.invalidateQueries({ queryKey: getGetPostQueryKey(postId) });
       queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
       queryClient.invalidateQueries({ queryKey: ["/likes/me"] });
