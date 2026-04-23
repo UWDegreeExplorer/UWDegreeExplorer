@@ -114,7 +114,8 @@ router.post("/login", async (req, res) => {
 
 router.post("/google", async (req, res) => {
   const parsed = GoogleLoginBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ message: "Invalid Google data" });
+  if (!parsed.success) res.status(400).json({ message: "Invalid Google data" });
+  if (!parsed.success) return;
   const { accessToken } = parsed.data;
 
   try {
@@ -122,7 +123,8 @@ router.post("/google", async (req, res) => {
     const googleUser = await userRes.json() as any;
     const { name, picture, email, email_verified } = googleUser;
 
-    if (!email_verified) return res.status(401).json({ message: "Email not verified" });
+    if (!email_verified) res.status(401).json({ message: "Email not verified" });
+    if (!email_verified) return;
 
     let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
 
@@ -139,7 +141,8 @@ router.post("/google", async (req, res) => {
       }).returning();
     }
 
-    if (!user) return res.status(500).json({ message: "Auth failed" });
+    if (!user) res.status(500).json({ message: "Auth failed" });
+    if (!user) return;
 
     req.session.userId = user.id;
     res.json({
@@ -163,9 +166,11 @@ router.post("/logout", (req, res) => {
 });
 
 router.get("/me", async (req, res) => {
-  if (!req.session.userId) return res.json({ user: null });
+  if (!req.session.userId) res.json({ user: null });
+  if (!req.session.userId) return;
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
-  if (!user) return res.json({ user: null });
+  if (!user) res.json({ user: null });
+  if (!user) return;
   res.json({
     user: {
       id: user.id,
@@ -182,14 +187,17 @@ router.get("/me", async (req, res) => {
 });
 
 router.patch("/me", async (req, res) => {
-  if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!req.session.userId) res.status(401).json({ message: "Unauthorized" });
+  if (!req.session.userId) return;
   const parsed = UpdateCurrentUserBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
+  if (!parsed.success) res.status(400).json({ message: "Invalid data" });
+  if (!parsed.success) return;
   const { username, displayName, email } = parsed.data;
 
   try {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) res.status(404).json({ message: "User not found" });
+    if (!user) return;
 
     const [updatedUser] = await db.update(usersTable).set({
       ...(username && { username }),
@@ -206,21 +214,25 @@ router.patch("/me", async (req, res) => {
 
 router.post("/register/send-code", async (req, res) => {
   const parsed = RegisterUserBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
+  if (!parsed.success) res.status(400).json({ message: "Invalid data" });
+  if (!parsed.success) return;
   const { username, email, password } = parsed.data;
   const existing = await db.select().from(usersTable).where(or(eq(usersTable.username, username), eq(usersTable.email, email))).limit(1);
-  if (existing.length > 0) return res.status(409).json({ message: "In use" });
+  if (existing.length > 0) res.status(409).json({ message: "In use" });
+  if (existing.length > 0) return;
 
   const passwordHash = await bcrypt.hash(password, 10);
   const result = await requestVerificationCode(email, { ...parsed.data, password: passwordHash });
-  if (!result.success) return res.status(429).json({ message: result.message });
+  if (!result.success) res.status(429).json({ message: result.message });
+  if (!result.success) return;
   res.json({ message: result.message });
 });
 
 router.post("/register/verify", async (req, res) => {
   const { email, code } = req.body;
   const result = await verifyCode(email, code);
-  if (!result.success || !result.pendingUserData) return res.status(400).json({ message: "Invalid" });
+  if (!result.success || !result.pendingUserData) res.status(400).json({ message: "Invalid" });
+  if (!result.success || !result.pendingUserData) return;
 
   const { username, displayName, password: passwordHash } = result.pendingUserData;
   const isUWaterloo = email.endsWith("@uwaterloo.ca");
@@ -246,7 +258,8 @@ router.post("/register/verify", async (req, res) => {
 });
 
 router.delete("/me", async (req, res) => {
-  if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!req.session.userId) res.status(401).json({ message: "Unauthorized" });
+  if (!req.session.userId) return;
   await db.delete(usersTable).where(eq(usersTable.id, req.session.userId));
   req.session.destroy(() => res.json({ message: "Deleted" }));
 });
@@ -255,17 +268,21 @@ router.delete("/me", async (req, res) => {
 router.post("/reset-password/send-code", async (req, res) => {
   const { email } = req.body;
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-  if (!user) return res.status(404).json({ message: "Not found" });
+  if (!user) res.status(404).json({ message: "Not found" });
+  if (!user) return;
   const result = await requestVerificationCode(email);
-  if (!result.success) return res.status(429).json({ message: result.message });
+  if (!result.success) res.status(429).json({ message: result.message });
+  if (!result.success) return;
   res.json({ message: "Sent" });
 });
 
 router.post("/reset-password/verify", async (req, res) => {
   const { email, code, newPassword } = req.body;
-  if (!email || !code || !newPassword || newPassword.length < 6) return res.status(400).json({ message: "Invalid" });
+  if (!email || !code || !newPassword || newPassword.length < 6) res.status(400).json({ message: "Invalid" });
+  if (!email || !code || !newPassword || newPassword.length < 6) return;
   const result = await verifyCode(email, code);
-  if (!result.success) return res.status(400).json({ message: result.message });
+  if (!result.success) res.status(400).json({ message: result.message });
+  if (!result.success) return;
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await db.update(usersTable).set({ passwordHash, loginAttempts: 0, lockoutUntil: null }).where(eq(usersTable.email, email));
   await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.email, email));
@@ -273,11 +290,14 @@ router.post("/reset-password/verify", async (req, res) => {
 });
 
 router.post("/change-password", async (req, res) => {
-  if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!req.session.userId) res.status(401).json({ message: "Unauthorized" });
+  if (!req.session.userId) return;
   const { currentPassword, newPassword } = req.body;
-  if (!newPassword || newPassword.length < 6) return res.status(400).json({ message: "Invalid" });
+  if (!newPassword || newPassword.length < 6) res.status(400).json({ message: "Invalid" });
+  if (!newPassword || newPassword.length < 6) return;
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
-  if (!user || !(await bcrypt.compare(currentPassword || "", user.passwordHash))) return res.status(400).json({ message: "Incorrect password" });
+  if (!user || !(await bcrypt.compare(currentPassword || "", user.passwordHash))) res.status(400).json({ message: "Incorrect password" });
+  if (!user || !(await bcrypt.compare(currentPassword || "", user.passwordHash))) return;
   const newHash = await bcrypt.hash(newPassword, 10);
   await db.update(usersTable).set({ passwordHash: newHash }).where(eq(usersTable.id, user.id));
   res.json({ message: "Updated" });
