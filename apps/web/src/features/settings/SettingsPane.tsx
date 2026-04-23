@@ -192,7 +192,7 @@ export function SettingsPane() {
 
         <div className="space-y-8">
           
-          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">>
             <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4" /> Security
@@ -247,7 +247,7 @@ export function SettingsPane() {
             </div>
           </section>
 
-          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden"
+          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-border bg-muted/30">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Profile Information
@@ -332,7 +332,7 @@ export function SettingsPane() {
           </section>
 
           
-          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">>
             <div className="px-6 py-4 border-b border-border bg-muted/30">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Student Verification
@@ -397,7 +397,7 @@ export function SettingsPane() {
             </div>
           </section>
 
-          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">>
             <div className="px-6 py-4 border-b border-border bg-muted/30">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Appearance
