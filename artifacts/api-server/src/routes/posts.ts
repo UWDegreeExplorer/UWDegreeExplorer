@@ -54,6 +54,7 @@ router.get("/", async (req, res) => {
   res.json(
     rows.map((r) => ({
       ...r,
+      authorName: r.isAnonymous ? "Anonymous" : r.authorName,
       excerpt: "", // Excerpt is derived on frontend if needed, or we can add it here if schema supported it
       createdAt: r.createdAt.toISOString(),
       lastActivityAt: r.lastActivityAt.toISOString(),
@@ -195,6 +196,15 @@ router.get("/:id", async (req, res) => {
     viewerIsAdmin ||
     (sessionUserId != null && post.authorId === sessionUserId);
 
+  const userId = req.session.userId;
+  const [metadata] = await db
+    .select({
+      bookmarkCount: sql<number>`(SELECT COUNT(*) FROM ${bookmarksTable} WHERE post_id = ${postsTable.id})`,
+      isBookmarked: userId ? sql<boolean>`EXISTS(SELECT 1 FROM ${bookmarksTable} WHERE post_id = ${postsTable.id} AND user_id = ${userId})` : sql<boolean>`false`,
+    })
+    .from(postsTable)
+    .where(eq(postsTable.id, id));
+
   res.json({
     post: {
       id: post.id,
@@ -202,17 +212,18 @@ router.get("/:id", async (req, res) => {
       title: post.title,
       body: post.body,
       authorId: post.authorId,
-      authorName: post.authorNameSnapshot,
+      authorName: post.isAnonymous ? "Anonymous" : post.authorNameSnapshot,
       isAnonymous: post.isAnonymous,
       createdAt: post.createdAt.toISOString(),
       canDelete,
+      ...metadata,
     },
     comments: comments.map((c) => ({
       id: c.id,
       postId: c.postId,
       parentId: c.parentId,
       body: c.body,
-      authorName: c.authorNameSnapshot,
+      authorName: c.isAnonymous ? "Anonymous" : c.authorNameSnapshot,
       isAnonymous: c.isAnonymous,
       createdAt: c.createdAt.toISOString(),
     })),
