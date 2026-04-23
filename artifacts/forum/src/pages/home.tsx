@@ -198,6 +198,8 @@ function SectionRail({
   active: SectionFilter;
   onSelect: (s: SectionFilter) => void;
 }) {
+  const { data: userData } = useGetCurrentUser();
+  const currentUser = userData?.user;
   const { data: stats } = useGetSectionStats();
   const { data: unreadData } = useCustomFetch<any>("/notifications/unread-count");
   const unreadCount = unreadData?.count ?? 0;
@@ -207,7 +209,13 @@ function SectionRail({
       <div className="p-4">
         <Button
           className="w-full justify-start gap-2.5 shadow-sm"
-          onClick={() => (window.location.href = "/new")}
+          onClick={() => {
+            if (currentUser) {
+              window.location.href = "/new";
+            } else {
+              window.location.href = "/auth";
+            }
+          }}
         >
           <PencilLine className="w-4 h-4" />
           Create New Post
@@ -733,6 +741,20 @@ function ReplyComposer({
     );
   };
 
+  if (isAnonymousMode) {
+    return (
+      <div className={compact ? "p-3 border rounded-lg bg-muted/30" : "rounded-xl border border-dashed border-border bg-card/50 p-6 shadow-sm flex flex-col items-center justify-center gap-3"}>
+        <p className="text-sm text-muted-foreground text-center">
+          Sign in to join the discussion and share your thoughts.
+        </p>
+        <Button size="sm" variant="outline" onClick={() => window.location.href = "/auth"} className="gap-2">
+          <UserCircle2 className="w-4 h-4" />
+          Sign In / Sign Up
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className={compact ? "" : "rounded-xl border border-border bg-card p-4 shadow-sm"}>
       <Textarea
@@ -742,17 +764,10 @@ function ReplyComposer({
         className={compact ? "min-h-[80px] resize-y bg-background" : "min-h-[110px] resize-y bg-background text-base leading-relaxed"}
       />
       <div className="flex items-center justify-between mt-3 gap-3 flex-wrap">
-        {isAnonymousMode ? (
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <UserCircle2 className="w-3.5 h-3.5" />
-            Posting as Anonymous (you are not signed in)
-          </p>
-        ) : (
-          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-            <Switch checked={anonymous} onCheckedChange={setAnonymous} />
-            Post anonymously
-          </label>
-        )}
+        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+          <Switch checked={anonymous} onCheckedChange={setAnonymous} />
+          Post anonymously
+        </label>
         <div className="flex items-center gap-2 ml-auto">
           {onDone && (
             <Button

@@ -105,6 +105,12 @@ router.get("/activity", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Only logged-in users can create posts" });
+    return;
+  }
+
   const parsed = CreatePostBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid post data" });
@@ -278,6 +284,12 @@ router.delete("/:id", async (req, res) => {
 });
 
 router.post("/:id/comments", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Only logged-in users can comment" });
+    return;
+  }
+
   const postId = Number(req.params.id);
   if (!Number.isFinite(postId)) {
     res.status(404).json({ message: "Post not found" });
