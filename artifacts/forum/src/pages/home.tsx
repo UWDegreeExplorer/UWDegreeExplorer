@@ -497,10 +497,9 @@ function PostList({
       </div>
 
       <ScrollArea className="flex-1">
-        {isLoading ? (
-          <div className="p-8 flex flex-col items-center justify-center text-muted-foreground text-center">
-            <Loader2 className="w-6 h-6 animate-spin mb-2 opacity-20" />
-            <span className="text-xs font-medium">Loading items...</span>
+        {(isLoading && filteredItems.length === 0) ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
           </div>
         ) : section === "inbox" ? (
           <ul className="divide-y divide-border">
