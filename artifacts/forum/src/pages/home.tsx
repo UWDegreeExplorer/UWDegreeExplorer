@@ -349,7 +349,7 @@ function PostList({
   const [typeFilter, setTypeFilter] = useState<"all" | "post" | "comment">("all");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
-  const { data: posts, isLoading: postsLoading } = useListPosts({
+  const { data: posts, isLoading: postsLoading, isFetching: isFetchingPosts } = useListPosts({
     section: (section === "all" || section === "my-posts" || section === "inbox" || section === "bookmarks") ? undefined : section,
     search: search.trim() || undefined,
     authorId: section === "my-posts" ? currentUser?.id : undefined,
@@ -359,15 +359,15 @@ function PostList({
     }
   } as any);
 
-  const { data: notifications, isLoading: notifyLoading, refetch: refetchNotify } = useCustomFetch<any[]>("/notifications", {
+  const { data: notifications, isLoading: notifyLoading, isFetching: isFetchingNotify, refetch: refetchNotify } = useCustomFetch<any[]>("/notifications", {
     enabled: section === "inbox",
   });
 
-  const { data: activity, isLoading: activityLoading } = useCustomFetch<any[]>("/posts/activity", {
+  const { data: activity, isLoading: activityLoading, isFetching: isFetchingActivity } = useCustomFetch<any[]>("/posts/activity", {
     enabled: section === "my-posts",
   });
 
-  const { data: bookmarks, isLoading: bookmarkLoading } = useCustomFetch<any[]>("/posts/bookmarks", {
+  const { data: bookmarks, isLoading: bookmarkLoading, isFetching: isFetchingBookmark } = useCustomFetch<any[]>("/posts/bookmarks", {
     enabled: section === "bookmarks",
   });
 
@@ -384,6 +384,12 @@ function PostList({
      section === "my-posts" ? activityLoading : 
      section === "bookmarks" ? bookmarkLoading :
      postsLoading);
+
+  const isFetching = 
+    (section === "inbox" ? isFetchingNotify : 
+     section === "my-posts" ? isFetchingActivity : 
+     section === "bookmarks" ? isFetchingBookmark :
+     isFetchingPosts);
 
   const filteredItems = useMemo(() => {
     let items = [];
@@ -496,77 +502,84 @@ function PostList({
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 relative">
+        {/* Subtle background fetching indicator */}
+        {isFetching && filteredItems.length > 0 && (
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 animate-pulse z-20" />
+        )}
+
         {(isLoading && filteredItems.length === 0) ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
           </div>
-        ) : section === "inbox" ? (
-          <ul className="divide-y divide-border">
-            {notifications?.map((n) => (
-              <li key={n.id}>
-                <button
-                  onClick={() => onSelect(n.postId)}
-                  className={[
-                    "w-full text-left px-6 py-4 transition-colors hover:bg-accent/50",
-                    !n.isRead && "bg-primary/[0.03] relative after:absolute after:left-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary"
-                  ].join(" ")}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant={n.isRead ? "outline" : "secondary"} className="text-[10px] py-0">
-                      {n.type === "reply_to_post" ? "Post Reply" : "Comment Reply"}
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground">{relTime(n.createdAt)}</span>
-                  </div>
-                  <p className="text-sm leading-snug">
-                    <span className="font-bold text-foreground">{n.actorName}</span>
-                    <span className="text-muted-foreground"> replied to: </span>
-                    <span className="font-medium">"{n.postTitle}"</span>
-                  </p>
-                </button>
-              </li>
-            ))}
-            {notifications?.length === 0 && <EmptyState message="No notifications yet" />}
-          </ul>
         ) : (
-          <ul className="divide-y divide-border">
-            {filteredItems.map((p) => {
-              const isActive = p.id === selectedId;
-              const isPost = p.type === "post" || p.type === undefined;
-              return (
-                <li key={`${p.type || 'post'}-${p.id}`}>
-                  <button
-                    onClick={() => onSelect(isPost ? p.id : p.postId)}
-                    className={[
-                      "w-full text-left px-6 py-4 transition-colors",
-                      isActive
-                        ? "bg-primary/5 border-l-2 border-l-primary -ml-px"
-                        : "hover:bg-accent/50 border-l-2 border-l-transparent -ml-px",
-                    ].join(" ")}
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-tight">
-                        {p.type ? p.type : SECTION_LABELS[p.section as Section]}
-                      </Badge>
-                      {p.isAnonymous && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Anonymous</Badge>}
-                      <span className="text-[11px] text-muted-foreground ml-auto">{relTime(isPost ? p.lastActivityAt : p.createdAt)}</span>
-                    </div>
-                    <h3 className="font-serif text-[15px] font-semibold leading-tight text-foreground group-hover:text-primary transition-colors mb-1.5">
-                      {p.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-3">
-                      {p.excerpt || excerpt(p.content || "", 120)}
-                    </p>
-                    <div className="flex items-center justify-between mt-auto">
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span className="text-xs font-medium">{p.commentCount ?? 0}</span>
+          <div className={isFetching && filteredItems.length > 0 ? "opacity-60 transition-opacity duration-300 pointer-events-auto" : "transition-opacity duration-300"}>
+            {section === "inbox" ? (
+              <ul className="divide-y divide-border">
+                {notifications?.map((n) => (
+                  <li key={n.id}>
+                    <button
+                      onClick={() => onSelect(n.postId)}
+                      className={[
+                        "w-full text-left px-6 py-4 transition-colors hover:bg-accent/50",
+                        !n.isRead && "bg-primary/[0.03] relative after:absolute after:left-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary"
+                      ].join(" ")}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant={n.isRead ? "outline" : "secondary"} className="text-[10px] py-0">
+                          {n.type === "reply_to_post" ? "Post Reply" : "Comment Reply"}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">{relTime(n.createdAt)}</span>
+                      </div>
+                      <p className="text-sm leading-snug">
+                        <span className="font-bold text-foreground">{n.actorName}</span>
+                        <span className="text-muted-foreground"> replied to: </span>
+                        <span className="font-medium">"{n.postTitle}"</span>
+                      </p>
+                    </button>
+                  </li>
+                ))}
+                {notifications?.length === 0 && <EmptyState message="No notifications yet" />}
+              </ul>
+            ) : (
+              <ul className="divide-y divide-border">
+                {filteredItems.map((p) => {
+                  const isActive = p.id === selectedId;
+                  const isPost = p.type === "post" || p.type === undefined;
+                  return (
+                    <li key={`${p.type || 'post'}-${p.id}`}>
+                      <button
+                        onClick={() => onSelect(isPost ? p.id : p.postId)}
+                        className={[
+                          "w-full text-left px-6 py-4 transition-colors",
+                          isActive
+                            ? "bg-primary/5 border-l-2 border-l-primary -ml-px"
+                            : "hover:bg-accent/50 border-l-2 border-l-transparent -ml-px",
+                        ].join(" ")}
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-tight">
+                            {p.type ? p.type : SECTION_LABELS[p.section as Section]}
+                          </Badge>
+                          {p.isAnonymous && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Anonymous</Badge>}
+                          <span className="text-[11px] text-muted-foreground ml-auto">{relTime(isPost ? p.lastActivityAt : p.createdAt)}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Bookmark className={["w-3.5 h-3.5", p.isBookmarked ? "fill-primary text-primary" : ""].join(" ")} />
-                          <span className="text-xs font-medium">{p.bookmarkCount ?? 0}</span>
-                        </div>
+                        <h3 className="font-serif text-[15px] font-semibold leading-tight text-foreground group-hover:text-primary transition-colors mb-1.5">
+                          {p.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-3">
+                          {p.excerpt || excerpt(p.content || "", 120)}
+                        </p>
+                        <div className="flex items-center justify-between mt-auto">
+                          <div className="flex items-center gap-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              <span className="text-xs font-medium">{p.commentCount ?? 0}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Bookmark className={["w-3.5 h-3.5", p.isBookmarked ? "fill-primary text-primary" : ""].join(" ")} />
+                              <span className="text-xs font-medium">{p.bookmarkCount ?? 0}</span>
+                            </div>
                       </div>
                       <span className="text-[11px] font-medium text-muted-foreground/70 text-right truncate max-w-[120px]">
                         by {p.authorName}
