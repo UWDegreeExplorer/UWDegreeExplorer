@@ -16,6 +16,7 @@ import {
   getGetRecentActivityQueryKey,
   useCustomFetch,
   useCustomMutation,
+  customFetch,
   type Section,
   type Comment,
 } from "@workspace/api-client-react";
@@ -45,6 +46,7 @@ import {
   ChevronDown,
   ArrowUpDown,
   Filter,
+  FileEdit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -73,7 +75,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
-type SectionFilter = Section | "all" | "my-posts" | "inbox" | "bookmarks";
+type SectionFilter = Section | "all" | "my-posts" | "inbox" | "bookmarks" | "drafts";
 
 const SECTION_LABELS: Record<Section, string> = {
   carpool: "Carpool",
@@ -299,6 +301,19 @@ function SectionRail({
         </button>
 
         <button
+          onClick={() => onSelect("drafts")}
+          className={[
+            "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            active === "drafts"
+              ? "bg-primary/10 text-primary"
+              : "text-foreground/80 hover:bg-accent hover:text-foreground",
+          ].join(" ")}
+        >
+          <FileEdit className="w-4 h-4 shrink-0" />
+          <span>Drafts</span>
+        </button>
+
+        <button
           onClick={() => onSelect("inbox")}
           className={[
             "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors",
@@ -371,6 +386,10 @@ function PostList({
     enabled: section === "bookmarks",
   });
 
+  const { data: drafts, isLoading: draftsLoading, isFetching: isFetchingDrafts } = useCustomFetch<any[]>("/drafts", {
+    enabled: section === "drafts",
+  });
+
   const { mutate: markAllRead } = useCustomMutation<any, any>("/notifications/read-all", {
     fetchOptions: { method: "POST" },
     onSuccess: () => {
@@ -383,18 +402,21 @@ function PostList({
     (section === "inbox" ? notifyLoading : 
      section === "my-posts" ? activityLoading : 
      section === "bookmarks" ? bookmarkLoading :
+     section === "drafts" ? draftsLoading :
      postsLoading);
 
   const isFetching = 
     (section === "inbox" ? isFetchingNotify : 
      section === "my-posts" ? isFetchingActivity : 
      section === "bookmarks" ? isFetchingBookmark :
+     section === "drafts" ? isFetchingDrafts :
      isFetchingPosts);
 
   const filteredItems = useMemo(() => {
     let items = [];
     if (section === "my-posts") items = [...(activity ?? [])];
     else if (section === "bookmarks") items = [...(bookmarks ?? [])];
+    else if (section === "drafts") items = [...(drafts ?? [])];
     else items = [...(posts ?? [])];
 
     if (categoryFilter !== "all" && section !== "inbox") {
@@ -512,9 +534,109 @@ function PostList({
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
           </div>
-        ) : (
           <div className={isFetching && filteredItems.length > 0 ? "opacity-60 transition-opacity duration-300 pointer-events-auto" : "transition-opacity duration-300"}>
-            {section === "inbox" ? (
+            {section === "drafts" ? (
+              <ul className="divide-y divide-border">
+                {drafts?.map((d: any) => {
+                  const isCommentDraft = !!d.post_id;
+                  return (
+                    <li key={d.id} className="px-6 py-5 hover:bg-accent/30 transition-colors">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant={isCommentDraft ? "secondary" : "outline"} className="text-[10px] uppercase font-bold tracking-tight">
+                          {isCommentDraft ? "Comment Draft" : (d.section ? SECTION_LABELS[d.section as Section] : "No Section")}
+                        </Badge>
+                        <span className="text-[11px] text-muted-foreground ml-auto">Saved {relTime(d.updated_at)}</span>
+                      </div>
+                      
+                      {isCommentDraft && (
+                        <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">
+                          Draft for: <span className="text-primary underline cursor-pointer" onClick={() => onSelect(d.post_id)}>{d.post_title}</span>
+                        </div>
+                      )}
+
+                      <h3 className="font-serif text-[17px] font-semibold leading-tight text-foreground mb-2">
+                        {d.title || (isCommentDraft ? "Comment Reply" : "(Untitled Draft)")}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed mb-4 italic">
+                        {d.body ? excerpt(d.body, 150) : "No content yet..."}
+                      </p>
+                      <div className="flex items-center gap-3">
+                        {isCommentDraft ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="default" className="h-8 gap-1.5">
+                                <FileEdit className="w-3.5 h-3.5" />
+                                Edit & Post
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-xl">
+                              <DialogHeader>
+                                <DialogTitle>Edit Comment Draft</DialogTitle>
+                                <DialogDescription>
+                                  Continuing your reply to: {d.post_title}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="py-4">
+                                <ReplyComposer 
+                                  postId={d.post_id}
+                                  parentId={d.parent_id}
+                                  isAnonymousMode={currentUser?.isAdmin ? false : d.is_anonymous}
+                                  initialBody={d.body}
+                                  draftId={d.id}
+                                  onDone={() => {
+                                    queryClient.invalidateQueries({ queryKey: ["/drafts"] });
+                                  }}
+                                />
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="default" 
+                            className="h-8 gap-1.5"
+                            onClick={() => setLocation(`/new?draftId=${d.id}`)}
+                          >
+                            <FileEdit className="w-3.5 h-3.5" />
+                            Edit
+                          </Button>
+                        )}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10">
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Discard
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Discard Draft?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete this draft. You cannot undo this action.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Keep Draft</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="bg-destructive hover:bg-destructive/90"
+                                onClick={async () => {
+                                  await customFetch(`/api/drafts/${d.id}`, { method: "DELETE" });
+                                  queryClient.invalidateQueries({ queryKey: ["/drafts"] });
+                                  toast({ title: "Draft discarded" });
+                                }}
+                              >
+                                Discard
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </li>
+                  );
+                })}
+                {drafts?.length === 0 && <EmptyState message="No drafts saved" />}
+              </ul>
+            ) : section === "inbox" ? (
               <ul className="divide-y divide-border">
                 {notifications?.map((n) => (
                   <li key={n.id}>
@@ -701,16 +823,31 @@ function ReplyComposer({
   isAnonymousMode,
   onDone,
   compact,
+  initialBody = "",
+  initialAnonymous = false,
+  draftId: initialDraftId = null,
 }: {
   postId: number;
   parentId: number | null;
   isAnonymousMode: boolean;
   onDone?: () => void;
   compact?: boolean;
+  initialBody?: string;
+  initialAnonymous?: boolean;
+  draftId?: number | null;
 }) {
-  const [body, setBody] = useState("");
-  const [anonymous, setAnonymous] = useState(false);
+  const [body, setBody] = useState(initialBody);
+  const [anonymous, setAnonymous] = useState(initialAnonymous);
+  const [currentDraftId, setCurrentDraftId] = useState<number | null>(initialDraftId);
   const createComment = useCreateComment();
+  const { mutate: saveDraft, isPending: isSavingDraft } = useCustomMutation<any, any>("/drafts", {
+    fetchOptions: { method: "POST" },
+    onSuccess: (saved) => {
+      setCurrentDraftId(saved.id);
+      toast({ title: "Comment draft saved" });
+      queryClient.invalidateQueries({ queryKey: ["/drafts"] });
+    }
+  });
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -726,7 +863,11 @@ function ReplyComposer({
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
+          if (currentDraftId) {
+            await customFetch(`/api/drafts/${currentDraftId}`, { method: "DELETE" });
+            queryClient.invalidateQueries({ queryKey: ["/drafts"] });
+          }
           setBody("");
           setAnonymous(false);
           queryClient.invalidateQueries({

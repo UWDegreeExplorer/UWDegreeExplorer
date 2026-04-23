@@ -6,13 +6,16 @@ import {
   getListPostsQueryKey, 
   getGetSectionStatsQueryKey,
   getGetRecentActivityQueryKey,
+  useCustomFetch,
+  useCustomMutation,
+  customFetch,
   Section 
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Loader2, Info } from "lucide-react";
+import { ArrowLeft, Loader2, Info, FileEdit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,8 +46,29 @@ export default function NewPost() {
   const currentUser = currentUserData?.user;
   
   const createPostMutation = useCreatePost();
-  const queryClient = useQueryClient();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Handle draft loading
+  const searchParams = new URLSearchParams(window.location.search);
+  const draftIdParam = searchParams.get("draftId");
+  const draftId = draftIdParam ? Number(draftIdParam) : null;
+
+  const { data: draft, isLoading: isLoadingDraft } = useCustomFetch<any>(`/drafts`, {
+    enabled: !!draftId,
+  });
+
+  const { mutate: saveDraft, isPending: isSavingDraft } = useCustomMutation<any, any>("/drafts", {
+    fetchOptions: { method: "POST" },
+    onSuccess: (saved) => {
+      toast({ title: "Draft saved" });
+      if (!draftId) {
+         // If it's a new draft, we should update the URL to include the ID so further saves update it
+         setLocation(`/new?draftId=${saved.id}`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/drafts"] });
+    }
+  });
 
   const form = useForm<z.infer<typeof postSchema>>({
     resolver: zodResolver(postSchema),
@@ -55,6 +79,23 @@ export default function NewPost() {
       anonymous: false,
     },
   });
+
+  // Populate draft data
+  useEffect(() => {
+    if (draftId && draft) {
+      // Find the draft by ID in the list (or if the endpoint returns a single item)
+      // Actually /api/drafts returns an array. Let's assume we find it.
+      const d = Array.isArray(draft) ? draft.find((x: any) => x.id === draftId) : draft;
+      if (d) {
+        form.reset({
+          section: d.section as any,
+          title: d.title || "",
+          body: d.body || "",
+          anonymous: d.isAnonymous || false,
+        });
+      }
+    }
+  }, [draft, draftId, form]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -73,13 +114,29 @@ export default function NewPost() {
 
   if (!currentUser) return null;
 
+  const onSaveDraft = () => {
+    const values = form.getValues();
+    saveDraft({
+      id: draftId || undefined,
+      title: values.title,
+      body: values.body,
+      section: values.section,
+      isAnonymous: values.anonymous
+    });
+  };
+
   const onSubmit = (values: z.infer<typeof postSchema>) => {
     createPostMutation.mutate(
       { 
         data: values
       },
       {
-        onSuccess: (post) => {
+        onSuccess: async (post) => {
+          // If we published a draft, delete it
+          if (draftId) {
+            await customFetch(`/api/drafts/${draftId}`, { method: "DELETE" });
+            queryClient.invalidateQueries({ queryKey: ["/drafts"] });
+          }
           queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetSectionStatsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetRecentActivityQueryKey() });
@@ -199,11 +256,21 @@ export default function NewPost() {
                   />
                 </div>
                 
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                   <Button type="button" variant="outline" onClick={() => setLocation("/")} className="flex-1 sm:flex-none">
                     Cancel
                   </Button>
-                  <Button type="submit" className="flex-1 sm:flex-none" disabled={createPostMutation.isPending}>
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={onSaveDraft} 
+                    disabled={isSavingDraft}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {isSavingDraft ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileEdit className="w-4 h-4 mr-2" />}
+                    Save as Draft
+                  </Button>
+                  <Button type="submit" className="flex-1 sm:flex-none bg-primary hover:bg-primary/90" disabled={createPostMutation.isPending}>
                     {createPostMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                     Post to Forum
                   </Button>
