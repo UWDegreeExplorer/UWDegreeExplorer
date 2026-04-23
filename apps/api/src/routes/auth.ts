@@ -59,7 +59,9 @@ router.post("/register", async (req, res) => {
     email: user.email,
     isAdmin: user.isAdmin,
     isStudentVerified: user.isStudentVerified,
+    createdAt: user.createdAt,
     studentEmail: user.studentEmail,
+    createdAt: user.createdAt,
   });
 });
 
@@ -123,7 +125,9 @@ router.post("/login", async (req, res) => {
     email: user.email,
     isAdmin: user.isAdmin,
     isStudentVerified: user.isStudentVerified,
+    createdAt: user.createdAt,
     studentEmail: user.studentEmail,
+    createdAt: user.createdAt,
   });
 });
 
@@ -212,8 +216,10 @@ router.post("/google", async (req, res) => {
       isAdmin: user.isAdmin,
       avatarUrl: picture || user.avatarUrl || null,
       isStudentVerified: user.isStudentVerified,
+    createdAt: user.createdAt,
       studentEmail: user.studentEmail,
-    });
+    createdAt: user.createdAt,
+  });
   } catch (error) {
     console.error("Google verify error:", error);
     res.status(401).json({ message: "Google authentication failed" });
@@ -249,6 +255,7 @@ router.get("/me", async (req, res) => {
       isAdmin: user.isAdmin,
       avatarUrl: user.avatarUrl ?? null,
       isStudentVerified: user.isStudentVerified,
+    createdAt: user.createdAt,
       studentEmail: user.studentEmail,
     },
   });
@@ -408,7 +415,9 @@ router.post("/register/verify", async (req, res) => {
     email: user.email,
     isAdmin: user.isAdmin,
     isStudentVerified: user.isStudentVerified,
+    createdAt: user.createdAt,
     studentEmail: user.studentEmail,
+    createdAt: user.createdAt,
   });
 });
 
