@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, postsTable, commentsTable, usersTable, notificationsTable } from "@workspace/db";
+import { db, postsTable, commentsTable, usersTable, notificationsTable, bookmarksTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import {
   CreatePostBody,
@@ -30,33 +30,33 @@ router.get("/", async (req, res) => {
     );
   }
 
+  const userId = req.session.userId;
+
   const rows = await db
     .select({
       id: postsTable.id,
-      section: postsTable.section,
       title: postsTable.title,
-      body: postsTable.body,
-      authorNameSnapshot: postsTable.authorNameSnapshot,
+      section: postsTable.section,
+      authorId: postsTable.authorId,
       isAnonymous: postsTable.isAnonymous,
+      authorName: usersTable.displayName,
       createdAt: postsTable.createdAt,
       lastActivityAt: postsTable.lastActivityAt,
-      commentCount: sql<number>`(SELECT COUNT(*) FROM ${commentsTable} WHERE ${commentsTable.postId} = ${postsTable.id})`,
+      commentCount: sql<number>`(SELECT COUNT(*) FROM ${commentsTable} WHERE post_id = ${postsTable.id})`,
+      bookmarkCount: sql<number>`(SELECT COUNT(*) FROM ${bookmarksTable} WHERE post_id = ${postsTable.id})`,
+      isBookmarked: userId ? sql<boolean>`EXISTS(SELECT 1 FROM ${bookmarksTable} WHERE post_id = ${postsTable.id} AND user_id = ${userId})` : sql<boolean>`false`,
     })
     .from(postsTable)
+    .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
     .where(filters.length > 0 ? and(...filters) : undefined)
     .orderBy(desc(postsTable.lastActivityAt));
 
   res.json(
-    rows.map((p) => ({
-      id: p.id,
-      section: p.section,
-      title: p.title,
-      excerpt: excerpt(p.body, 160),
-      authorName: p.authorNameSnapshot,
-      isAnonymous: p.isAnonymous,
-      commentCount: Number(p.commentCount),
-      createdAt: p.createdAt.toISOString(),
-      lastActivityAt: p.lastActivityAt.toISOString(),
+    rows.map((r) => ({
+      ...r,
+      excerpt: "", // Excerpt is derived on frontend if needed, or we can add it here if schema supported it
+      createdAt: r.createdAt.toISOString(),
+      lastActivityAt: r.lastActivityAt.toISOString(),
     })),
   );
 });
@@ -396,6 +396,68 @@ router.post("/:id/comments", async (req, res) => {
     isAnonymous: comment.isAnonymous,
     createdAt: comment.createdAt.toISOString(),
   });
+});
+
+// POST /api/posts/:id/bookmark - Toggle bookmark
+router.post("/:id/bookmark", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+
+  const [existing] = await db
+    .select()
+    .from(bookmarksTable)
+    .where(and(eq(bookmarksTable.postId, id), eq(bookmarksTable.userId, userId)))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .delete(bookmarksTable)
+      .where(and(eq(bookmarksTable.postId, id), eq(bookmarksTable.userId, userId)));
+    res.json({ bookmarked: false });
+  } else {
+    await db.insert(bookmarksTable).values({
+      postId: id,
+      userId: userId,
+    });
+    res.json({ bookmarked: true });
+  }
+});
+
+// GET /api/posts/bookmarks - Get user's bookmarked posts
+router.get("/bookmarks", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+  const rows = await db
+    .select({
+      id: postsTable.id,
+      title: postsTable.title,
+      section: postsTable.section,
+      authorId: postsTable.authorId,
+      body: postsTable.body,
+      isAnonymous: postsTable.isAnonymous,
+      authorName: usersTable.displayName,
+      createdAt: postsTable.createdAt,
+      lastActivityAt: postsTable.lastActivityAt,
+      commentCount: sql<number>`(SELECT COUNT(*) FROM ${commentsTable} WHERE post_id = ${postsTable.id})`,
+      bookmarkCount: sql<number>`(SELECT COUNT(*) FROM ${bookmarksTable} WHERE post_id = ${postsTable.id})`,
+      isBookmarked: sql<boolean>`true`,
+    })
+    .from(bookmarksTable)
+    .innerJoin(postsTable, eq(bookmarksTable.postId, postsTable.id))
+    .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
+    .where(eq(bookmarksTable.userId, userId))
+    .orderBy(desc(bookmarksTable.createdAt));
+
+  res.json(rows.map(r => ({
+    ...r,
+    excerpt: r.body.slice(0, 160) + (r.body.length > 160 ? "..." : ""),
+    createdAt: r.createdAt.toISOString(),
+    lastActivityAt: r.lastActivityAt.toISOString(),
+  })));
 });
 
 export default router;

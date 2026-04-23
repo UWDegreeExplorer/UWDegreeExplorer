@@ -3,3 +3,4 @@ export * from "./posts";
 export * from "./comments";
 export * from "./session";
 export * from "./notifications";
+export * from "./bookmarks";

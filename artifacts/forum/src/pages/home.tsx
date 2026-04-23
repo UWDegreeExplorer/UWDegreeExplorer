@@ -41,6 +41,10 @@ import {
   Inbox as InboxIcon,
   FileText,
   MessageSquare,
+  Bookmark,
+  ChevronDown,
+  ArrowUpDown,
+  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,112 +73,116 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
+type SectionFilter = Section | "all" | "my-posts" | "inbox" | "bookmarks";
+
 const SECTION_LABELS: Record<Section, string> = {
   carpool: "Carpool",
   academic: "Academic",
-  roommate: "Find Roommate",
+  "find-roommate": "Find Roommate",
   other: "Other",
 };
 
-const SECTION_ORDER: Section[] = ["carpool", "academic", "roommate", "other"];
-
-const SECTION_ICONS: Record<Section, typeof Car> = {
+const SECTION_ICONS: Record<Section, any> = {
   carpool: Car,
   academic: GraduationCap,
-  roommate: HomeIcon,
+  "find-roommate": HomeIcon,
   other: Layers,
 };
 
-type SectionFilter = Section | "all" | "my-posts" | "inbox";
-
-function relTime(iso: string): string {
+function relTime(date: string | Date) {
   try {
-    return formatDistanceToNow(new Date(iso), { addSuffix: true });
+    return formatDistanceToNow(new Date(date), { addSuffix: true });
   } catch {
-    return "";
+    return "some time ago";
   }
+}
+
+function excerpt(text: string, len: number) {
+  if (text.length <= len) return text;
+  return text.slice(0, len) + "…";
 }
 
 function Header() {
   const [, setLocation] = useLocation();
-  const { data: currentUserData } = useGetCurrentUser();
-  const currentUser = currentUserData?.user;
-  const logoutMutation = useLogoutUser();
+  const { data: userData } = useGetCurrentUser();
+  const logout = useLogoutUser();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
+    logout.mutate(undefined, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-        toast({ title: "Signed out", description: "You are now browsing anonymously." });
+        setLocation("/");
       },
     });
   };
 
+  const user = userData?.user;
+
   return (
-    <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
-      <button
+    <header className="h-14 border-b border-border bg-card/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-10">
+      <div
+        className="flex items-center gap-2.5 cursor-pointer group"
         onClick={() => setLocation("/")}
-        className="flex items-center gap-3 -ml-1 text-foreground hover:opacity-80 transition-opacity"
       >
-        <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-serif font-bold text-base shadow-sm">
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-serif font-bold text-lg shadow-sm group-hover:scale-105 transition-transform">
           C
         </div>
-        <span className="font-serif text-lg font-medium tracking-tight">
+        <span className="font-serif text-xl font-semibold tracking-tight">
           Campus Forum
         </span>
-      </button>
+      </div>
 
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          onClick={() => setLocation("/new")}
-          className="gap-2"
-        >
-          <PencilLine className="w-4 h-4" />
-          New Post
-        </Button>
-
-        {currentUser ? (
+      <div className="flex items-center gap-4">
+        {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2 pl-2 pr-2">
-                <div className="w-7 h-7 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-xs font-medium">
-                  {currentUser.displayName.slice(0, 1).toUpperCase()}
+              <Button
+                variant="ghost"
+                className="gap-2.5 px-2 hover:bg-accent/50 transition-colors"
+              >
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
+                  {user.displayName.slice(0, 1).toUpperCase()}
                 </div>
-                <span className="hidden sm:inline font-medium text-sm">
-                  {currentUser.displayName}
-                </span>
+                <div className="text-left hidden sm:block">
+                  <p className="text-xs font-semibold leading-none">
+                    {user.displayName}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {user.isAdmin ? "Administrator" : "Student Member"}
+                  </p>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col">
-                  <span className="font-medium">{currentUser.displayName}</span>
-                  <span className="text-xs text-muted-foreground font-normal">
-                    @{currentUser.username}
-                  </span>
-                </div>
-              </DropdownMenuLabel>
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                <LogOut className="w-4 h-4 mr-2" /> Sign out
+              <DropdownMenuItem onClick={() => setLocation("/new")}>
+                <PencilLine className="w-4 h-4 mr-2" />
+                New Post
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-destructive focus:text-destructive"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1 hidden sm:flex">
-              <UserCircle2 className="w-3 h-3" />
-              Anonymous
-            </Badge>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setLocation("/login")}
             >
-              Sign in
+              Sign In
+            </Button>
+            <Button size="sm" onClick={() => setLocation("/register")}>
+              Join Community
             </Button>
           </div>
         )}
@@ -190,88 +198,76 @@ function SectionRail({
   active: SectionFilter;
   onSelect: (s: SectionFilter) => void;
 }) {
-  const { data: currentUserData } = useGetCurrentUser();
-  const { data: unreadData, refetch: refetchUnread } = useCustomFetch<any>("/notifications/unread-count");
-  const unreadCount = unreadData?.count ?? 0;
-  
-  const { mutate: markAsRead } = useCustomMutation<any, any>("/notifications/read-all", { method: "POST" });
   const { data: stats } = useGetSectionStats();
-  const totalPosts = useMemo(
-    () => (stats ?? []).reduce((sum, s) => sum + s.postCount, 0),
-    [stats],
-  );
-
-  const items: Array<{
-    key: SectionFilter;
-    label: string;
-    icon: typeof Car;
-    count: number;
-  }> = [
-    {
-      key: "all",
-      label: "All Discussions",
-      icon: Layers,
-      count: totalPosts,
-    },
-    ...SECTION_ORDER.map((s) => {
-      const stat = stats?.find((x) => x.section === s);
-      return {
-        key: s as SectionFilter,
-        label: SECTION_LABELS[s],
-        icon: SECTION_ICONS[s],
-        count: stat?.postCount ?? 0,
-      };
-    }),
-  ];
+  const { data: unreadData } = useCustomFetch<any>("/notifications/unread-count");
+  const unreadCount = unreadData?.count ?? 0;
 
   return (
-    <aside className="w-64 border-r border-border bg-card/40 flex flex-col shrink-0">
-      <div className="px-5 pt-6 pb-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Sections
-        </h2>
+    <aside className="w-64 border-r border-border bg-card/20 flex flex-col shrink-0">
+      <div className="p-4">
+        <Button
+          className="w-full justify-start gap-2.5 shadow-sm"
+          onClick={() => (window.location.href = "/new")}
+        >
+          <PencilLine className="w-4 h-4" />
+          Create New Post
+        </Button>
       </div>
-      <nav className="px-3 space-y-0.5 overflow-y-auto">
-        {items.map(({ key, label, icon: Icon, count }) => {
-          const isActive = active === key;
+
+      <nav className="flex-1 px-3 space-y-0.5">
+        <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+          Browse
+        </div>
+        <button
+          onClick={() => onSelect("all")}
+          className={[
+            "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            active === "all"
+              ? "bg-primary/10 text-primary"
+              : "text-foreground/80 hover:bg-accent hover:text-foreground",
+          ].join(" ")}
+        >
+          <HomeIcon className="w-4 h-4 shrink-0" />
+          <span>All Discussions</span>
+        </button>
+
+        <div className="mt-4 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+          Sections
+        </div>
+        {(Object.keys(SECTION_LABELS) as Section[]).map((s) => {
+          const Icon = SECTION_ICONS[s];
+          const count = stats?.[s] ?? 0;
           return (
             <button
-              key={key}
-              onClick={() => onSelect(key)}
+              key={s}
+              onClick={() => onSelect(s)}
               className={[
-                "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                isActive
+                "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                active === s
                   ? "bg-primary/10 text-primary"
                   : "text-foreground/80 hover:bg-accent hover:text-foreground",
               ].join(" ")}
             >
-              <span className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-2.5">
                 <Icon className="w-4 h-4 shrink-0" />
-                <span className="truncate">{label}</span>
-              </span>
-              <span
-                className={[
-                  "text-xs tabular-nums",
-                  isActive ? "text-primary" : "text-muted-foreground",
-                ].join(" ")}
-              >
-                {count}
-              </span>
+                <span>{SECTION_LABELS[s]}</span>
+              </div>
+              {count > 0 && (
+                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full font-bold text-muted-foreground">
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}
-      </nav>
 
-      <div className="px-5 mt-6 pb-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="mt-4 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
           Personal
-        </h2>
-      </div>
-      <nav className="flex-1 px-3 space-y-0.5">
+        </div>
         <button
           onClick={() => onSelect("my-posts")}
           className={[
-            "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors",
             active === "my-posts"
               ? "bg-primary/10 text-primary"
               : "text-foreground/80 hover:bg-accent hover:text-foreground",
@@ -280,10 +276,22 @@ function SectionRail({
           <FileText className="w-4 h-4 shrink-0" />
           <span>My Activity</span>
         </button>
+
         <button
-          onClick={() => {
-            onSelect("inbox");
-          }}
+          onClick={() => onSelect("bookmarks")}
+          className={[
+            "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            active === "bookmarks"
+              ? "bg-primary/10 text-primary"
+              : "text-foreground/80 hover:bg-accent hover:text-foreground",
+          ].join(" ")}
+        >
+          <Bookmark className="w-4 h-4 shrink-0" />
+          <span>Bookmarks</span>
+        </button>
+
+        <button
+          onClick={() => onSelect("inbox")}
           className={[
             "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors",
             active === "inbox"
@@ -291,12 +299,12 @@ function SectionRail({
               : "text-foreground/80 hover:bg-accent hover:text-foreground",
           ].join(" ")}
         >
-          <span className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <InboxIcon className="w-4 h-4 shrink-0" />
             <span>Inbox</span>
-          </span>
+          </div>
           {unreadCount > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold ring-1 ring-inset ring-emerald-500/20 leading-none">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-sm animate-pulse">
               {unreadCount}
             </span>
           )}
@@ -329,13 +337,16 @@ function PostList({
   const currentUser = currentUserData?.user;
   const queryClient = useQueryClient();
 
-  // 1. 数据获取逻辑：根据 section 切换不同的 Hook 或接口
+  const [categoryFilter, setCategoryFilter] = useState<Section | "all">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "post" | "comment">("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+
   const { data: posts, isLoading: postsLoading } = useListPosts({
-    section: (section === "all" || section === "my-posts" || section === "inbox") ? undefined : section,
+    section: (section === "all" || section === "my-posts" || section === "inbox" || section === "bookmarks") ? undefined : section,
     search: search.trim() || undefined,
     authorId: section === "my-posts" ? currentUser?.id : undefined,
   }, {
-    enabled: section !== "inbox" && section !== "my-posts"
+    enabled: section !== "inbox" && section !== "my-posts" && section !== "bookmarks"
   });
 
   const { data: notifications, isLoading: notifyLoading, refetch: refetchNotify } = useCustomFetch<any[]>("/notifications", {
@@ -344,6 +355,10 @@ function PostList({
 
   const { data: activity, isLoading: activityLoading } = useCustomFetch<any[]>("/posts/activity", {
     enabled: section === "my-posts" && !!currentUser,
+  });
+
+  const { data: bookmarks, isLoading: bookmarkLoading } = useCustomFetch<any[]>("/posts/bookmarks", {
+    enabled: section === "bookmarks" && !!currentUser,
   });
 
   const { mutate: markAllRead } = useCustomMutation<any, any>("/notifications/read-all", {
@@ -357,18 +372,50 @@ function PostList({
   const isLoading = 
     (section === "inbox" ? notifyLoading : 
      section === "my-posts" ? activityLoading : 
+     section === "bookmarks" ? bookmarkLoading :
      postsLoading);
+
+  const filteredItems = useMemo(() => {
+    let items = [];
+    if (section === "my-posts") items = [...(activity ?? [])];
+    else if (section === "bookmarks") items = [...(bookmarks ?? [])];
+    else items = [...(posts ?? [])];
+
+    if (categoryFilter !== "all" && section !== "inbox") {
+      items = items.filter(i => i.section === categoryFilter);
+    }
+
+    if (typeFilter !== "all") {
+      items = items.filter(i => i.type === typeFilter || (i.type === undefined && typeFilter === "post"));
+    }
+
+    if (search.trim() && (section === "my-posts" || section === "bookmarks")) {
+      const s = search.toLowerCase();
+      items = items.filter(i => 
+        (i.title?.toLowerCase().includes(s)) || 
+        (i.content?.toLowerCase().includes(s))
+      );
+    }
+
+    items.sort((a, b) => {
+      const da = new Date(a.createdAt).getTime();
+      const db = new Date(b.createdAt).getTime();
+      return sortOrder === "newest" ? db - da : da - db;
+    });
+
+    return items;
+  }, [posts, activity, bookmarks, section, categoryFilter, typeFilter, sortOrder, search]);
 
   return (
     <div className="w-[420px] border-r border-border flex flex-col shrink-0 bg-background">
-      {/* Header 部分 */}
       <div className="px-6 py-5 border-b border-border bg-card/30 shrink-0">
         <div className="flex items-center justify-between mb-1">
           <h1 className="font-serif text-2xl font-medium tracking-tight">
             {section === "all" ? "All Discussions" : 
              section === "my-posts" ? "My Activity" :
              section === "inbox" ? "Notifications" :
-             SECTION_LABELS[section]}
+             section === "bookmarks" ? "Bookmarks" :
+             SECTION_LABELS[section as Section]}
           </h1>
           {section === "inbox" && notifications && notifications.length > 0 && (
             <Button variant="ghost" size="xs" onClick={() => markAllRead({})} className="text-xs text-muted-foreground hover:text-primary">
@@ -376,33 +423,74 @@ function PostList({
             </Button>
           )}
         </div>
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground shrink-0">
-            {section === "inbox" ? (notifications?.length ?? 0) : 
-             section === "my-posts" ? (activity?.length ?? 0) :
-             (posts?.length ?? 0)} items
-          </p>
-          {(section !== "inbox" && section !== "my-posts") && (
-            <div className="relative flex-1 max-w-[200px]">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search..."
-                className="w-full h-8 pl-8 pr-3 text-xs bg-muted/50 border-none rounded-md focus:ring-1 focus:ring-primary outline-none"
-              />
+        
+        <div className="flex flex-col gap-3 mt-3">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search in this view..."
+              className="w-full h-8 pl-8 pr-3 text-xs bg-muted/50 border border-transparent rounded-md focus:border-primary/30 focus:ring-0 outline-none transition-all"
+            />
+          </div>
+          
+          {(section === "all" || section === "my-posts" || section === "bookmarks" || (section as string) in SECTION_LABELS) && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="xs" className="h-7 text-[10px] gap-1 px-2 border-dashed">
+                    <Filter className="w-3 h-3" />
+                    {categoryFilter === "all" ? "All Categories" : SECTION_LABELS[categoryFilter]}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="text-xs">
+                  <DropdownMenuItem onClick={() => setCategoryFilter("all")}>All Categories</DropdownMenuItem>
+                  {Object.entries(SECTION_LABELS).map(([val, label]) => (
+                    <DropdownMenuItem key={val} onClick={() => setCategoryFilter(val as Section)}>{label}</DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {(section === "my-posts") && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="xs" className="h-7 text-[10px] gap-1 px-2 border-dashed">
+                      <Layers className="w-3 h-3" />
+                      {typeFilter === "all" ? "All Types" : typeFilter.charAt(0).toUpperCase() + typeFilter.slice(1) + "s"}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="text-xs">
+                    <DropdownMenuItem onClick={() => setTypeFilter("all")}>All Types</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTypeFilter("post")}>Posts</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTypeFilter("comment")}>Comments</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="xs" className="h-7 text-[10px] gap-1 px-2 border-dashed ml-auto">
+                    <ArrowUpDown className="w-3 h-3" />
+                    {sortOrder === "newest" ? "Newest" : "Oldest"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="text-xs">
+                  <DropdownMenuItem onClick={() => setSortOrder("newest")}>Date (Newest to Oldest)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOrder("oldest")}>Date (Oldest to Newest)</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>
       </div>
 
-      {/* 列表主体 */}
       <ScrollArea className="flex-1">
         {isLoading ? (
           <div className="p-8 flex flex-col items-center justify-center text-muted-foreground text-center">
             <Loader2 className="w-6 h-6 animate-spin mb-2 opacity-20" />
-            <span className="text-xs font-medium">Loading content...</span>
+            <span className="text-xs font-medium">Loading items...</span>
           </div>
         ) : section === "inbox" ? (
           <ul className="divide-y divide-border">
@@ -431,37 +519,15 @@ function PostList({
             ))}
             {notifications?.length === 0 && <EmptyState message="No notifications yet" />}
           </ul>
-        ) : section === "my-posts" ? (
-          <ul className="divide-y divide-border">
-            {activity?.map((a) => (
-              <li key={`${a.type}-${a.id}`}>
-                <button
-                  onClick={() => onSelect(a.type === "post" ? a.id : a.postId)}
-                  className="w-full text-left px-6 py-4 transition-colors hover:bg-accent/50"
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary/70">
-                      {a.type}
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground">{relTime(a.createdAt)}</span>
-                  </div>
-                  <h3 className="text-sm font-semibold mb-1 truncate">{a.title}</h3>
-                  <p className="text-[13px] text-muted-foreground line-clamp-2 italic leading-relaxed">
-                    "{excerpt(a.content, 120)}"
-                  </p>
-                </button>
-              </li>
-            ))}
-            {activity?.length === 0 && <EmptyState message="You haven't posted anything yet" />}
-          </ul>
         ) : (
           <ul className="divide-y divide-border">
-            {posts?.map((p) => {
+            {filteredItems.map((p) => {
               const isActive = p.id === selectedId;
+              const isPost = p.type === "post" || p.type === undefined;
               return (
-                <li key={p.id}>
+                <li key={`${p.type || 'post'}-${p.id}`}>
                   <button
-                    onClick={() => onSelect(p.id)}
+                    onClick={() => onSelect(isPost ? p.id : p.postId)}
                     className={[
                       "w-full text-left px-6 py-4 transition-colors",
                       isActive
@@ -470,22 +536,28 @@ function PostList({
                     ].join(" ")}
                   >
                     <div className="flex items-center gap-2 mb-1.5">
-                      <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-medium px-1.5 py-0">
-                        {SECTION_LABELS[p.section]}
+                      <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-tight">
+                        {p.type ? p.type : SECTION_LABELS[p.section as Section]}
                       </Badge>
-                      {p.isAnonymous && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">Anonymous</Badge>}
-                      <span className="text-[11px] text-muted-foreground ml-auto">{relTime(p.lastActivityAt)}</span>
+                      {p.isAnonymous && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Anonymous</Badge>}
+                      <span className="text-[11px] text-muted-foreground ml-auto">{relTime(isPost ? p.lastActivityAt : p.createdAt)}</span>
                     </div>
                     <h3 className="font-serif text-[15px] font-semibold leading-tight text-foreground group-hover:text-primary transition-colors mb-1.5">
                       {p.title}
                     </h3>
                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-3">
-                      {p.excerpt}
+                      {p.excerpt || excerpt(p.content || "", 120)}
                     </p>
                     <div className="flex items-center justify-between mt-auto">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span className="text-xs font-medium">{p.commentCount}</span>
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span className="text-xs font-medium">{p.commentCount ?? 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Bookmark className={["w-3.5 h-3.5", p.isBookmarked ? "fill-primary text-primary" : ""].join(" ")} />
+                          <span className="text-xs font-medium">{p.bookmarkCount ?? 0}</span>
+                        </div>
                       </div>
                       <span className="text-[11px] font-medium text-muted-foreground/70 text-right truncate max-w-[120px]">
                         by {p.authorName}
@@ -495,7 +567,7 @@ function PostList({
                 </li>
               );
             })}
-            {posts?.length === 0 && <EmptyState message="No results found" />}
+            {filteredItems.length === 0 && <EmptyState message="No matching results found" />}
           </ul>
         )}
       </ScrollArea>
@@ -715,6 +787,15 @@ function PostDetailPane({ postId }: { postId: number }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const { mutate: toggleBookmark, isPending: bookmarkPending } = useCustomMutation<any, any>(`/posts/${postId}/bookmark`, {
+    method: "POST",
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getGetPostQueryKey(postId) });
+      queryClient.invalidateQueries({ queryKey: ["/posts/bookmarks"] });
+      queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+    }
+  });
+
   const handleDelete = () => {
     deletePost.mutate(
       { id: postId },
@@ -760,7 +841,7 @@ function PostDetailPane({ postId }: { postId: number }) {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-        Loading post…
+        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading post…
       </div>
     );
   }
@@ -784,7 +865,7 @@ function PostDetailPane({ postId }: { postId: number }) {
               variant="outline"
               className="text-[10px] uppercase tracking-wider font-medium px-2 py-0.5"
             >
-              {SECTION_LABELS[post.section]}
+              {SECTION_LABELS[post.section as Section]}
             </Badge>
             {post.isAnonymous && (
               <Badge
@@ -796,53 +877,56 @@ function PostDetailPane({ postId }: { postId: number }) {
               </Badge>
             )}
           </div>
-          {post.canDelete && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground hover:text-destructive gap-1.5 h-8"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete
-                  {currentUser?.isAdmin &&
-                    post.authorId !== currentUser.id && (
-                      <Badge
-                        variant="outline"
-                        className="ml-1 text-[10px] gap-1 px-1.5 py-0"
-                      >
-                        <Shield className="w-2.5 h-2.5" />
-                        admin
-                      </Badge>
-                    )}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this post?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently remove the post and all{" "}
-                    {data.comments.length}{" "}
-                    {data.comments.length === 1 ? "reply" : "replies"} on it.
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={deletePost.isPending}>
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    disabled={deletePost.isPending}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant={post.isBookmarked ? "default" : "outline"}
+              size="sm"
+              disabled={!currentUser || bookmarkPending}
+              onClick={() => toggleBookmark({})}
+              className={["h-8 gap-1.5", post.isBookmarked ? "" : "text-muted-foreground"].join(" ")}
+            >
+              <Bookmark className={["w-3.5 h-3.5", post.isBookmarked ? "fill-current" : ""].join(" ")} />
+              <span>{post.isBookmarked ? "Bookmarked" : "Bookmark"}</span>
+              {post.bookmarkCount > 0 && (
+                <Badge variant={post.isBookmarked ? "secondary" : "outline"} className="ml-0.5 h-4 px-1 text-[9px]">
+                  {post.bookmarkCount}
+                </Badge>
+              )}
+            </Button>
+
+            {post.canDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive gap-1.5 h-8"
                   >
-                    {deletePost.isPending ? "Deleting…" : "Delete post"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently remove the post and all replies on it.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deletePost.isPending}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={deletePost.isPending}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete post
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         <h1 className="font-serif text-3xl font-medium leading-tight tracking-tight">
@@ -966,7 +1050,7 @@ function WelcomePane() {
                         variant="outline"
                         className="text-[10px] uppercase tracking-wider px-1.5 py-0"
                       >
-                        {SECTION_LABELS[a.section]}
+                        {SECTION_LABELS[a.section as Section]}
                       </Badge>
                       <span className="text-foreground/70 font-medium">
                         {a.authorName}
