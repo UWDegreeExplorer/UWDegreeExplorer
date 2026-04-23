@@ -356,7 +356,7 @@ export function SettingsPane() {
           </section>
 
           <div className="pt-4 flex items-center justify-between text-xs text-muted-foreground px-2">
-            <span>Member since {relTime(user.createdAt || new Date().toISOString())}</span>
+            <span>Member since {relTime((user as any).createdAt || new Date().toISOString())}</span>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/5">Delete Account</Button>
