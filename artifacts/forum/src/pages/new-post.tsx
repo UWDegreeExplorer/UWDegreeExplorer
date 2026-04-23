@@ -41,7 +41,6 @@ export default function NewPost() {
   const [, setLocation] = useLocation();
   const { data: currentUserData, isLoading: isLoadingUser } = useGetCurrentUser();
   const currentUser = currentUserData?.user;
-  const isAnonymousMode = !isLoadingUser && !currentUser;
   
   const createPostMutation = useCreatePost();
   const queryClient = useQueryClient();
@@ -53,24 +52,31 @@ export default function NewPost() {
       section: undefined,
       title: "",
       body: "",
-      anonymous: isAnonymousMode,
+      anonymous: false,
     },
   });
 
-  // Update anonymous value when user data loads
+  // Redirect if not logged in
   useEffect(() => {
     if (!isLoadingUser && !currentUser) {
-      form.setValue("anonymous", true);
+      setLocation("/login");
     }
-  }, [isLoadingUser, currentUser, form]);
+  }, [isLoadingUser, currentUser, setLocation]);
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!currentUser) return null;
 
   const onSubmit = (values: z.infer<typeof postSchema>) => {
     createPostMutation.mutate(
       { 
-        data: {
-          ...values,
-          anonymous: isAnonymousMode || values.anonymous
-        } 
+        data: values
       },
       {
         onSuccess: (post) => {
@@ -97,24 +103,11 @@ export default function NewPost() {
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Forum
         </Button>
         <div className="font-serif font-medium text-lg">New Post</div>
-        <div className="w-20"></div> {/* Spacer for balance */}
+        <div className="w-20"></div>
       </header>
 
       <div className="flex-1 flex flex-col items-center p-6 py-12 overflow-y-auto">
         <div className="w-full max-w-2xl">
-          {isAnonymousMode && (
-            <div className="bg-muted/50 border border-border rounded-lg p-4 mb-8 flex items-start gap-3">
-              <Info className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-medium text-sm">You are posting anonymously</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  You are not logged in, so this post will be completely anonymous. If you'd like to post under your real name, please{" "}
-                  <button onClick={() => setLocation("/login")} className="text-primary font-medium hover:underline">sign in</button>.
-                </p>
-              </div>
-            </div>
-          )}
-
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -182,30 +175,28 @@ export default function NewPost() {
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-border">
                 <div className="w-full sm:w-auto">
-                  {!isAnonymousMode && (
-                    <FormField
-                      control={form.control}
-                      name="anonymous"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center gap-3 space-y-0 bg-card border border-border px-4 py-3 rounded-lg shadow-sm">
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1">
-                            <FormLabel className="text-sm font-medium cursor-pointer m-0">
-                              Post anonymously
-                            </FormLabel>
-                            <p className="text-xs text-muted-foreground leading-none">
-                              Hide your name from other users
-                            </p>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                  )}
+                  <FormField
+                    control={form.control}
+                    name="anonymous"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center gap-3 space-y-0 bg-card border border-border px-4 py-3 rounded-lg shadow-sm">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1">
+                          <FormLabel className="text-sm font-medium cursor-pointer m-0">
+                            Post anonymously
+                          </FormLabel>
+                          <p className="text-xs text-muted-foreground leading-none">
+                            Hide your name from other users
+                          </p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 
                 <div className="flex items-center gap-3 w-full sm:w-auto">

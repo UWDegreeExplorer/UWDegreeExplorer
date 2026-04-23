@@ -213,7 +213,7 @@ function SectionRail({
             if (currentUser) {
               window.location.href = "/new";
             } else {
-              window.location.href = "/auth";
+              window.location.href = "/login";
             }
           }}
         >
