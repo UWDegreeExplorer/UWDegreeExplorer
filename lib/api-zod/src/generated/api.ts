@@ -254,6 +254,7 @@ export const GetUnreadCountResponse = zod.object({
  */
 export const GetActivityResponseItem = zod.object({
   id: zod.number(),
+  postId: zod.number(),
   title: zod.string(),
   content: zod.string(),
   type: zod.enum(["post", "comment"]),

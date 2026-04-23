@@ -69,6 +69,7 @@ router.get("/activity", async (req, res) => {
   const userPosts = await db
     .select({
       id: postsTable.id,
+      postId: postsTable.id, // 对于 Post，postId 就是 id
       title: postsTable.title,
       content: postsTable.body,
       createdAt: postsTable.createdAt,
@@ -80,6 +81,7 @@ router.get("/activity", async (req, res) => {
   const userComments = await db
     .select({
       id: commentsTable.id,
+      postId: commentsTable.postId, // 关键补全
       title: sql<string>`(SELECT title FROM ${postsTable} WHERE id = ${commentsTable.postId})`,
       content: commentsTable.body,
       createdAt: commentsTable.createdAt,
