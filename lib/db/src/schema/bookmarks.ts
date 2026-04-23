@@ -1,11 +1,10 @@
-import { pgTable, serial, integer, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import { users } from "./users";
-import { posts } from "./posts";
+import { usersTable } from "./users";
+import { postsTable } from "./posts";
 
-export const bookmarks = pgTable("bookmarks", {
+export const bookmarksTable = pgTable("bookmarks", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  postId: integer("post_id").references(() => posts.id).notNull(),
+  userId: integer("user_id").references(() => usersTable.id).notNull(),
+  postId: integer("post_id").references(() => postsTable.id).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => {
   return {

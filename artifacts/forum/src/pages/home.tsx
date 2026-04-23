@@ -78,14 +78,14 @@ type SectionFilter = Section | "all" | "my-posts" | "inbox" | "bookmarks";
 const SECTION_LABELS: Record<Section, string> = {
   carpool: "Carpool",
   academic: "Academic",
-  "find-roommate": "Find Roommate",
+  roommate: "Find Roommate",
   other: "Other",
 };
 
 const SECTION_ICONS: Record<Section, any> = {
   carpool: Car,
   academic: GraduationCap,
-  "find-roommate": HomeIcon,
+  roommate: HomeIcon,
   other: Layers,
 };
 
@@ -442,7 +442,7 @@ function PostList({
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="xs" className="h-7 text-[10px] gap-1 px-2 border-dashed">
                     <Filter className="w-3 h-3" />
-                    {categoryFilter === "all" ? "All Categories" : SECTION_LABELS[categoryFilter]}
+                    {categoryFilter === "all" ? "All Categories" : SECTION_LABELS[categoryFilter as Section]}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="text-xs">
@@ -453,7 +453,7 @@ function PostList({
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {(section === "my-posts") && (
+              {(section === "my-posts" || section === "bookmarks") && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="xs" className="h-7 text-[10px] gap-1 px-2 border-dashed">
