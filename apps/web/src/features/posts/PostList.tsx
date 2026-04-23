@@ -142,7 +142,7 @@ export function PostList({
     }
 
     try {
-      const url = type === "post" ? `/likes/posts/${id}/toggle` : `/likes/comments/${id}/toggle`;
+      const url = type === "post" ? `/api/likes/posts/${id}/toggle` : `/api/likes/comments/${id}/toggle`;
       await customFetch(url, { method: "POST" });
       
       // Broad invalidation to catch all lists
@@ -317,7 +317,7 @@ export function PostList({
                               <AlertDialogAction 
                                 className="bg-destructive hover:bg-destructive/90"
                                 onClick={async () => {
-                                  await customFetch(`/drafts/${d.id}`, { method: "DELETE" });
+                                  await customFetch(`/api/drafts/${d.id}`, { method: "DELETE" });
                                   queryClient.invalidateQueries({ queryKey: ["/drafts"] });
                                   toast({ title: "Draft discarded" });
                                 }}

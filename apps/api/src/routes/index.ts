@@ -13,6 +13,8 @@ import likesRouter from "./likes";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.get("/ping-likes", (req, res) => res.send("pong"));
+router.use("/likes", likesRouter);
 router.use("/auth", authRouter);
 router.use("/posts/bookmarks", postsBookmarksRouter);
 router.use("/posts/activity", postsActivityRouter);
@@ -21,6 +23,5 @@ router.use("/stats", statsRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/drafts", draftsRouter);
 router.use("/auth/student-verification", verificationRouter);
-router.use("/likes", likesRouter);
 
 export default router;
