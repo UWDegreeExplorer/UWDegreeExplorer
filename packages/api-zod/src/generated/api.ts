@@ -110,13 +110,20 @@ export const GoogleLoginBody = zod.object({
   password: zod.string().optional(),
 });
 
-export const GoogleLoginResponse = zod.object({
-  id: zod.number(),
-  username: zod.string(),
-  displayName: zod.string(),
-  email: zod.string(),
-  isAdmin: zod.boolean(),
-});
+export const GoogleLoginResponse = zod.union([
+  zod.object({
+    id: zod.number(),
+    username: zod.string(),
+    displayName: zod.string(),
+    email: zod.string(),
+    isAdmin: zod.boolean(),
+  }),
+  zod.object({
+    needsPassword: zod.boolean(),
+    email: zod.string(),
+    suggestedName: zod.string(),
+  }),
+]);
 
 /**
  * @summary List posts, optionally filtered by section

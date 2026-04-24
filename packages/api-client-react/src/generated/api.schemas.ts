@@ -61,6 +61,12 @@ export interface GoogleLoginInput {
   password?: string;
 }
 
+export type GoogleLoginResponse = User | {
+  needsPassword: true;
+  email: string;
+  suggestedName: string;
+};
+
 export interface User {
   id: number;
   username: string;

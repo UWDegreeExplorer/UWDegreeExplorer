@@ -24,6 +24,7 @@ import type {
   CurrentUser,
   ErrorResponse,
   GoogleLoginInput,
+  GoogleLoginResponse,
   HealthStatus,
   ListPostsParams,
   LoginInput,
@@ -545,8 +546,8 @@ export const getGoogleLoginUrl = () => {
 export const googleLogin = async (
   googleLoginInput: GoogleLoginInput,
   options?: RequestInit,
-): Promise<User> => {
-  return customFetch<User>(getGoogleLoginUrl(), {
+): Promise<GoogleLoginResponse> => {
+  return customFetch<GoogleLoginResponse>(getGoogleLoginUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },

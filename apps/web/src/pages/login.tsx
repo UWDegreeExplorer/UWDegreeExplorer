@@ -64,7 +64,7 @@ export default function Login() {
       const loginHook = useGoogleOAuth({
         onSuccess: async (tokenResponse) => {
           googleMutation.mutate(
-            { data: { accessToken: tokenResponse.access_token, password: googleForm.getValues().password || undefined } },
+            { data: { accessToken: tokenResponse.access_token, password: googleForm.getValues().password || undefined } as any },
             {
               onSuccess: (data: any) => {
                 if (data.needsPassword) {
@@ -135,7 +135,7 @@ export default function Login() {
   const onGooglePasswordSubmit = (values: z.infer<typeof googleSetPasswordSchema>) => {
     if (!googleTempToken) return;
     googleMutation.mutate(
-      { data: { accessToken: googleTempToken, password: values.password } },
+      { data: { accessToken: googleTempToken, password: values.password } as any },
       {
         onSuccess: (data: any) => {
           queryClient.setQueryData(getGetCurrentUserQueryKey(), { user: data });
