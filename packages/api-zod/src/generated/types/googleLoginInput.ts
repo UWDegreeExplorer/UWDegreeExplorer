@@ -8,4 +8,5 @@
 
 export interface GoogleLoginInput {
   accessToken: string;
+  password?: string;
 }
