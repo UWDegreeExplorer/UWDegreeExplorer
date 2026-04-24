@@ -4,6 +4,8 @@ import { draftsTable } from "@workspace/db/schema/drafts";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { postsTable } from "@workspace/db/schema/posts";
+
 const router = Router();
 
 const DraftSchema = z.object({
@@ -23,17 +25,31 @@ router.get("/", async (req, res) => {
     return;
   }
 
-  const drafts = await db.execute(sql`
-    SELECT 
-      d.*,
-      p.title as post_title
-    FROM drafts d
-    LEFT JOIN posts p ON d.post_id = p.id
-    WHERE d.user_id = ${userId}
-    ORDER BY d.updated_at DESC
-  `);
+  try {
+    const drafts = await db
+      .select({
+        id: draftsTable.id,
+        userId: draftsTable.userId,
+        section: draftsTable.section,
+        title: draftsTable.title,
+        body: draftsTable.body,
+        postId: draftsTable.postId,
+        parentId: draftsTable.parentId,
+        isAnonymous: draftsTable.isAnonymous,
+        createdAt: draftsTable.createdAt,
+        updatedAt: draftsTable.updatedAt,
+        postTitle: postsTable.title,
+      })
+      .from(draftsTable)
+      .leftJoin(postsTable, eq(draftsTable.postId, postsTable.id))
+      .where(eq(draftsTable.userId, userId))
+      .orderBy(desc(draftsTable.updatedAt));
 
-  res.json(drafts.rows);
+    res.json(drafts);
+  } catch (error) {
+    console.error("Failed to fetch drafts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 // Create or update a draft

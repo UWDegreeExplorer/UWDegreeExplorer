@@ -63,6 +63,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -359,6 +367,8 @@ function PostList({
   const { data: currentUserData } = useGetCurrentUser();
   const currentUser = currentUserData?.user;
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const [categoryFilter, setCategoryFilter] = useState<Section | "all">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "post" | "comment">("all");
@@ -528,29 +538,28 @@ function PostList({
         {/* Subtle background fetching indicator */}
         {isFetching && filteredItems.length > 0 && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 animate-pulse z-20" />
-        )}
-
-        {(isLoading && filteredItems.length === 0) ? (
+        )}        {isLoading && filteredItems.length === 0 ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
           </div>
+        ) : (
           <div className={isFetching && filteredItems.length > 0 ? "opacity-60 transition-opacity duration-300 pointer-events-auto" : "transition-opacity duration-300"}>
             {section === "drafts" ? (
               <ul className="divide-y divide-border">
                 {drafts?.map((d: any) => {
-                  const isCommentDraft = !!d.post_id;
+                  const isCommentDraft = !!d.postId;
                   return (
                     <li key={d.id} className="px-6 py-5 hover:bg-accent/30 transition-colors">
                       <div className="flex items-center gap-2 mb-2">
                         <Badge variant={isCommentDraft ? "secondary" : "outline"} className="text-[10px] uppercase font-bold tracking-tight">
                           {isCommentDraft ? "Comment Draft" : (d.section ? SECTION_LABELS[d.section as Section] : "No Section")}
                         </Badge>
-                        <span className="text-[11px] text-muted-foreground ml-auto">Saved {relTime(d.updated_at)}</span>
+                        <span className="text-[11px] text-muted-foreground ml-auto">Saved {relTime(d.updatedAt)}</span>
                       </div>
                       
                       {isCommentDraft && (
                         <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">
-                          Draft for: <span className="text-primary underline cursor-pointer" onClick={() => onSelect(d.post_id)}>{d.post_title}</span>
+                          Draft for: <span className="text-primary underline cursor-pointer" onClick={() => onSelect(d.postId)}>{d.postTitle}</span>
                         </div>
                       )}
 
@@ -573,14 +582,14 @@ function PostList({
                               <DialogHeader>
                                 <DialogTitle>Edit Comment Draft</DialogTitle>
                                 <DialogDescription>
-                                  Continuing your reply to: {d.post_title}
+                                  Continuing your reply to: {d.postTitle}
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="py-4">
                                 <ReplyComposer 
-                                  postId={d.post_id}
-                                  parentId={d.parent_id}
-                                  isAnonymousMode={currentUser?.isAdmin ? false : d.is_anonymous}
+                                  postId={d.postId}
+                                  parentId={d.parentId}
+                                  isAnonymousMode={currentUser?.isAdmin ? false : d.isAnonymous}
                                   initialBody={d.body}
                                   draftId={d.id}
                                   onDone={() => {
@@ -713,10 +722,11 @@ function PostList({
             })}
             {filteredItems.length === 0 && <EmptyState message="No matching results found" />}
           </ul>
-        </div>
         )}
-      </ScrollArea>
-    </div>
+      </div>
+    )}
+  </ScrollArea>
+</div>
   );
 }
 
