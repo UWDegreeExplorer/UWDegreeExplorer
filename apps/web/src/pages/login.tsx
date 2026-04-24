@@ -28,39 +28,57 @@ export default function Login() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const googleLogin = useGoogleOAuth({
-    onSuccess: async (tokenResponse) => {
-      googleMutation.mutate(
-        { data: { accessToken: tokenResponse.access_token } },
-        {
-          onSuccess: (data) => {
-            queryClient.setQueryData(getGetCurrentUserQueryKey(), {
-              user: data
-            });
-            toast({
-              title: "Welcome!",
-              description: `Logged in as ${data.displayName}`,
-            });
-            setLocation("/");
-          },
-          onError: (error: any) => {
-            toast({
-              variant: "destructive",
-              title: "Login Failed",
-              description: error.message || "Backend authentication failed.",
-            });
-          }
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  // Only call hook if clientId is available to avoid crash if provider is missing
+  let googleLogin = () => {
+    toast({
+      variant: "destructive",
+      title: "Google Login Unavailable",
+      description: "Google OAuth is not configured on this server.",
+    });
+  };
+
+  try {
+    if (clientId) {
+      const loginHook = useGoogleOAuth({
+        onSuccess: async (tokenResponse) => {
+          googleMutation.mutate(
+            { data: { accessToken: tokenResponse.access_token } },
+            {
+              onSuccess: (data) => {
+                queryClient.setQueryData(getGetCurrentUserQueryKey(), {
+                  user: data
+                });
+                toast({
+                  title: "Welcome!",
+                  description: `Logged in as ${data.displayName}`,
+                });
+                setLocation("/");
+              },
+              onError: (error: any) => {
+                toast({
+                  variant: "destructive",
+                  title: "Login Failed",
+                  description: error.message || "Backend authentication failed.",
+                });
+              }
+            }
+          );
+        },
+        onError: () => {
+          toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "Google login cancelled.",
+          });
         }
-      );
-    },
-    onError: () => {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: "Google login cancelled.",
       });
+      googleLogin = loginHook;
     }
-  });
+  } catch (e) {
+    console.error("Google OAuth hook failed:", e);
+  }
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
