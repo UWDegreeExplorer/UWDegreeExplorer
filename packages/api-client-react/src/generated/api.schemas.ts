@@ -58,6 +58,7 @@ export interface UpdateUserInput {
 
 export interface GoogleLoginInput {
   accessToken: string;
+  password?: string;
 }
 
 export interface User {
