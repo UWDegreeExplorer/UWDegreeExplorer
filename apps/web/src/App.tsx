@@ -37,16 +37,26 @@ function Router() {
 }
 
 function App() {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const content = (
+    <TooltipProvider>
+      <WouterRouter base={(import.meta.env.BASE_URL || "/").replace(/\/$/, "")}>
+        <Router />
+      </WouterRouter>
+      <Toaster />
+    </TooltipProvider>
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
-      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
-        <TooltipProvider>
-          <WouterRouter base={(import.meta.env.BASE_URL || "/").replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
-        </TooltipProvider>
-      </GoogleOAuthProvider>
+      {clientId ? (
+        <GoogleOAuthProvider clientId={clientId}>
+          {content}
+        </GoogleOAuthProvider>
+      ) : (
+        content
+      )}
     </QueryClientProvider>
   );
 }
