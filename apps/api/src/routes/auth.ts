@@ -114,24 +114,38 @@ router.post("/login", async (req, res) => {
 
 router.post("/google", async (req, res) => {
   const parsed = GoogleLoginBody.safeParse(req.body);
-  if (!parsed.success) res.status(400).json({ message: "Invalid Google data" });
-  if (!parsed.success) return;
-  const { accessToken } = parsed.data;
+  if (!parsed.success) {
+    res.status(400).json({ message: "Invalid Google data" });
+    return;
+  }
+  const { accessToken, password } = parsed.data;
 
   try {
     const userRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`);
     const googleUser = await userRes.json() as any;
     const { name, picture, email, email_verified } = googleUser;
 
-    if (!email_verified) res.status(401).json({ message: "Email not verified" });
-    if (!email_verified) return;
+    if (!email_verified) {
+      res.status(401).json({ message: "Email not verified" });
+      return;
+    }
 
     let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
 
     if (!user) {
+      // If user doesn't exist and no password provided, ask for password
+      if (!password) {
+        res.status(200).json({ 
+          needsPassword: true, 
+          email, 
+          suggestedName: name 
+        });
+        return;
+      }
+
+      // Create new user with provided password
       const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
-      const randomPass = Math.random().toString(36).slice(-16);
-      const passwordHash = await bcrypt.hash(randomPass, 10);
+      const passwordHash = await bcrypt.hash(password, 10);
       [user] = await db.insert(usersTable).values({
         username: `${baseUsername}${Math.random().toString(36).slice(-4)}`,
         displayName: name || baseUsername,
@@ -141,8 +155,10 @@ router.post("/google", async (req, res) => {
       }).returning();
     }
 
-    if (!user) res.status(500).json({ message: "Auth failed" });
-    if (!user) return;
+    if (!user) {
+      res.status(500).json({ message: "Auth failed" });
+      return;
+    }
 
     req.session.userId = user.id;
     res.json({

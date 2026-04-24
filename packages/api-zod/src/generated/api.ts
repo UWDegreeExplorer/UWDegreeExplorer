@@ -107,6 +107,7 @@ export const UpdateCurrentUserResponse = zod.object({
  */
 export const GoogleLoginBody = zod.object({
   accessToken: zod.string(),
+  password: zod.string().optional(),
 });
 
 export const GoogleLoginResponse = zod.object({
