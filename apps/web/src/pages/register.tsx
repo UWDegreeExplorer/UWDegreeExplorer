@@ -131,8 +131,6 @@ export default function Register() {
   
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
     setIsVerifying(true);
-    try {
-      // Omit confirmPassword before sending to API
     const { confirmPassword, ...apiValues } = values;
     if (!recaptchaToken) {
       toast({
