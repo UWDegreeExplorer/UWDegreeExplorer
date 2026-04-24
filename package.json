@@ -10,6 +10,7 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./apps/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "private": true,
+  "packageManager": "pnpm@10.29.3",
   "devDependencies": {
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
