@@ -209,7 +209,7 @@ export function PostList({
           <div className={isFetching && filteredItems.length > 0 ? "opacity-60 transition-opacity duration-300 pointer-events-auto" : "transition-opacity duration-300"}>
             {section === "drafts" ? (
               <ul className="divide-y divide-border">
-                {drafts?.map((d: any) => {
+                {Array.isArray(drafts) && drafts.map((d: any) => {
                   const isCommentDraft = !!d.postId;
                   return (
                     <li key={d.id} className="px-6 py-5 hover:bg-accent/30 transition-colors">
@@ -310,7 +310,7 @@ export function PostList({
               </ul>
             ) : section === "inbox" ? (
               <ul className="divide-y divide-border">
-                {notifications?.map((n) => (
+                {Array.isArray(notifications) && notifications.map((n) => (
                   <li key={n.id}>
                     <button
                       onClick={() => onSelect(n.postId)}
@@ -337,7 +337,7 @@ export function PostList({
               </ul>
             ) : (
               <ul className="divide-y divide-border">
-                {filteredItems.map((p) => {
+                {Array.isArray(filteredItems) && filteredItems.map((p) => {
                   const isActive = p.id === selectedId;
                   const isPost = p.type === "post" || p.type === undefined;
                   return (

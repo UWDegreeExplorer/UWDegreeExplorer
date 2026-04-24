@@ -74,7 +74,7 @@ export function WelcomePane() {
             <h2 className="font-serif text-lg font-medium">Recent activity</h2>
             <div className="h-px flex-1 bg-border" />
           </div>
-          {!activity || activity.length === 0 ? (
+          {!Array.isArray(activity) || activity.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">
               No activity yet — be the first to start a conversation.
             </p>

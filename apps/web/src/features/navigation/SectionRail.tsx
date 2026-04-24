@@ -90,7 +90,8 @@ export function SectionRail({
             </div>
             {(Object.keys(SECTION_LABELS) as Section[]).map((s) => {
               const Icon = SECTION_ICONS[s];
-              const count = (stats as any)?.[s] ?? 0;
+              const sectionStat = Array.isArray(stats) ? stats.find((st: any) => st.section === s) : null;
+              const count = sectionStat?.postCount ?? 0;
               return (
                 <button
                   key={s}
