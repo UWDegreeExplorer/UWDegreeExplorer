@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, postsTable, commentsTable, bookmarksTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { db, postsTable, commentsTable, bookmarksTable, likesTable } from "@workspace/db";
+import { eq, sql, and } from "drizzle-orm";
 
 const router = Router();
 
@@ -25,7 +25,9 @@ router.get("/", async (req, res) => {
       type: sql<string>`'post'`,
       commentCount: sql<number>`(SELECT COUNT(*) FROM ${commentsTable} WHERE post_id = ${postsTable.id})`,
       bookmarkCount: sql<number>`(SELECT COUNT(*) FROM ${bookmarksTable} WHERE post_id = ${postsTable.id})`,
+      likeCount: sql<number>`(SELECT COUNT(*) FROM ${likesTable} WHERE post_id = ${postsTable.id})`,
       isBookmarked: userId ? sql<boolean>`EXISTS(SELECT 1 FROM ${bookmarksTable} WHERE post_id = ${postsTable.id} AND user_id = ${userId})` : sql<boolean>`false`,
+      isLiked: userId ? sql<boolean>`EXISTS(SELECT 1 FROM ${likesTable} WHERE post_id = ${postsTable.id} AND user_id = ${userId})` : sql<boolean>`false`,
     })
     .from(postsTable)
     .where(eq(postsTable.authorId, userId));
@@ -43,7 +45,9 @@ router.get("/", async (req, res) => {
       type: sql<string>`'comment'`,
       commentCount: sql<number>`(SELECT COUNT(*) FROM ${commentsTable} WHERE post_id = ${postsTable.id})`,
       bookmarkCount: sql<number>`(SELECT COUNT(*) FROM ${bookmarksTable} WHERE post_id = ${postsTable.id})`,
+      likeCount: sql<number>`(SELECT COUNT(*) FROM ${likesTable} WHERE post_id = ${postsTable.id})`,
       isBookmarked: userId ? sql<boolean>`EXISTS(SELECT 1 FROM ${bookmarksTable} WHERE post_id = ${postsTable.id} AND user_id = ${userId})` : sql<boolean>`false`,
+      isLiked: userId ? sql<boolean>`EXISTS(SELECT 1 FROM ${likesTable} WHERE post_id = ${postsTable.id} AND user_id = ${userId})` : sql<boolean>`false`,
     })
     .from(commentsTable)
     .leftJoin(postsTable, eq(commentsTable.postId, postsTable.id))
@@ -57,7 +61,9 @@ router.get("/", async (req, res) => {
     ...item,
     commentCount: Number(item.commentCount),
     bookmarkCount: Number(item.bookmarkCount),
+    likeCount: Number(item.likeCount),
     isBookmarked: Boolean(item.isBookmarked),
+    isLiked: Boolean(item.isLiked),
     createdAt: item.createdAt.toISOString()
   })));
 });

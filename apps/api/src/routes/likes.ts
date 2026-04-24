@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, likesTable, postsTable, commentsTable, usersTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { db, likesTable, postsTable, commentsTable, usersTable, bookmarksTable } from "@workspace/db";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -90,6 +90,11 @@ router.get("/me", async (req, res) => {
       authorNameSnapshot: postsTable.authorNameSnapshot,
       createdAt: postsTable.createdAt,
       likedAt: likesTable.createdAt,
+      likeCount: sql<number>`(SELECT count(*) FROM ${likesTable} WHERE ${likesTable.postId} = ${postsTable.id})`.mapWith(Number),
+      commentCount: sql<number>`(SELECT count(*) FROM ${commentsTable} WHERE ${commentsTable.postId} = ${postsTable.id})`.mapWith(Number),
+      bookmarkCount: sql<number>`(SELECT count(*) FROM ${bookmarksTable} WHERE ${bookmarksTable.postId} = ${postsTable.id})`.mapWith(Number),
+      isLiked: sql<boolean>`true`,
+      isBookmarked: sql<boolean>`EXISTS(SELECT 1 FROM ${bookmarksTable} WHERE ${bookmarksTable.postId} = ${postsTable.id} AND ${bookmarksTable.userId} = ${userId})`,
     })
     .from(likesTable)
     .innerJoin(postsTable, eq(likesTable.postId, postsTable.id))
@@ -107,6 +112,8 @@ router.get("/me", async (req, res) => {
       authorNameSnapshot: commentsTable.authorNameSnapshot,
       createdAt: commentsTable.createdAt,
       likedAt: likesTable.createdAt,
+      likeCount: sql<number>`(SELECT count(*) FROM ${likesTable} WHERE ${likesTable.commentId} = ${commentsTable.id})`.mapWith(Number),
+      isLiked: sql<boolean>`true`,
     })
     .from(likesTable)
     .innerJoin(commentsTable, eq(likesTable.commentId, commentsTable.id))

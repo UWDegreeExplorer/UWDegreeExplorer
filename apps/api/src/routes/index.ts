@@ -13,7 +13,6 @@ import likesRouter from "./likes";
 const router: IRouter = Router();
 
 router.use(healthRouter);
-router.get("/ping-likes", (req, res) => res.send("pong"));
 router.use("/likes", likesRouter);
 router.use("/auth", authRouter);
 router.use("/posts/bookmarks", postsBookmarksRouter);
