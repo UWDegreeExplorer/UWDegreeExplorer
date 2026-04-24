@@ -409,7 +409,7 @@ export function PostDetailPane({ postId }: { postId: number }) {
                 size="sm"
                 disabled={!currentUser || bookmarkPending}
                 onClick={() => toggleBookmark({})}
-                className={["h-8 gap-1.5", post.isBookmarked ? "" : "text-muted-foreground"].join(" ")}
+                className={["h-8 gap-1.5", post.isBookmarked ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-primary"].join(" ")}
               >
                 {bookmarkPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -427,7 +427,7 @@ export function PostList({
                             <motion.button 
                               whileTap={{ scale: 0.8 }}
                               onClick={(e) => handleBookmark(e, p.id)}
-                              className={["flex items-center gap-1.5 transition-colors", p.isBookmarked ? "text-yellow-500" : "hover:text-yellow-500"].join(" ")}
+                              className={["flex items-center gap-1.5 transition-colors", p.isBookmarked ? "text-primary" : "hover:text-primary"].join(" ")}
                             >
                               <motion.div
                                 animate={p.isBookmarked ? { scale: [1, 1.4, 1] } : { scale: 1 }}
