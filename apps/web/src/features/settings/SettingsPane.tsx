@@ -1,0 +1,285 @@
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import {
+  useGetCurrentUser,
+  useUpdateCurrentUser,
+  getGetCurrentUserQueryKey,
+} from "@workspace/api-client-react";
+import { Settings, Sun, Moon, Monitor, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { relTime } from "@/lib/utils";
+
+export function SettingsPane() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: userData } = useGetCurrentUser();
+  const updateMutation = useUpdateCurrentUser();
+  const user = userData?.user;
+
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("app-theme") as any) || "system";
+    }
+    return "system";
+  });
+
+  const applyTheme = (newTheme: "light" | "dark" | "system") => {
+    setTheme(newTheme);
+    localStorage.setItem("app-theme", newTheme);
+
+    const isDark =
+      newTheme === "dark" ||
+      (newTheme === "system" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches);
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
+  useEffect(() => {
+    if (theme !== "system") return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => {
+      if (mediaQuery.matches) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [theme]);
+
+  if (!user) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-12">
+        <div className="text-center">
+          <Settings className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+          <p className="text-muted-foreground font-serif italic">
+            Please sign in to view settings.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const startEditing = (field: string, value: string) => {
+    setEditingField(field);
+    setEditValue(value);
+  };
+
+  const handleSave = () => {
+    if (!editingField) return;
+
+    updateMutation.mutate(
+      { data: { [editingField]: editValue } },
+      {
+        onSuccess: (updatedUser: any) => {
+          queryClient.setQueryData(getGetCurrentUserQueryKey(), {
+            user: updatedUser,
+          });
+          toast({
+            title: "Profile updated",
+            description: `Your ${editingField} has been updated.`,
+          });
+          setEditingField(null);
+        },
+        onError: (error: any) => {
+          toast({
+            variant: "destructive",
+            title: "Update failed",
+            description: error.message || "Could not update profile.",
+          });
+        },
+      },
+    );
+  };
+
+  return (
+    <ScrollArea className="flex-1 bg-card/5">
+      <div className="max-w-2xl mx-auto px-8 py-12">
+        <header className="mb-10">
+          <h1 className="font-serif text-3xl font-medium tracking-tight mb-2">
+            Settings
+          </h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Manage your account preferences and personal information.
+          </p>
+        </header>
+
+        <div className="space-y-8">
+          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-border bg-muted/30">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Profile Information
+              </h2>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  Username
+                </label>
+                <div className="flex items-center justify-between py-2 border-b border-border/50">
+                  <span className="font-medium">{user.username}</span>
+                  <Badge variant="secondary" className="text-[10px]">
+                    Public
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  Display Name
+                </label>
+                <div className="flex items-center justify-between py-2 border-b border-border/50">
+                  {editingField === "displayName" ? (
+                    <div className="flex items-center gap-2 w-full py-1">
+                      <Input
+                        value={editValue}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setEditValue(e.target.value)
+                        }
+                        className="h-8 text-sm"
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        className="h-8"
+                        onClick={handleSave}
+                        disabled={updateMutation.isPending}
+                      >
+                        {updateMutation.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          "Save"
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => setEditingField(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="font-medium">{user.displayName}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/5"
+                        onClick={() =>
+                          startEditing("displayName", user.displayName)
+                        }
+                      >
+                        Edit
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  Email Address
+                </label>
+                <div className="flex items-center justify-between py-2 border-b border-border/50">
+                  <span className="font-medium">{user.email}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-border bg-muted/30">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Appearance
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="grid gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                    Theme Preference
+                  </label>
+                  <p className="text-xs text-muted-foreground/70">
+                    Choose how Campus Forum looks to you.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {(["light", "dark", "system"] as const).map((t) => {
+                    const Icon =
+                      t === "light" ? Sun : t === "dark" ? Moon : Monitor;
+                    const isActive = theme === t;
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => applyTheme(t)}
+                        className={[
+                          "flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border-2 transition-all duration-200 group relative overflow-hidden",
+                          isActive
+                            ? "border-primary bg-primary/[0.03] shadow-sm"
+                            : "border-border bg-card hover:border-border/80 hover:bg-muted/30",
+                        ].join(" ")}
+                      >
+                        <div
+                          className={[
+                            "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                            isActive
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground group-hover:bg-muted/80",
+                          ].join(" ")}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <span
+                          className={[
+                            "text-xs font-semibold capitalize",
+                            isActive
+                              ? "text-primary"
+                              : "text-muted-foreground",
+                          ].join(" ")}
+                        >
+                          {t}
+                        </span>
+                        {isActive && (
+                          <div className="absolute top-2 right-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div className="pt-4 flex items-center justify-between text-xs text-muted-foreground px-2">
+            <span>Member since {relTime(new Date().toISOString())}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-destructive hover:text-destructive hover:bg-destructive/5"
+            >
+              Delete Account
+            </Button>
+          </div>
+        </div>
+      </div>
+    </ScrollArea>
+  );
+}

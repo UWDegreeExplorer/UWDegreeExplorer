@@ -108,6 +108,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CurrentUser"
+    patch:
+      operationId: updateCurrentUser
+      tags: [auth]
+      summary: Update the currently logged-in user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserInput"
+      responses:
+        "200":
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/google:
+    post:
+      operationId: googleLogin
+      tags: [auth]
+      summary: Log in or register with Google access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleLoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Invalid Google token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /posts:
     get:
@@ -125,6 +173,11 @@ paths:
           required: false
           schema:
             type: string
+        - in: query
+          name: authorId
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: A list of posts
@@ -341,6 +394,23 @@ components:
           type: string
       required: [username, password]
 
+    UpdateUserInput:
+      type: object
+      properties:
+        username:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+    
+    GoogleLoginInput:
+      type: object
+      properties:
+        accessToken:
+          type: string
+      required: [accessToken]
+
     User:
       type: object
       properties:
@@ -419,6 +489,10 @@ components:
         lastActivityAt:
           type: string
           format: date-time
+        isBookmarked:
+          type: boolean
+        bookmarkCount:
+          type: integer
       required:
         [
           id,
@@ -430,6 +504,8 @@ components:
           commentCount,
           createdAt,
           lastActivityAt,
+          isBookmarked,
+          bookmarkCount,
         ]
 
     Post:
@@ -455,8 +531,24 @@ components:
           format: date-time
         canDelete:
           type: boolean
+        isBookmarked:
+          type: boolean
+        bookmarkCount:
+          type: integer
       required:
-        [id, section, title, body, authorId, authorName, isAnonymous, createdAt, canDelete]
+        [
+          id,
+          section,
+          title,
+          body,
+          authorId,
+          authorName,
+          isAnonymous,
+          createdAt,
+          canDelete,
+          isBookmarked,
+          bookmarkCount,
+        ]
 
     Comment:
       type: object
