@@ -4,7 +4,7 @@ import { postsTable } from "./posts";
 
 export const bookmarksTable = pgTable("bookmarks", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => usersTable.id).notNull(),
+  userId: integer("user_id").references(() => usersTable.id, { onDelete: "cascade" }).notNull(),
   postId: integer("post_id").references(() => postsTable.id, { onDelete: "cascade" }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => {

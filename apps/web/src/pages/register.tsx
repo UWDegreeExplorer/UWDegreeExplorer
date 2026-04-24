@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useRegisterUser, getGetCurrentUserQueryKey, customFetch } from "@workspace/api-client-react";
+import { useGoogleLogin as useGoogleOAuth } from "@react-oauth/google";
+import { 
+  useRegisterUser, 
+  getGetCurrentUserQueryKey, 
+  customFetch,
+  useGoogleLogin as useBackendGoogleLogin,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -10,7 +16,16 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+
+const googleSetPasswordSchema = z.object({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(30, "Username must be at most 30 characters"),
@@ -26,11 +41,79 @@ const registerSchema = z.object({
 export default function Register() {
   const [, setLocation] = useLocation();
   const registerMutation = useRegisterUser();
+  const googleMutation = useBackendGoogleLogin();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<"details" | "verify">("details");
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const { toast } = useToast();
+
+  const [googleTempToken, setGoogleTempToken] = useState<string | null>(null);
+  const [showGooglePassword, setShowGooglePassword] = useState(false);
+
+  const googleForm = useForm<z.infer<typeof googleSetPasswordSchema>>({
+    resolver: zodResolver(googleSetPasswordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  let googleLogin = () => {
+    toast({
+      variant: "destructive",
+      title: "Google Login Unavailable",
+      description: "Google OAuth is not configured on this server.",
+    });
+  };
+
+  try {
+    if (clientId) {
+      const loginHook = useGoogleOAuth({
+        onSuccess: async (tokenResponse) => {
+          googleMutation.mutate(
+            { data: { accessToken: tokenResponse.access_token, password: googleForm.getValues().password || undefined } as any },
+            {
+              onSuccess: (data: any) => {
+                if (data.needsPassword) {
+                  setGoogleTempToken(tokenResponse.access_token);
+                  setShowGooglePassword(true);
+                  return;
+                }
+                queryClient.setQueryData(getGetCurrentUserQueryKey(), {
+                  user: data
+                });
+                toast({
+                  title: "Welcome!",
+                  description: `Logged in as ${data.displayName}`,
+                });
+                setLocation("/");
+              },
+              onError: (error: any) => {
+                toast({
+                  variant: "destructive",
+                  title: "Login Failed",
+                  description: error.message || "Backend authentication failed.",
+                });
+              }
+            }
+          );
+        },
+        onError: () => {
+          toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "Google login cancelled.",
+          });
+        }
+      });
+      googleLogin = loginHook;
+    }
+  } catch (e) {
+    console.error("Google OAuth hook failed:", e);
+  }
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -68,6 +151,23 @@ export default function Register() {
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const onGooglePasswordSubmit = (values: z.infer<typeof googleSetPasswordSchema>) => {
+    if (!googleTempToken) return;
+    googleMutation.mutate(
+      { data: { accessToken: googleTempToken, password: values.password } as any },
+      {
+        onSuccess: (data: any) => {
+          queryClient.setQueryData(getGetCurrentUserQueryKey(), { user: data });
+          toast({ title: "Welcome!", description: `Logged in as ${data.displayName}` });
+          setLocation("/");
+        },
+        onError: (error: any) => {
+          toast({ variant: "destructive", title: "Registration Failed", description: error.message });
+        }
+      }
+    );
   };
 
   const onVerify = async () => {
@@ -224,6 +324,43 @@ export default function Register() {
                 </div>
               </div>
             )}
+
+            {step === "details" && (
+              <>
+                <div className="mt-6 flex items-center justify-center">
+                  <div className="h-px bg-border flex-1"></div>
+                  <span className="px-4 text-xs text-muted-foreground uppercase tracking-wider">or</span>
+                  <div className="h-px bg-border flex-1"></div>
+                </div>
+
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  className="w-full gap-2 mt-6" 
+                  onClick={() => googleLogin()}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z"
+                    />
+                  </svg>
+                  Continue with Google
+                </Button>
+              </>
+            )}
           </div>
           
           <div className="text-center text-sm">
@@ -234,6 +371,52 @@ export default function Register() {
           </div>
         </div>
       </div>
+
+      <Dialog open={showGooglePassword} onOpenChange={setShowGooglePassword}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete Your Registration</DialogTitle>
+            <DialogDescription>
+              Since this is your first time logging in with Google, please set a password for your account. 
+              This will serve as a backup login method.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...googleForm}>
+            <form onSubmit={googleForm.handleSubmit(onGooglePasswordSubmit)} className="space-y-4 py-4">
+              <FormField
+                control={googleForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Create a password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={googleForm.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Confirm your password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={googleMutation.isPending}>
+                {googleMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Finish Registration
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
