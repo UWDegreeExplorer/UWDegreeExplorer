@@ -14,6 +14,27 @@ import { emailVerificationsTable } from "@workspace/db";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+async function verifyRecaptcha(token: string | undefined) {
+  if (!process.env.RECAPTCHA_SECRET_KEY) {
+    console.warn("RECAPTCHA_SECRET_KEY not set, skipping verification");
+    return true;
+  }
+  if (!token) return false;
+
+  try {
+    const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${token}`,
+    });
+    const data = await response.json() as any;
+    return data.success;
+  } catch (error) {
+    console.error("reCAPTCHA verification error:", error);
+    return false;
+  }
+}
+
 const router: IRouter = Router();
 
 router.post("/register", async (req, res) => {
@@ -22,7 +43,13 @@ router.post("/register", async (req, res) => {
     res.status(400).json({ message: "Invalid registration data" });
     return;
   }
-  const { username, displayName, email, password } = parsed.data;
+  const { username, displayName, email, password, recaptchaToken } = parsed.data;
+
+  const isHuman = await verifyRecaptcha(recaptchaToken);
+  if (!isHuman) {
+    res.status(400).json({ message: "Please complete the CAPTCHA" });
+    return;
+  }
 
   const existing = await db
     .select()
@@ -70,7 +97,13 @@ router.post("/login", async (req, res) => {
     res.status(401).json({ message: "Invalid credentials" });
     return;
   }
-  const { username, password } = parsed.data;
+  const { username, password, recaptchaToken } = parsed.data;
+
+  const isHuman = await verifyRecaptcha(recaptchaToken);
+  if (!isHuman) {
+    res.status(400).json({ message: "Please complete the CAPTCHA" });
+    return;
+  }
 
   const [user] = await db
     .select()
@@ -232,7 +265,13 @@ router.post("/register/send-code", async (req, res) => {
   const parsed = RegisterUserBody.safeParse(req.body);
   if (!parsed.success) res.status(400).json({ message: "Invalid data" });
   if (!parsed.success) return;
-  const { username, email, password } = parsed.data;
+  const { username, email, password, recaptchaToken } = parsed.data;
+
+  const isHuman = await verifyRecaptcha(recaptchaToken);
+  if (!isHuman) {
+    res.status(400).json({ message: "Please complete the CAPTCHA" });
+    return;
+  }
   const existing = await db.select().from(usersTable).where(or(eq(usersTable.username, username), eq(usersTable.email, email))).limit(1);
   if (existing.length > 0) res.status(409).json({ message: "In use" });
   if (existing.length > 0) return;

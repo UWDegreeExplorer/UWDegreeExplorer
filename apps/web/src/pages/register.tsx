@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import ReCAPTCHA from "react-google-recaptcha";
 
 const googleSetPasswordSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -50,6 +51,7 @@ export default function Register() {
 
   const [googleTempToken, setGoogleTempToken] = useState<string | null>(null);
   const [showGooglePassword, setShowGooglePassword] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
 
   const googleForm = useForm<z.infer<typeof googleSetPasswordSchema>>({
     resolver: zodResolver(googleSetPasswordSchema),
@@ -131,11 +133,21 @@ export default function Register() {
     setIsVerifying(true);
     try {
       // Omit confirmPassword before sending to API
-      const { confirmPassword, ...apiValues } = values;
+    const { confirmPassword, ...apiValues } = values;
+    if (!recaptchaToken) {
+      toast({
+        variant: "destructive",
+        title: "Security Check Required",
+        description: "Please complete the reCAPTCHA verification.",
+      });
+      setIsVerifying(false);
+      return;
+    }
+    try {
       await customFetch("/api/auth/register/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(apiValues),
+        body: JSON.stringify({ ...apiValues, recaptchaToken }),
       });
       setStep("verify");
       toast({
@@ -292,7 +304,16 @@ export default function Register() {
                     )}
                   />
 
-                  <Button type="submit" className="w-full mt-2" disabled={isVerifying}>
+
+
+                  <div className="flex justify-center py-2">
+                    <ReCAPTCHA
+                      sitekey="6Lcghc0sAAAAALWZH-ysPzYkOdnftidO-cn2_H4Q"
+                      onChange={(token) => setRecaptchaToken(token)}
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full mt-2" disabled={isVerifying || !recaptchaToken}>
                     {isVerifying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                     Send Verification Code
                   </Button>

@@ -36,6 +36,7 @@ export const RegisterUserBody = zod.object({
     .string()
     .min(registerUserBodyPasswordMin)
     .max(registerUserBodyPasswordMax),
+  recaptchaToken: zod.string().optional(),
 });
 
 export const RegisterUserResponse = zod.object({
@@ -52,6 +53,7 @@ export const RegisterUserResponse = zod.object({
 export const LoginUserBody = zod.object({
   username: zod.string(),
   password: zod.string(),
+  recaptchaToken: zod.string().optional(),
 });
 
 export const LoginUserResponse = zod.object({

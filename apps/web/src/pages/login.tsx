@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import ReCAPTCHA from "react-google-recaptcha";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -39,6 +40,7 @@ export default function Login() {
   
   const [googleTempToken, setGoogleTempToken] = useState<string | null>(null);
   const [showGooglePassword, setShowGooglePassword] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
 
   const googleForm = useForm<z.infer<typeof googleSetPasswordSchema>>({
     resolver: zodResolver(googleSetPasswordSchema),
@@ -114,8 +116,16 @@ export default function Login() {
   });
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
+    if (!recaptchaToken) {
+      toast({
+        variant: "destructive",
+        title: "Security Check Required",
+        description: "Please complete the reCAPTCHA verification.",
+      });
+      return;
+    }
     loginMutation.mutate(
-      { data: values },
+      { data: { ...values, recaptchaToken } as any },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
@@ -201,7 +211,14 @@ export default function Login() {
                   )}
                 />
 
-                <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                <div className="flex justify-center py-2">
+                  <ReCAPTCHA
+                    sitekey="6Lcghc0sAAAAALWZH-ysPzYkOdnftidO-cn2_H4Q"
+                    onChange={(token) => setRecaptchaToken(token)}
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loginMutation.isPending || !recaptchaToken}>
                   {loginMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                   Sign in
                 </Button>
