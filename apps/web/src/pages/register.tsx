@@ -17,6 +17,10 @@ const registerSchema = z.object({
   displayName: z.string().min(1, "Display name is required").max(60, "Display name must be at most 60 characters"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters").max(200, "Password is too long"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 export default function Register() {
@@ -35,6 +39,7 @@ export default function Register() {
       displayName: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
@@ -42,10 +47,12 @@ export default function Register() {
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
     setIsVerifying(true);
     try {
+      // Omit confirmPassword before sending to API
+      const { confirmPassword, ...apiValues } = values;
       await customFetch("/api/auth/register/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(apiValues),
       });
       setStep("verify");
       toast({
@@ -165,6 +172,20 @@ export default function Register() {
                         <FormLabel>Password</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="Create a password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Confirm your password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
