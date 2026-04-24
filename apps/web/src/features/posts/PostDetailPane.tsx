@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { UserCircle2, Loader2, Bookmark, Trash2, MessageCircle, Reply, Send, Heart } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 function CommentNode({
   comment,
@@ -78,24 +79,27 @@ function CommentNode({
           {comment.body}
         </p>
         <div className="mt-2 -ml-1 flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+          <motion.button 
+            whileTap={{ scale: 0.8 }}
             onClick={() => setShowReply((v) => !v)}
+            className="flex items-center gap-1.5 h-7 px-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Reply className="w-3 h-3" />
             Reply
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={["h-7 px-2 text-xs gap-1.5 transition-colors", (comment as any).isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"].join(" ")}
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.8 }}
+            className={`h-7 px-2 text-xs gap-1.5 transition-colors flex items-center ${(comment as any).isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"}`}
             onClick={handleLike}
           >
-            <Heart className={["w-3 h-3", (comment as any).isLiked ? "fill-current" : ""].join(" ")} />
+            <motion.div
+              animate={(comment as any).isLiked ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Heart className={["w-3 h-3", (comment as any).isLiked ? "fill-current" : ""].join(" ")} />
+            </motion.div>
             <span>{(comment as any).likeCount || 0}</span>
-          </Button>
+          </motion.button>
         </div>
         {showReply && (
           <div className="mt-3">
@@ -399,41 +403,55 @@ export function PostDetailPane({ postId }: { postId: number }) {
             )}
           </div>
           <div className="flex items-center gap-1.5">
-            <Button
-              variant={post.isBookmarked ? "default" : "outline"}
-              size="sm"
-              disabled={!currentUser || bookmarkPending}
-              onClick={() => toggleBookmark({})}
-              className={["h-8 gap-1.5", post.isBookmarked ? "" : "text-muted-foreground"].join(" ")}
-            >
-              {bookmarkPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Bookmark className={["w-3.5 h-3.5", post.isBookmarked ? "fill-current" : ""].join(" ")} />
-              )}
-              <span>{post.isBookmarked ? "Bookmarked" : "Bookmark"}</span>
-              {post.bookmarkCount > 0 && (
-                <Badge variant={post.isBookmarked ? "secondary" : "outline"} className="ml-0.5 h-4 px-1 text-[9px]">
-                  {post.bookmarkCount}
-                </Badge>
-              )}
-            </Button>
+            <motion.div whileTap={{ scale: 0.95 }}>
+              <Button
+                variant={post.isBookmarked ? "default" : "outline"}
+                size="sm"
+                disabled={!currentUser || bookmarkPending}
+                onClick={() => toggleBookmark({})}
+                className={["h-8 gap-1.5", post.isBookmarked ? "" : "text-muted-foreground"].join(" ")}
+              >
+                {bookmarkPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <motion.div
+                    animate={post.isBookmarked ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Bookmark className={["w-3.5 h-3.5", post.isBookmarked ? "fill-current" : ""].join(" ")} />
+                  </motion.div>
+                )}
+                <span>{post.isBookmarked ? "Bookmarked" : "Bookmark"}</span>
+                {post.bookmarkCount > 0 && (
+                  <Badge variant={post.isBookmarked ? "secondary" : "outline"} className="ml-0.5 h-4 px-1 text-[9px]">
+                    {post.bookmarkCount}
+                  </Badge>
+                )}
+              </Button>
+            </motion.div>
 
-            <Button
-              variant={(post as any).isLiked ? "default" : "outline"}
-              size="sm"
-              disabled={!currentUser}
-              onClick={handleToggleLike}
-              className={["h-8 gap-1.5", (post as any).isLiked ? "bg-red-50 hover:bg-red-100 border-red-200 text-red-600" : "text-muted-foreground hover:text-red-600 hover:bg-red-50 hover:border-red-100"].join(" ")}
-            >
-              <Heart className={["w-3.5 h-3.5", (post as any).isLiked ? "fill-current" : ""].join(" ")} />
-              <span>{(post as any).isLiked ? "Liked" : "Like"}</span>
-              {(post as any).likeCount > 0 && (
-                <Badge variant={(post as any).isLiked ? "secondary" : "outline"} className={["ml-0.5 h-4 px-1 text-[9px]", (post as any).isLiked ? "bg-red-100 text-red-700 border-none" : ""].join(" ")}>
-                  {(post as any).likeCount}
-                </Badge>
-              )}
-            </Button>
+            <motion.div whileTap={{ scale: 0.95 }}>
+              <Button
+                variant={(post as any).isLiked ? "default" : "outline"}
+                size="sm"
+                disabled={!currentUser}
+                onClick={handleToggleLike}
+                className={["h-8 gap-1.5", (post as any).isLiked ? "bg-red-50 hover:bg-red-100 border-red-200 text-red-600" : "text-muted-foreground hover:text-red-600 hover:bg-red-50 hover:border-red-100"].join(" ")}
+              >
+                <motion.div
+                  animate={(post as any).isLiked ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Heart className={["w-3.5 h-3.5", (post as any).isLiked ? "fill-current" : ""].join(" ")} />
+                </motion.div>
+                <span>{(post as any).isLiked ? "Liked" : "Like"}</span>
+                {(post as any).likeCount > 0 && (
+                  <Badge variant={(post as any).isLiked ? "secondary" : "outline"} className={["ml-0.5 h-4 px-1 text-[9px]", (post as any).isLiked ? "bg-red-100 text-red-700 border-none" : ""].join(" ")}>
+                    {(post as any).likeCount}
+                  </Badge>
+                )}
+              </Button>
+            </motion.div>
 
             {post.canDelete && (
               <AlertDialog>

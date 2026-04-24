@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, Filter, ArrowUpDown, Loader2, FileEdit, Trash2, MessageSquare, Bookmark, Layers, Heart } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { type SectionFilter, SECTION_LABELS } from "@/lib/constants";
 import { relTime, excerpt } from "@/lib/utils";
 import { ReplyComposer } from "./PostDetailPane";
@@ -151,6 +152,17 @@ export function PostList({
       queryClient.invalidateQueries({ queryKey: ["/posts/bookmarks"] });
       queryClient.invalidateQueries({ queryKey: ["/likes/me"] });
       queryClient.invalidateQueries({ queryKey: ["posts", id] });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    }
+  };
+
+  const handleBookmark = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    try {
+      await customFetch(`/api/posts/${id}/bookmark`, { method: "POST" });
+      queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["/posts/bookmarks"] });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
     }
@@ -397,19 +409,34 @@ export function PostList({
                               <MessageSquare className="w-3.5 h-3.5" />
                               <span className="text-xs font-medium">{p.commentCount ?? 0}</span>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <button 
-                                onClick={(e) => handleLike(e, p.id, p.type === "comment" ? "comment" : "post")}
-                                className={["flex items-center gap-1.5 transition-colors", p.isLiked ? "text-red-500" : "hover:text-red-500"].join(" ")}
+                            
+                            <motion.button 
+                              whileTap={{ scale: 0.8 }}
+                              onClick={(e) => handleLike(e, p.id, p.type === "comment" ? "comment" : "post")}
+                              className={["flex items-center gap-1.5 transition-colors", p.isLiked ? "text-red-500" : "hover:text-red-500"].join(" ")}
+                            >
+                              <motion.div
+                                animate={p.isLiked ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+                                transition={{ duration: 0.3 }}
                               >
                                 <Heart className={["w-3.5 h-3.5", p.isLiked ? "fill-current" : ""].join(" ")} />
-                                <span className="text-xs font-medium">{p.likeCount ?? 0}</span>
-                              </button>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Bookmark className={["w-3.5 h-3.5", p.isBookmarked ? "fill-primary text-primary" : ""].join(" ")} />
+                              </motion.div>
+                              <span className="text-xs font-medium">{p.likeCount ?? 0}</span>
+                            </motion.button>
+
+                            <motion.button 
+                              whileTap={{ scale: 0.8 }}
+                              onClick={(e) => handleBookmark(e, p.id)}
+                              className={["flex items-center gap-1.5 transition-colors", p.isBookmarked ? "text-yellow-500" : "hover:text-yellow-500"].join(" ")}
+                            >
+                              <motion.div
+                                animate={p.isBookmarked ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                <Bookmark className={["w-3.5 h-3.5", p.isBookmarked ? "fill-current" : ""].join(" ")} />
+                              </motion.div>
                               <span className="text-xs font-medium">{p.bookmarkCount ?? 0}</span>
-                            </div>
+                            </motion.button>
                           </div>
                           <span className="text-[11px] font-medium text-muted-foreground/70 text-right flex items-center gap-1 justify-end truncate max-w-[150px]">
                             by {p.isAnonymous && section === "my-posts" ? "Anonymous (Me)" : p.authorName}
