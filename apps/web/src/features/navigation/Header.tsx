@@ -52,9 +52,18 @@ export function Header({ onMenuClick, showMenuButton, onSelectSection }: { onMen
                 variant="ghost"
                 className="gap-2.5 px-2 hover:bg-accent/50 transition-colors"
               >
-                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
-                  {user.displayName.slice(0, 1).toUpperCase()}
-                </div>
+                {(user as any).avatarUrl ? (
+                  <img
+                    src={(user as any).avatarUrl}
+                    alt={user.displayName}
+                    className="w-7 h-7 rounded-full object-cover border border-primary/20"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
+                    {user.displayName.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
                 <div className="text-left hidden sm:block">
                   <p className="text-xs font-semibold leading-none">
                     {user.displayName}

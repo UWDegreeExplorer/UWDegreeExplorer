@@ -147,6 +147,7 @@ router.post("/google", async (req, res) => {
               displayName: name || username,
               email,
               passwordHash,
+              avatarUrl: picture || null,
             })
             .returning();
           break; // Success!
@@ -176,8 +177,7 @@ router.post("/google", async (req, res) => {
       displayName: user.displayName,
       email: user.email,
       isAdmin: user.isAdmin,
-      // We can also return picture here if we want the client to use it
-      picture: picture,
+      avatarUrl: picture || user.avatarUrl || null,
     });
   } catch (error) {
     console.error("Google verify error:", error);
@@ -212,6 +212,7 @@ router.get("/me", async (req, res) => {
       displayName: user.displayName,
       email: user.email,
       isAdmin: user.isAdmin,
+      avatarUrl: user.avatarUrl ?? null,
     },
   });
 });
