@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, postsTable, commentsTable, usersTable, notificationsTable, bookmarksTable, draftsTable, likesTable } from "@workspace/db";
+import { db, postsTable, commentsTable, usersTable, notificationsTable, bookmarksTable, draftsTable, likesTable, reportsTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import {
   CreatePostBody,
@@ -274,10 +274,35 @@ router.delete("/:id", async (req, res) => {
     return;
   }
 
+  // 1. Cleanup reports for the post itself
+  await db.delete(reportsTable).where(
+    and(
+      eq(reportsTable.targetType, "post"),
+      eq(reportsTable.targetId, id)
+    )
+  );
+
+  // 2. Cleanup reports for all comments belonging to this post (MUST be before deleting comments)
+  await db.delete(reportsTable).where(
+    and(
+      eq(reportsTable.targetType, "comment"),
+      sql`target_id IN (SELECT id FROM ${commentsTable} WHERE post_id = ${id})`
+    )
+  );
+
+  // 3. Cleanup likes for all comments (MUST be before deleting comments)
+  await db.delete(likesTable).where(
+    sql`comment_id IN (SELECT id FROM ${commentsTable} WHERE post_id = ${id})`
+  );
+
+  // 4. Delete associated post data
   await db.delete(commentsTable).where(eq(commentsTable.postId, id));
   await db.delete(bookmarksTable).where(eq(bookmarksTable.postId, id));
   await db.delete(notificationsTable).where(eq(notificationsTable.postId, id));
   await db.delete(draftsTable).where(eq(draftsTable.postId, id));
+  await db.delete(likesTable).where(eq(likesTable.postId, id));
+
+  // 5. Finally delete the post
   await db.delete(postsTable).where(eq(postsTable.id, id));
 
   res.json({ message: "Post deleted" });

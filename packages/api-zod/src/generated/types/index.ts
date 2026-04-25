@@ -23,6 +23,7 @@ export * from './post';
 export * from './postDetail';
 export * from './postSummary';
 export * from './registerInput';
+export * from './reportInput';
 export * from './section';
 export * from './sectionStat';
 export * from './sendVerificationCodeBody';

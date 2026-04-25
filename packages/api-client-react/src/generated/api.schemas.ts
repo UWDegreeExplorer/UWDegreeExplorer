@@ -179,6 +179,11 @@ export interface ActivityItem {
   createdAt: string;
 }
 
+export interface ReportInput {
+  reason: string;
+  details?: string | null;
+}
+
 export type GoogleLogin200 = User | {
   needsPassword: boolean;
   email: string;

@@ -377,6 +377,56 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /posts/{id}/report:
+    post:
+      operationId: reportPost
+      tags: [posts]
+      summary: Report a post for moderation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "200":
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+
+  /comments/{id}/report:
+    post:
+      operationId: reportComment
+      tags: [comments]
+      summary: Report a comment for moderation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "200":
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+
   /stats/sections:
     get:
       operationId: getSectionStats
@@ -718,3 +768,13 @@ components:
           type: string
           format: date-time
       required: [kind, postId, postTitle, section, authorName, snippet, createdAt]
+    
+    ReportInput:
+      type: object
+      properties:
+        reason:
+          type: string
+        details:
+          type: string
+          nullable: true
+      required: [reason]

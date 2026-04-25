@@ -13,8 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { UserCircle2, Loader2, Bookmark, Trash2, MessageCircle, Reply, Send, Heart } from "lucide-react";
+import { UserCircle2, Loader2, Bookmark, Trash2, MessageCircle, Reply, Send, Heart, Flag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ReportDialog } from "../moderation/ReportDialog";
 
 function CommentNode({
   comment,
@@ -28,6 +29,7 @@ function CommentNode({
   postId: number;
   depth: number;
   isAnonymousMode: boolean;
+  onReport: (id: number, type: "post" | "comment") => void;
 }) {
   const [showReply, setShowReply] = useState(false);
   const queryClient = useQueryClient();
@@ -100,6 +102,14 @@ function CommentNode({
             </motion.div>
             <span>{(comment as any).likeCount || 0}</span>
           </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.8 }}
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1.5"
+            onClick={() => onReport(comment.id, "comment")}
+          >
+            <Flag className="w-3 h-3" />
+            Report
+          </motion.button>
         </div>
         {showReply && (
           <div className="mt-3">
@@ -124,6 +134,7 @@ function CommentNode({
               postId={postId}
               depth={depth + 1}
               isAnonymousMode={isAnonymousMode}
+              onReport={onReport}
             />
           ))}
         </div>
@@ -263,15 +274,23 @@ export function ReplyComposer({
   );
 }
 
-export function PostDetailPane({ postId }: { postId: number }) {
   const [, setLocation] = useLocation();
   const { data, isLoading } = useGetPost(postId);
   const { data: currentUserData } = useGetCurrentUser();
+  const [reportTarget, setReportTarget] = useState<{ id: number; type: "post" | "comment" } | null>(null);
   const currentUser = currentUserData?.user;
   const isAnonymousMode = !currentUser;
   const deletePost = useDeletePost();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const handleReportClick = (id: number, type: "post" | "comment") => {
+    if (!currentUser) {
+      toast({ title: "Please sign in", description: "You need to be logged in to report content." });
+      return;
+    }
+    setReportTarget({ id, type });
+  };
 
   const { mutate: toggleBookmark, isPending: bookmarkPending } = useCustomMutation<any, any>(`/posts/${postId}/bookmark`, {
     fetchOptions: { method: "POST" },
@@ -405,6 +424,17 @@ export function PostDetailPane({ postId }: { postId: number }) {
           <div className="flex items-center gap-1.5">
             <motion.div whileTap={{ scale: 0.95 }}>
               <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                onClick={() => handleReportClick(postId, "post")}
+              >
+                <Flag className="w-3.5 h-3.5" />
+                Report
+              </Button>
+            </motion.div>
+            <motion.div whileTap={{ scale: 0.95 }}>
+              <Button
                 variant={post.isBookmarked ? "default" : "outline"}
                 size="sm"
                 disabled={!currentUser || bookmarkPending}
@@ -535,6 +565,7 @@ export function PostDetailPane({ postId }: { postId: number }) {
                   postId={post.id}
                   depth={0}
                   isAnonymousMode={isAnonymousMode}
+                  onReport={handleReportClick}
                 />
               ))}
             </div>
@@ -549,6 +580,12 @@ export function PostDetailPane({ postId }: { postId: number }) {
           </div>
         </div>
       </article>
+      <ReportDialog 
+        open={!!reportTarget} 
+        onOpenChange={(open) => !open && setReportTarget(null)} 
+        targetId={reportTarget?.id ?? 0} 
+        targetType={reportTarget?.type ?? "post"} 
+      />
     </ScrollArea>
   );
 }

@@ -36,6 +36,7 @@ import type {
   PostDetail,
   PostSummary,
   RegisterInput,
+  ReportInput,
   SectionStat,
   SendVerificationCodeBody,
   UpdateUserInput,
@@ -1077,6 +1078,150 @@ export const useCreateComment = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getCreateCommentMutationOptions(options));
+    }
+
+/**
+ * @summary Report a post for moderation
+ */
+export const getReportPostUrl = (id: number,) => {
+
+
+
+
+  return `/api/posts/${id}/report`
+}
+
+export const reportPost = async (id: number,
+    reportInput: ReportInput, options?: RequestInit): Promise<OkResponse> => {
+
+  return customFetch<OkResponse>(getReportPostUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reportInput,)
+  }
+);}
+
+
+
+
+export const getReportPostMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportPost>>, TError,{id: number;data: BodyType<ReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportPost>>, TError,{id: number;data: BodyType<ReportInput>}, TContext> => {
+
+const mutationKey = ['reportPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportPost>>, {id: number;data: BodyType<ReportInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reportPost(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportPostMutationResult = NonNullable<Awaited<ReturnType<typeof reportPost>>>
+    export type ReportPostMutationBody = BodyType<ReportInput>
+    export type ReportPostMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Report a post for moderation
+ */
+export const useReportPost = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportPost>>, TError,{id: number;data: BodyType<ReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reportPost>>,
+        TError,
+        {id: number;data: BodyType<ReportInput>},
+        TContext
+      > => {
+      return useMutation(getReportPostMutationOptions(options));
+    }
+
+/**
+ * @summary Report a comment for moderation
+ */
+export const getReportCommentUrl = (id: number,) => {
+
+
+
+
+  return `/api/comments/${id}/report`
+}
+
+export const reportComment = async (id: number,
+    reportInput: ReportInput, options?: RequestInit): Promise<OkResponse> => {
+
+  return customFetch<OkResponse>(getReportCommentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reportInput,)
+  }
+);}
+
+
+
+
+export const getReportCommentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportComment>>, TError,{id: number;data: BodyType<ReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportComment>>, TError,{id: number;data: BodyType<ReportInput>}, TContext> => {
+
+const mutationKey = ['reportComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportComment>>, {id: number;data: BodyType<ReportInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reportComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportCommentMutationResult = NonNullable<Awaited<ReturnType<typeof reportComment>>>
+    export type ReportCommentMutationBody = BodyType<ReportInput>
+    export type ReportCommentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Report a comment for moderation
+ */
+export const useReportComment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportComment>>, TError,{id: number;data: BodyType<ReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reportComment>>,
+        TError,
+        {id: number;data: BodyType<ReportInput>},
+        TContext
+      > => {
+      return useMutation(getReportCommentMutationOptions(options));
     }
 
 /**

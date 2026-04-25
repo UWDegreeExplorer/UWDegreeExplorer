@@ -305,6 +305,40 @@ export const CreateCommentResponse = zod.object({
 
 
 /**
+ * @summary Report a post for moderation
+ */
+export const ReportPostParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReportPostBody = zod.object({
+  "reason": zod.string(),
+  "details": zod.string().nullish()
+})
+
+export const ReportPostResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Report a comment for moderation
+ */
+export const ReportCommentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReportCommentBody = zod.object({
+  "reason": zod.string(),
+  "details": zod.string().nullish()
+})
+
+export const ReportCommentResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * @summary Get post counts and recent activity per section
  */
 export const GetSectionStatsResponseItem = zod.object({
