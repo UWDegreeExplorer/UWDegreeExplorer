@@ -274,6 +274,7 @@ export function ReplyComposer({
   );
 }
 
+export function PostDetailPane({ postId }: { postId: number }) {
   const [, setLocation] = useLocation();
   const { data, isLoading } = useGetPost(postId);
   const { data: currentUserData } = useGetCurrentUser();
