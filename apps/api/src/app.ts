@@ -7,6 +7,7 @@ import { pool } from "@workspace/db";
 import { rateLimit } from "express-rate-limit";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { statusCheck } from "./middlewares/status-check";
 
 const app: Express = express();
 app.set("trust proxy", true);
@@ -73,7 +74,7 @@ const loginLimiter = rateLimit({
 
 app.use("/api/auth/login", loginLimiter);
 app.use("/api", apiLimiter);
-
+app.use("/api", statusCheck);
 app.use("/api", router);
 
 export default app;

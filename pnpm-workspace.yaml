@@ -37,6 +37,7 @@ minimumReleaseAgeExclude:
 packages:
   - apps/*
   - packages/*
+  - lib/*
   - scripts
 
 catalog:

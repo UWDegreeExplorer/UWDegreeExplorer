@@ -33,6 +33,7 @@ export const postsTable = pgTable("posts", {
   lastActivityAt: timestamp("last_activity_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  status: text("status").notNull().default("visible"),
 }, (table) => {
   return {
     authorIdIdx: index("posts_author_id_idx").on(table.authorId),

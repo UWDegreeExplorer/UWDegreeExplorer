@@ -17,6 +17,8 @@ export const usersTable = pgTable("users", {
     .defaultNow(),
   loginAttempts: integer("login_attempts").notNull().default(0),
   lockoutUntil: timestamp("lockout_until", { withTimezone: true }),
+  status: text("status").notNull().default("active"),
+  blockedReason: text("blocked_reason"),
 });
 
 export type User = typeof usersTable.$inferSelect;

@@ -33,7 +33,7 @@ router.get("/", async (req, res) => {
     .from(bookmarksTable)
     .innerJoin(postsTable, eq(bookmarksTable.postId, postsTable.id))
     .leftJoin(usersTable, eq(postsTable.authorId, usersTable.id))
-    .where(eq(bookmarksTable.userId, userId))
+    .where(and(eq(bookmarksTable.userId, userId), sql`${postsTable.status} != 'hidden'`))
     .orderBy(desc(bookmarksTable.createdAt));
 
   res.json(rows.map(r => ({

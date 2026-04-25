@@ -25,6 +25,7 @@ export const commentsTable = pgTable("comments", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  status: text("status").notNull().default("visible"),
 }, (table) => {
   return {
     authorIdIdx: index("comments_author_id_idx").on(table.authorId),

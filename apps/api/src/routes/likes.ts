@@ -99,7 +99,7 @@ router.get("/me", async (req, res) => {
     .from(likesTable)
     .innerJoin(postsTable, eq(likesTable.postId, postsTable.id))
     .leftJoin(usersTable, eq(postsTable.authorId, usersTable.id))
-    .where(eq(likesTable.userId, userId))
+    .where(and(eq(likesTable.userId, userId), sql`${postsTable.status} != 'hidden'`))
     .orderBy(desc(likesTable.createdAt));
 
   const likedComments = await db
@@ -118,7 +118,7 @@ router.get("/me", async (req, res) => {
     .from(likesTable)
     .innerJoin(commentsTable, eq(likesTable.commentId, commentsTable.id))
     .leftJoin(usersTable, eq(commentsTable.authorId, usersTable.id))
-    .where(eq(likesTable.userId, userId))
+    .where(and(eq(likesTable.userId, userId), sql`${commentsTable.status} != 'hidden'`))
     .orderBy(desc(likesTable.createdAt));
 
   res.json({

@@ -30,7 +30,7 @@ router.get("/", async (req, res) => {
       isLiked: userId ? sql<boolean>`EXISTS(SELECT 1 FROM ${likesTable} WHERE post_id = ${postsTable.id} AND user_id = ${userId})` : sql<boolean>`false`,
     })
     .from(postsTable)
-    .where(eq(postsTable.authorId, userId));
+    .where(and(eq(postsTable.authorId, userId), sql`${postsTable.status} != 'hidden'`));
 
   const userComments = await db
     .select({
@@ -51,7 +51,7 @@ router.get("/", async (req, res) => {
     })
     .from(commentsTable)
     .leftJoin(postsTable, eq(commentsTable.postId, postsTable.id))
-    .where(eq(commentsTable.authorId, userId));
+    .where(and(eq(commentsTable.authorId, userId), sql`${commentsTable.status} != 'hidden'`));
 
   const combined = [...userPosts, ...userComments].sort(
     (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),

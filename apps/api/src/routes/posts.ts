@@ -18,7 +18,7 @@ router.get("/", async (req, res) => {
   }
   const { section, search, authorId } = parsed.data;
 
-  const filters = [];
+  const filters = [sql`${postsTable.status} != 'hidden'`];
   if (section) filters.push(eq(postsTable.section, section));
   if (authorId) filters.push(eq(postsTable.authorId, Number(authorId)));
   if (search && search.trim().length > 0) {
@@ -145,6 +145,18 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
+  const sessionUserId = req.session.userId ?? null;
+
+  let viewerIsAdmin = false;
+  if (sessionUserId) {
+    const [viewer] = await db
+      .select({ isAdmin: usersTable.isAdmin })
+      .from(usersTable)
+      .where(eq(usersTable.id, sessionUserId))
+      .limit(1);
+    viewerIsAdmin = viewer?.isAdmin ?? false;
+  }
+
   const [postData] = await db
     .select({
       post: postsTable,
@@ -156,12 +168,10 @@ router.get("/:id", async (req, res) => {
     .limit(1);
   const post = postData ? { ...postData.post, isStudentVerified: postData.isStudentVerified } : null;
 
-  if (!post) {
+  if (!post || (post.status === "hidden" && !viewerIsAdmin && post.authorId !== sessionUserId)) {
     res.status(404).json({ message: "Post not found" });
     return;
   }
-
-  const sessionUserId = req.session.userId ?? null;
 
   const commentsData = await db
     .select({
@@ -176,7 +186,7 @@ router.get("/:id", async (req, res) => {
       eq(likesTable.commentId, commentsTable.id),
       eq(likesTable.userId, sessionUserId || -1)
     ))
-    .where(eq(commentsTable.postId, id))
+    .where(and(eq(commentsTable.postId, id), sql`${commentsTable.status} != 'hidden'`))
     .orderBy(commentsTable.createdAt);
 
   const comments = commentsData.map(c => ({ 
@@ -186,15 +196,6 @@ router.get("/:id", async (req, res) => {
     isLiked: Boolean(c.isLiked)
   }));
 
-  let viewerIsAdmin = false;
-  if (sessionUserId) {
-    const [viewer] = await db
-      .select({ isAdmin: usersTable.isAdmin })
-      .from(usersTable)
-      .where(eq(usersTable.id, sessionUserId))
-      .limit(1);
-    viewerIsAdmin = viewer?.isAdmin ?? false;
-  }
   const canDelete =
     viewerIsAdmin ||
     (sessionUserId != null && post.authorId === sessionUserId);

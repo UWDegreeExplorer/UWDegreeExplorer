@@ -149,7 +149,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                oneOf:
+                  - $ref: "#/components/schemas/User"
+                  - type: object
+                    properties:
+                      needsPassword:
+                        type: boolean
+                      email:
+                        type: string
+                      suggestedName:
+                        type: string
+                    required: [needsPassword, email, suggestedName]
         "401":
           description: Invalid Google token
           content:
@@ -442,6 +452,8 @@ components:
           type: string
           minLength: 6
           maxLength: 200
+        recaptchaToken:
+          type: string
       required: [username, displayName, email, password]
 
     LoginInput:
@@ -450,6 +462,8 @@ components:
         username:
           type: string
         password:
+          type: string
+        recaptchaToken:
           type: string
       required: [username, password]
 
@@ -467,6 +481,10 @@ components:
       type: object
       properties:
         accessToken:
+          type: string
+        password:
+          type: string
+        recaptchaToken:
           type: string
       required: [accessToken]
 
@@ -488,7 +506,9 @@ components:
           nullable: true
         isStudentVerified:
           type: boolean
-      required: [id, username, displayName, email, isAdmin, isStudentVerified]
+        status:
+          type: string
+      required: [id, username, displayName, email, isAdmin, isStudentVerified, status]
 
     CurrentUser:
       type: object
@@ -559,6 +579,8 @@ components:
           type: boolean
         bookmarkCount:
           type: integer
+        status:
+          type: string
       required:
         [
           id,
@@ -573,6 +595,7 @@ components:
           lastActivityAt,
           isBookmarked,
           bookmarkCount,
+          status,
         ]
 
     Post:
@@ -604,6 +627,8 @@ components:
           type: boolean
         bookmarkCount:
           type: integer
+        status:
+          type: string
       required:
         [
           id,
@@ -618,6 +643,7 @@ components:
           canDelete,
           isBookmarked,
           bookmarkCount,
+          status,
         ]
 
     Comment:
@@ -641,8 +667,10 @@ components:
         createdAt:
           type: string
           format: date-time
+        status:
+          type: string
       required:
-        [id, postId, parentId, body, authorName, isAnonymous, isStudentVerified, createdAt]
+        [id, postId, parentId, body, authorName, isAnonymous, isStudentVerified, createdAt, status]
 
     PostDetail:
       type: object

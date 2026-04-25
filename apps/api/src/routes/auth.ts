@@ -132,6 +132,11 @@ router.post("/login", async (req, res) => {
     await db.update(usersTable).set({ loginAttempts: 0, lockoutUntil: null }).where(eq(usersTable.id, user.id));
   }
 
+  if (user.status === "blocked") {
+    res.status(403).json({ message: "Your account has been blocked. Reason: " + (user.blockedReason || "No reason provided") });
+    return;
+  }
+
   req.session.userId = user.id;
   res.json({
     id: user.id,
@@ -142,6 +147,7 @@ router.post("/login", async (req, res) => {
     isStudentVerified: user.isStudentVerified,
     studentEmail: user.studentEmail,
     createdAt: user.createdAt,
+    status: user.status,
   });
 });
 
@@ -193,6 +199,11 @@ router.post("/google", async (req, res) => {
       return;
     }
 
+    if (user.status === "blocked") {
+      res.status(403).json({ message: "Your account has been blocked. Reason: " + (user.blockedReason || "No reason provided") });
+      return;
+    }
+
     req.session.userId = user.id;
     res.json({
       id: user.id,
@@ -204,6 +215,7 @@ router.post("/google", async (req, res) => {
       studentEmail: user.studentEmail,
       createdAt: user.createdAt,
       avatarUrl: picture || user.avatarUrl || null,
+      status: user.status,
     });
   } catch (error) {
     res.status(401).json({ message: "Google auth failed" });
@@ -215,11 +227,16 @@ router.post("/logout", (req, res) => {
 });
 
 router.get("/me", async (req, res) => {
-  if (!req.session.userId) res.json({ user: null });
-  if (!req.session.userId) return;
+  if (!req.session.userId) {
+    res.json({ user: null });
+    return;
+  }
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
-  if (!user) res.json({ user: null });
-  if (!user) return;
+  if (!user || user.status === "blocked") {
+    if (user?.status === "blocked") req.session.destroy(() => {});
+    res.json({ user: null });
+    return;
+  }
   res.json({
     user: {
       id: user.id,
@@ -231,6 +248,7 @@ router.get("/me", async (req, res) => {
       studentEmail: user.studentEmail,
       createdAt: user.createdAt,
       avatarUrl: user.avatarUrl ?? null,
+      status: user.status,
     },
   });
 });

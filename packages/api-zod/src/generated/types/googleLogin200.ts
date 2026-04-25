@@ -7,6 +7,8 @@
  */
 import type { User } from './user';
 
-export interface CurrentUser {
-  user: User | null;
-}
+export type GoogleLogin200 = User | {
+  needsPassword: boolean;
+  email: string;
+  suggestedName: string;
+};
