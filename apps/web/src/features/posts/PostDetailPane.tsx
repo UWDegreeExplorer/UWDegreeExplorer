@@ -23,6 +23,7 @@ function CommentNode({
   postId,
   depth,
   isAnonymousMode,
+  onReport,
 }: {
   comment: Comment;
   childrenByParent: Map<number | null, Comment[]>;
