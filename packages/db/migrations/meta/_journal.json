@@ -50,6 +50,13 @@
       "when": 1777945743009,
       "tag": "0006_flowery_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778007836817,
+      "tag": "0007_brave_squirrel_girl",
+      "breakpoints": true
     }
   ]
 }
