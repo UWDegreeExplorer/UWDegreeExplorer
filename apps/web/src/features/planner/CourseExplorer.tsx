@@ -23,7 +23,7 @@ export const CourseExplorer: React.FC = () => {
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All");
 
-  const { data: courses, isLoading } = useQuery<Course[]>({
+  const { data: courses, isLoading, error } = useQuery<Course[]>({
     queryKey: ["courses", search, selectedSubject, selectedLevel],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -31,8 +31,14 @@ export const CourseExplorer: React.FC = () => {
       if (selectedSubject !== "All") params.append("subject", selectedSubject);
       if (selectedLevel !== "All") params.append("level", selectedLevel);
       
-      const res = await fetch(`/api/planner/courses?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch courses");
+      const baseUrl = import.meta.env.VITE_API_URL || "";
+      const url = `${baseUrl}/api/planner/courses?${params.toString()}`;
+      
+      const res = await fetch(url);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch courses");
+      }
       return res.json();
     },
   });
@@ -154,7 +160,15 @@ export const CourseExplorer: React.FC = () => {
         )}
       </div>
 
-      {!isLoading && courses?.length === 0 && (
+      {!isLoading && error && (
+        <div className="text-center py-20 bg-destructive/5 rounded-3xl border border-destructive/20">
+          <BookOpen className="mx-auto text-destructive mb-4" size={48} />
+          <h3 className="text-xl font-semibold text-destructive">Error loading courses</h3>
+          <p className="text-muted-foreground">{(error as Error).message}</p>
+        </div>
+      )}
+
+      {!isLoading && !error && courses?.length === 0 && (
         <div className="text-center py-20 bg-card/30 rounded-3xl border border-dashed">
           <BookOpen className="mx-auto text-muted-foreground mb-4" size={48} />
           <h3 className="text-xl font-semibold">No courses found</h3>

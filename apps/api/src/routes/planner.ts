@@ -29,7 +29,7 @@ router.get("/courses", async (req, res) => {
     }
 
     const results = await db
-      .select({
+      .selectDistinctOn([courses.courseId], {
         courseId: courses.courseId,
         subjectCode: courses.subjectCode,
         catalogNumber: courses.catalogNumber,
@@ -38,10 +38,11 @@ router.get("/courses", async (req, res) => {
       })
       .from(courses)
       .leftJoin(courseVersions, eq(courses.courseId, courseVersions.courseId))
-      .where(and(...whereClause))
-      .limit(50);
+      .where(whereClause.length > 0 ? and(...whereClause) : undefined)
+      .orderBy(courses.courseId, sql`${courseVersions.versionId} DESC`)
+      .limit(100);
 
-    console.log(`Search query: q=${q}, sub=${subject}, lvl=${level}. Found ${results.length} results.`);
+    console.log(`[Planner API] q=${q}, sub=${subject}, lvl=${level}. Found ${results.length} raw results.`);
 
     // Filter duplicates in memory for now if any
     const uniqueResults = Array.from(new Map(results.map(item => [item.courseId, item])).values());
