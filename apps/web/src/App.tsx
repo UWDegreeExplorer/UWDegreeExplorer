@@ -9,6 +9,7 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import ForgotPassword from "@/pages/forgot-password";
 import NewPost from "@/pages/new-post";
+import Courses from "@/pages/courses";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/courses" component={Courses} />
       <Route component={NotFound} />
     </Switch>
   );

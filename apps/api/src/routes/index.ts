@@ -11,6 +11,7 @@ import verificationRouter from "./verification";
 import likesRouter from "./likes";
 import commentsRouter from "./comments";
 import dmRouter from "./dm";
+import plannerRouter from "./planner";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use("/stats", statsRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/drafts", draftsRouter);
 router.use("/auth/student-verification", verificationRouter);
+router.use("/planner", plannerRouter);
 
 export default router;

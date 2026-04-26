@@ -30,6 +30,7 @@ import { SectionRail } from "../features/navigation/SectionRail";
 import { PostList } from "../features/posts/PostList";
 import { ConversationList } from "../features/messages/ConversationList";
 import { MessagePanel } from "../features/messages/MessagePanel";
+import { CourseExplorer } from "../features/planner/CourseExplorer";
 
 import { relTime, excerpt } from "@/lib/utils";
 import {
@@ -170,7 +171,9 @@ export default function Home() {
       // Stay on home but show messages section
     } else if (s === "likes") {
       setLocation("/likes");
-    } else if (matchPost || matchSettings || matchBookmarks || matchActivity || matchLikes) {
+    } else if (s === "courses") {
+      setLocation("/courses");
+    } else if (matchPost || matchSettings || matchBookmarks || matchActivity || matchLikes || matchCourses) {
       setLocation(commentId ? `/post/${selectedId}?commentId=${commentId}` : "/");
     }
   };
@@ -189,6 +192,7 @@ export default function Home() {
   const [matchBookmarks] = useRoute("/bookmarks");
   const [matchActivity] = useRoute("/activity");
   const [matchLikes] = useRoute("/likes");
+  const [matchCourses] = useRoute("/courses");
 
   useEffect(() => {
     if (matchSettings) {
@@ -199,8 +203,10 @@ export default function Home() {
       setActiveSection("my-posts");
     } else if (matchLikes) {
       setActiveSection("likes");
+    } else if (matchCourses) {
+      setActiveSection("courses");
     }
-  }, [matchSettings, matchBookmarks, matchActivity]);
+  }, [matchSettings, matchBookmarks, matchActivity, matchLikes, matchCourses]);
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
@@ -256,6 +262,12 @@ export default function Home() {
               <Panel defaultSize={80} minSize={60}>
                 <main className="flex-1 flex flex-col bg-background h-full min-w-0">
                   <SettingsPane />
+                </main>
+              </Panel>
+            ) : activeSection === "courses" ? (
+              <Panel defaultSize={80} minSize={60}>
+                <main className="flex-1 flex flex-col bg-background h-full min-w-0 overflow-y-auto">
+                  <CourseExplorer />
                 </main>
               </Panel>
             ) : activeSection === "messages" ? (
@@ -323,6 +335,10 @@ export default function Home() {
               <main className="flex-1 min-w-0 bg-background h-full overflow-hidden">
                 <SettingsPane />
               </main>
+            ) : activeSection === "courses" ? (
+              <main className="flex-1 min-w-0 bg-background h-full overflow-y-auto">
+                <CourseExplorer />
+              </main>
             ) : activeSection === "messages" ? (
               <>
                 <div className="basis-[38%] max-w-[360px] min-w-[300px] shrink-0 h-full border-r border-border">
@@ -379,6 +395,18 @@ export default function Home() {
                 </div>
                 <div className="flex-1 overflow-hidden flex flex-col">
                   <SettingsPane />
+                </div>
+              </div>
+            ) : activeSection === "courses" ? (
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <div className="px-3 py-1.5 border-b border-border flex items-center bg-card/10 backdrop-blur-sm sticky top-0 z-10">
+                  <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="-ml-1 gap-1.5 h-8 text-muted-foreground hover:text-foreground transition-colors">
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-xs font-medium">Home</span>
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <CourseExplorer />
                 </div>
               </div>
             ) : selectedId ? (

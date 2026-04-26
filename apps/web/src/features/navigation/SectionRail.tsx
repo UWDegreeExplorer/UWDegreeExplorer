@@ -119,6 +119,25 @@ export function SectionRail({
             })}
           </>
         )}
+        
+        {/* Group 2.5: Academic Planner */}
+        <div className={["mt-4 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest overflow-hidden whitespace-nowrap", isCollapsed ? "text-center px-0" : ""].join(" ")}>
+          Academic
+        </div>
+        <button
+          onClick={() => onSelect("courses")}
+          title={isCollapsed ? "Course Explorer" : ""}
+          className={[
+            "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-all relative",
+            isCollapsed ? "justify-center h-10 w-10 mx-auto" : "",
+            active === "courses"
+              ? "bg-primary/10 text-primary"
+              : "text-foreground/80 hover:bg-accent hover:text-foreground",
+          ].join(" ")}
+        >
+          <GraduationCap className="w-5 h-5 shrink-0" />
+          {!isCollapsed && <span>Course Explorer</span>}
+        </button>
 
         {/* Group 3: Personal */}
         {currentUser && (
