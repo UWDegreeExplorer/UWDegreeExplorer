@@ -1,6 +1,6 @@
 import { useGetCurrentUser, useGetSectionStats, useCustomFetch, type Section } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen, PencilLine, Home as HomeIcon, Layers, User as UserIcon, FileText, Bookmark, FileEdit, Inbox as InboxIcon, Heart, MessageSquare } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PencilLine, Home as HomeIcon, Layers, User as UserIcon, FileText, Bookmark, FileEdit, Inbox as InboxIcon, Heart, MessageSquare, GraduationCap } from "lucide-react";
 import { type SectionFilter, SECTION_LABELS, SECTION_ICONS } from "@/lib/constants";
 
 export function SectionRail({

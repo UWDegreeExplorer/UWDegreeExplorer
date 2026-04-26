@@ -62,7 +62,8 @@ router.get("/courses/:id", async (req, res) => {
       .limit(1);
 
     if (result.length === 0) {
-      return res.status(404).json({ error: "Course not found" });
+      res.status(404).json({ error: "Course not found" });
+      return;
     }
     res.json(result[0]);
   } catch (error) {
