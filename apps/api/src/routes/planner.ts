@@ -12,18 +12,18 @@ router.get("/courses", async (req, res) => {
     
     let whereClause = [];
     
-    if (q) {
+    if (q && typeof q === "string") {
       whereClause.push(or(
         ilike(courses.courseId, `%${q}%`),
         ilike(courseVersions.title, `%${q}%`)
       ));
     }
     
-    if (subject && subject !== "All") {
-      whereClause.push(eq(courses.subjectCode, subject as string));
+    if (subject && subject !== "All" && typeof subject === "string") {
+      whereClause.push(eq(courses.subjectCode, subject));
     }
     
-    if (level && level !== "All") {
+    if (level && level !== "All" && typeof level === "string") {
       // level is e.g. "100"
       whereClause.push(ilike(courses.catalogNumber, `${level.substring(0, 1)}%`));
     }
