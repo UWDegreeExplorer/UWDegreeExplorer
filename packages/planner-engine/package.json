@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "catalog:",
+    "typescript": "~5.9.2",
     "vitest": "^2.1.8"
   }
 }
