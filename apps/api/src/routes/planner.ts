@@ -13,9 +13,14 @@ router.get("/courses", async (req, res) => {
     let whereClause = [];
     
     if (q && typeof q === "string") {
+      const normalizedSearch = q.replace(/\s+/g, '');
       whereClause.push(or(
         ilike(courses.courseId, `%${q}%`),
-        ilike(courseVersions.title, `%${q}%`)
+        ilike(courseVersions.title, `%${q}%`),
+        ilike(courses.subjectCode, `%${q}%`),
+        ilike(courses.catalogNumber, `%${q}%`),
+        // Support searching for "CS135" or "CS 135"
+        sql`(${courses.subjectCode} || ${courses.catalogNumber}) ILIKE ${'%' + normalizedSearch + '%'}`
       ));
     }
     

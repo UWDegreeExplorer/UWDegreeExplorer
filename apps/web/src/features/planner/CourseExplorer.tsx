@@ -160,6 +160,14 @@ export const CourseExplorer: React.FC = () => {
         )}
       </div>
 
+      {!isLoading && !error && courses && courses.length >= 100 && (
+        <div className="text-center py-8 border-t border-dashed mt-8">
+          <p className="text-muted-foreground text-sm italic">
+            Only the first 100 results are shown. Please refine your search or filters to find specific courses.
+          </p>
+        </div>
+      )}
+
       {!isLoading && error && (
         <div className="text-center py-20 bg-destructive/5 rounded-3xl border border-destructive/20">
           <BookOpen className="mx-auto text-destructive mb-4" size={48} />
