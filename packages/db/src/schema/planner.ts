@@ -1,10 +1,11 @@
-import { pgTable, text, integer, serial, primaryKey, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, serial, primaryKey, foreignKey, numeric } from "drizzle-orm/pg-core";
 
 // 1. 课程基础信息表
 export const courses = pgTable("planner_courses", {
   courseId: text("course_id").primaryKey(),
   subjectCode: text("subject_code"),
   catalogNumber: text("catalog_number"),
+  units: numeric("units", { precision: 3, scale: 2 }).default("0.50"),
 });
 
 // 2. 课程内容版本表

@@ -1,0 +1,1 @@
+ALTER TABLE "planner_courses" ADD COLUMN "units" numeric(3, 2) DEFAULT '0.50';
