@@ -10,39 +10,43 @@ router.get("/courses", async (req, res) => {
   try {
     const { q, subject, level } = req.query;
     
-    let query = db
+    let whereClause = [];
+    
+    if (q) {
+      whereClause.push(or(
+        ilike(courses.courseId, `%${q}%`),
+        ilike(courseVersions.title, `%${q}%`)
+      ));
+    }
+    
+    if (subject && subject !== "All") {
+      whereClause.push(eq(courses.subjectCode, subject as string));
+    }
+    
+    if (level && level !== "All") {
+      // level is e.g. "100"
+      whereClause.push(ilike(courses.catalogNumber, `${level.substring(0, 1)}%`));
+    }
+
+    const results = await db
       .select({
         courseId: courses.courseId,
         subjectCode: courses.subjectCode,
         catalogNumber: courses.catalogNumber,
         title: courseVersions.title,
         description: courseVersions.description,
-        requirements: courseVersions.requirements,
       })
       .from(courses)
       .leftJoin(courseVersions, eq(courses.courseId, courseVersions.courseId))
-      // Filter for the most recent term's version or just any version if we don't have term logic yet
-      .where(
-        and(
-          // Ensure we don't get duplicate versions (simplified)
-          sql`${courseVersions.versionId} IN (
-            SELECT MAX(v2.version_id) 
-            FROM planner_course_versions v2 
-            GROUP BY v2.course_id
-          )`,
-          q ? or(
-            ilike(courses.courseId, `%${q}%`),
-            ilike(courseVersions.title, `%${q}%`),
-            ilike(courseVersions.description, `%${q}%`)
-          ) : undefined,
-          subject ? eq(courses.subjectCode, subject as string) : undefined,
-          level ? ilike(courses.catalogNumber, `${level}%`) : undefined
-        )
-      )
+      .where(and(...whereClause))
       .limit(50);
 
-    const results = await query;
-    res.json(results);
+    console.log(`Search query: q=${q}, sub=${subject}, lvl=${level}. Found ${results.length} results.`);
+
+    // Filter duplicates in memory for now if any
+    const uniqueResults = Array.from(new Map(results.map(item => [item.courseId, item])).values());
+
+    res.json(uniqueResults);
   } catch (error) {
     console.error("Failed to fetch courses:", error);
     res.status(500).json({ error: "Internal Server Error" });

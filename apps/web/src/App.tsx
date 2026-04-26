@@ -9,7 +9,6 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import ForgotPassword from "@/pages/forgot-password";
 import NewPost from "@/pages/new-post";
-import Courses from "@/pages/courses";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,10 +32,10 @@ function Router() {
       <Route path="/bookmarks" component={Home} />
       <Route path="/likes" component={Home} />
       <Route path="/activity" component={Home} />
+      <Route path="/courses" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/courses" component={Courses} />
       <Route component={NotFound} />
     </Switch>
   );
