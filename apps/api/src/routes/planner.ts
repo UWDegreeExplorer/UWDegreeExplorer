@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { courses, courseVersions, courseRequirements, courseOfferings } from "@workspace/db/schema";
+import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth } from "@workspace/db/schema";
 import { eq, ilike, or, and, sql, not } from "drizzle-orm";
 
 const router = Router();
@@ -51,9 +51,13 @@ router.get("/courses", async (req, res) => {
         units: courses.units,
         title: courseVersions.title,
         description: courseVersions.description,
+        breadthCategory: subjectBreadth.category,
+        prereqRaw: courseRequirements.prereqRaw,
       })
       .from(courses)
       .leftJoin(courseVersions, eq(courses.courseId, courseVersions.courseId))
+      .leftJoin(subjectBreadth, eq(courses.subjectCode, subjectBreadth.subjectCode))
+      .leftJoin(courseRequirements, eq(courses.courseId, courseRequirements.courseId))
       .where(whereClause.length > 0 ? and(...whereClause) : undefined)
       .orderBy(courses.courseId, sql`${courseVersions.versionId} DESC`)
       .limit(100);

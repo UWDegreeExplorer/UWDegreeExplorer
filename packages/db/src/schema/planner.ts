@@ -44,3 +44,9 @@ export const courseRequirements = pgTable("planner_course_requirements", {
   prereqJson: text("prereq_json"),
   prereqIds: text("prereq_ids"),
 });
+
+// 5. 广度要求映射表 (Breadth Requirements)
+export const subjectBreadth = pgTable("planner_subject_breadth", {
+  subjectCode: text("subject_code").primaryKey(),
+  category: text("category").notNull(), // Humanities, Pure Sciences, Social Sciences, etc.
+});

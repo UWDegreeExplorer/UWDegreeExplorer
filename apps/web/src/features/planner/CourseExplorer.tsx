@@ -13,12 +13,23 @@ interface Course {
   units: string;
   title: string;
   description: string;
+  breadthCategory?: string;
+  prereqRaw?: string;
 }
 
 const SUBJECTS = ["All", "CS", "MATH", "STAT", "CO", "AFM", "ECON", "PHYS"];
 const LEVELS = ["All", "100", "200", "300", "400", "Other"];
 
 import { CourseDetailSheet } from "./CourseDetailSheet";
+
+const getLevelTag = (catalogNumber: string) => {
+  const first = catalogNumber[0];
+  if (first === "1") return "Foundation";
+  if (first === "2") return "Intermediate";
+  if (["3", "4"].includes(first)) return "Advanced";
+  if (["5", "6", "7", "8", "9"].includes(first)) return "Graduate";
+  return "Other";
+};
 
 export const CourseExplorer: React.FC = () => {
   const [search, setSearch] = useState("");
@@ -130,49 +141,70 @@ export const CourseExplorer: React.FC = () => {
           ))
         ) : (
           <AnimatePresence mode="popLayout">
-            {courses?.map((course) => (
-              <motion.div
-                key={course.courseId}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => handleCourseClick(course.courseId)}
-              >
-                <Card className="h-full group hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 cursor-pointer relative overflow-hidden bg-card/40 backdrop-blur-sm">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
-                  <CardHeader className="relative">
-                    <div className="flex justify-between items-start mb-2">
-                      <Badge variant="outline" className="px-3 py-1 font-mono text-sm border-primary/20 text-primary">
-                        {course.subjectCode} {course.catalogNumber}
-                      </Badge>
-                      <div className="text-xs text-muted-foreground font-medium">{course.units} Units</div>
-                    </div>
-                    <CardTitle className="text-xl line-clamp-1 group-hover:text-primary transition-colors">
-                      {course.title}
-                    </CardTitle>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4 relative">
-                    <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                      {course.description || "No description available."}
-                    </p>
+            {courses?.map((course) => {
+              const hasPrereqs = !!(course.prereqRaw && course.prereqRaw.trim());
+              const levelTag = getLevelTag(course.catalogNumber);
+
+              return (
+                <motion.div
+                  key={course.courseId}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={() => handleCourseClick(course.courseId)}
+                >
+                  <Card className="h-full group hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 cursor-pointer relative overflow-hidden bg-card/40 backdrop-blur-sm">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     
-                    <div className="pt-4 border-t border-primary/5 flex items-center justify-between group/btn">
-                      <div className="flex -space-x-2">
-                        <Badge variant="secondary" className="bg-primary/5 text-[10px] text-primary hover:bg-primary/10">Intro</Badge>
-                        <Badge variant="secondary" className="bg-primary/5 text-[10px] text-primary hover:bg-primary/10 ml-2">Core</Badge>
+                    <CardHeader className="relative">
+                      <div className="flex justify-between items-start mb-2">
+                        <Badge variant="outline" className="px-3 py-1 font-mono text-sm border-primary/20 text-primary">
+                          {course.subjectCode} {course.catalogNumber}
+                        </Badge>
+                        <div className="text-xs text-muted-foreground font-medium">{course.units} Units</div>
                       </div>
-                      <span className="flex items-center text-xs font-bold text-primary opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                        View Details <ArrowRight size={14} className="ml-1" />
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                      <CardTitle className="text-xl line-clamp-1 group-hover:text-primary transition-colors">
+                        {course.title}
+                      </CardTitle>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4 relative">
+                      <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                        {course.description || "No description available."}
+                      </p>
+                      
+                      <div className="pt-4 border-t border-primary/5 flex items-center justify-between group/btn">
+                        <div className="flex flex-wrap gap-1.5">
+                          <Badge variant="secondary" className="bg-primary/5 text-[10px] text-primary hover:bg-primary/10 px-2 py-0">
+                            {levelTag}
+                          </Badge>
+                          <Badge 
+                            variant="secondary" 
+                            className={`text-[10px] px-2 py-0 ${
+                              hasPrereqs 
+                                ? "bg-amber-500/5 text-amber-600 hover:bg-amber-500/10" 
+                                : "bg-emerald-500/5 text-emerald-600 hover:bg-emerald-500/10"
+                            }`}
+                          >
+                            {hasPrereqs ? "Has Prereqs" : "No Prereqs"}
+                          </Badge>
+                          {course.breadthCategory && (
+                            <Badge variant="secondary" className="bg-blue-500/5 text-[10px] text-blue-600 hover:bg-blue-500/10 px-2 py-0">
+                              {course.breadthCategory}
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="flex items-center text-xs font-bold text-primary opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                          <ArrowRight size={14} />
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         )}
       </div>
