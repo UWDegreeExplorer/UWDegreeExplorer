@@ -59,24 +59,57 @@ router.get("/courses", async (req, res) => {
   }
 });
 
-// Get single course details
+// Get single course details with requirements and history
 router.get("/courses/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await db
-      .select()
+    
+    // 1. Get core course info and requirements
+    const courseData = await db
+      .select({
+        course: courses,
+        version: courseVersions,
+        requirements: courseRequirements,
+      })
       .from(courses)
       .leftJoin(courseVersions, eq(courses.courseId, courseVersions.courseId))
       .leftJoin(courseRequirements, eq(courses.courseId, courseRequirements.courseId))
       .where(eq(courses.courseId, id))
+      .orderBy(sql`${courseVersions.versionId} DESC`)
       .limit(1);
 
-    if (result.length === 0) {
+    if (courseData.length === 0) {
       res.status(404).json({ error: "Course not found" });
       return;
     }
-    res.json(result[0]);
+
+    // 2. Get offering history
+    const offerings = await db
+      .select({
+        termCode: courseOfferings.termCode,
+      })
+      .from(courseOfferings)
+      .where(eq(courseOfferings.courseId, id))
+      .orderBy(sql`${courseOfferings.termCode} DESC`);
+
+    // Deduplicate terms for history
+    const history = Array.from(new Set(offerings.map(o => o.termCode))).filter(Boolean);
+
+    const { course, version, requirements } = courseData[0];
+
+    res.json({
+      ...course,
+      title: version?.title,
+      description: version?.description,
+      requirementsRaw: version?.requirements,
+      prereqJson: requirements?.prereqJson,
+      prereqRaw: requirements?.prereqRaw,
+      coreqRaw: requirements?.coreqRaw,
+      antireqRaw: requirements?.antireqRaw,
+      offeringHistory: history,
+    });
   } catch (error) {
+    console.error("Failed to fetch course details:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });

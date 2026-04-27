@@ -18,10 +18,14 @@ interface Course {
 const SUBJECTS = ["All", "CS", "MATH", "STAT", "CO", "AFM", "ECON", "PHYS"];
 const LEVELS = ["All", "100", "200", "300", "400"];
 
+import { CourseDetailSheet } from "./CourseDetailSheet";
+
 export const CourseExplorer: React.FC = () => {
   const [search, setSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All");
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const { data: courses, isLoading, error } = useQuery<Course[]>({
     queryKey: ["courses", search, selectedSubject, selectedLevel],
@@ -43,8 +47,20 @@ export const CourseExplorer: React.FC = () => {
     },
   });
 
+  const handleCourseClick = (id: string) => {
+    setSelectedCourseId(id);
+    setIsSheetOpen(true);
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-8">
+      {/* ... rest of header and filters ... */}
+      <CourseDetailSheet 
+        courseId={selectedCourseId}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+      />
+      
       {/* Header Section */}
       <div className="space-y-2">
         <h1 className="text-4xl font-bold tracking-tight text-foreground">Course Discovery</h1>
@@ -122,6 +138,7 @@ export const CourseExplorer: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
+                onClick={() => handleCourseClick(course.courseId)}
               >
                 <Card className="h-full group hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 cursor-pointer relative overflow-hidden bg-card/40 backdrop-blur-sm">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -131,7 +148,7 @@ export const CourseExplorer: React.FC = () => {
                       <Badge variant="outline" className="px-3 py-1 font-mono text-sm border-primary/20 text-primary">
                         {course.subjectCode} {course.catalogNumber}
                       </Badge>
-                      <div className="text-xs text-muted-foreground font-medium">0.5 Units</div>
+                      <div className="text-xs text-muted-foreground font-medium">{course.units} Units</div>
                     </div>
                     <CardTitle className="text-xl line-clamp-1 group-hover:text-primary transition-colors">
                       {course.title}
