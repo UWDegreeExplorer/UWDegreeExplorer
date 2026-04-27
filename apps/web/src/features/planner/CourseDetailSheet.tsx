@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { BookOpen, History, Info, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatTermCode } from "@/lib/utils";
 
 interface CourseDetail {
   courseId: string;
@@ -140,7 +141,7 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
                     {course.offeringHistory.length > 0 ? (
                       course.offeringHistory.map((term) => (
                         <Badge key={term} variant="outline" className="font-mono">
-                          Term {term}
+                          {formatTermCode(term)}
                         </Badge>
                       ))
                     ) : (
