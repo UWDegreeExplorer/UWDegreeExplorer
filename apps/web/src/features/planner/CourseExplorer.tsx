@@ -10,9 +10,9 @@ interface Course {
   courseId: string;
   subjectCode: string;
   catalogNumber: string;
+  units: string;
   title: string;
   description: string;
-  requirements: string;
 }
 
 const SUBJECTS = ["All", "CS", "MATH", "STAT", "CO", "AFM", "ECON", "PHYS"];

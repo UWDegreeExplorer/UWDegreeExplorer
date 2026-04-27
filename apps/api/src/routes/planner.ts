@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { courses, courseVersions, courseRequirements } from "@workspace/db/schema";
+import { courses, courseVersions, courseRequirements, courseOfferings } from "@workspace/db/schema";
 import { eq, ilike, or, and, sql } from "drizzle-orm";
 
 const router = Router();
@@ -38,6 +38,7 @@ router.get("/courses", async (req, res) => {
         courseId: courses.courseId,
         subjectCode: courses.subjectCode,
         catalogNumber: courses.catalogNumber,
+        units: courses.units,
         title: courseVersions.title,
         description: courseVersions.description,
       })
