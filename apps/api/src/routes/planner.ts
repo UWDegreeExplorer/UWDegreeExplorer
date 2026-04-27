@@ -31,12 +31,15 @@ router.get("/courses", async (req, res) => {
     if (level && level !== "All" && typeof level === "string") {
       if (level === "Other") {
         // Not 1xx, 2xx, 3xx, 4xx
-        whereClause.push(not(or(
+        const undergraduateLevels = or(
           ilike(courses.catalogNumber, '1%'),
           ilike(courses.catalogNumber, '2%'),
           ilike(courses.catalogNumber, '3%'),
           ilike(courses.catalogNumber, '4%')
-        )));
+        );
+        if (undergraduateLevels) {
+          whereClause.push(not(undergraduateLevels));
+        }
       } else {
         // level is e.g. "100"
         whereClause.push(ilike(courses.catalogNumber, `${level.substring(0, 1)}%`));
