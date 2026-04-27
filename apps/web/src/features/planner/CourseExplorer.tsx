@@ -142,7 +142,11 @@ export const CourseExplorer: React.FC = () => {
         ) : (
           <AnimatePresence mode="popLayout">
             {courses?.map((course) => {
-              const hasPrereqs = !!(course.prereqRaw && course.prereqRaw.trim());
+              const hasPrereqs = !!(
+                course.prereqRaw && 
+                course.prereqRaw.trim() !== "" && 
+                course.prereqRaw.toLowerCase() !== "none"
+              );
               const levelTag = getLevelTag(course.catalogNumber);
 
               return (
