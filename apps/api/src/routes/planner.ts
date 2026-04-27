@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { courses, courseVersions, courseRequirements, courseOfferings } from "@workspace/db/schema";
-import { eq, ilike, or, and, sql } from "drizzle-orm";
+import { eq, ilike, or, and, sql, not } from "drizzle-orm";
 
 const router = Router();
 
@@ -29,8 +29,18 @@ router.get("/courses", async (req, res) => {
     }
     
     if (level && level !== "All" && typeof level === "string") {
-      // level is e.g. "100"
-      whereClause.push(ilike(courses.catalogNumber, `${level.substring(0, 1)}%`));
+      if (level === "Other") {
+        // Not 1xx, 2xx, 3xx, 4xx
+        whereClause.push(not(or(
+          ilike(courses.catalogNumber, '1%'),
+          ilike(courses.catalogNumber, '2%'),
+          ilike(courses.catalogNumber, '3%'),
+          ilike(courses.catalogNumber, '4%')
+        )));
+      } else {
+        // level is e.g. "100"
+        whereClause.push(ilike(courses.catalogNumber, `${level.substring(0, 1)}%`));
+      }
     }
 
     const results = await db

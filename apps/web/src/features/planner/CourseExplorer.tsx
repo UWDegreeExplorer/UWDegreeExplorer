@@ -16,7 +16,7 @@ interface Course {
 }
 
 const SUBJECTS = ["All", "CS", "MATH", "STAT", "CO", "AFM", "ECON", "PHYS"];
-const LEVELS = ["All", "100", "200", "300", "400"];
+const LEVELS = ["All", "100", "200", "300", "400", "Other"];
 
 import { CourseDetailSheet } from "./CourseDetailSheet";
 
@@ -114,7 +114,7 @@ export const CourseExplorer: React.FC = () => {
                       : "bg-background border hover:border-primary/30 text-muted-foreground"
                   }`}
                 >
-                  {lvl === "All" ? "All Levels" : `${lvl}-Level`}
+                  {lvl === "All" ? "All Levels" : lvl === "Other" ? "Other" : `${lvl}-Level`}
                 </button>
               ))}
             </div>
