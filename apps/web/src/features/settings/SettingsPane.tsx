@@ -47,7 +47,7 @@ export function SettingsPane() {
 
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [verifyEmail, setVerifyEmail] = useState("");
+  const [verifyEmailPrefix, setVerifyEmailPrefix] = useState("");
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyStep, setVerifyStep] = useState<"email" | "code">("email");
   const [isVerifying, setIsVerifying] = useState(false);
