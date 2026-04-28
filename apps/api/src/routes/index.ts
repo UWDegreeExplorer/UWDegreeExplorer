@@ -9,17 +9,17 @@ import notificationsRouter from "./notifications";
 import draftsRouter from "./drafts";
 import verificationRouter from "./verification";
 import likesRouter from "./likes";
-import reportsRouter from "./reports";
+import commentsRouter from "./comments";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
-router.use(reportsRouter);
 router.use("/likes", likesRouter);
 router.use("/auth", authRouter);
 router.use("/posts/bookmarks", postsBookmarksRouter);
 router.use("/posts/activity", postsActivityRouter);
 router.use("/posts", postsRouter);
+router.use("/comments", commentsRouter);
 router.use("/stats", statsRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/drafts", draftsRouter);
