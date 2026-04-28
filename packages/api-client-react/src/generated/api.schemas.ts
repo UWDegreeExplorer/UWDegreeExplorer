@@ -44,13 +44,13 @@ export interface RegisterInput {
      * @maxLength 200
      */
   password: string;
-  recaptchaToken?: string;
+  recaptchaToken: string;
 }
 
 export interface LoginInput {
   username: string;
   password: string;
-  recaptchaToken?: string;
+  recaptchaToken: string;
 }
 
 export interface UpdateUserInput {
@@ -61,8 +61,9 @@ export interface UpdateUserInput {
 
 export interface GoogleLoginInput {
   accessToken: string;
+  /** @minLength 6 */
   password?: string;
-  recaptchaToken?: string;
+  recaptchaToken: string;
 }
 
 export interface User {

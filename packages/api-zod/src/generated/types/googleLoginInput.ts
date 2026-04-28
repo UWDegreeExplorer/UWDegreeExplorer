@@ -8,6 +8,7 @@
 
 export interface GoogleLoginInput {
   accessToken: string;
+  /** minLength: 6 */
   password?: string;
-  recaptchaToken?: string;
+  recaptchaToken: string;
 }
