@@ -65,18 +65,9 @@ export default function Login() {
     if (clientId) {
       const loginHook = useGoogleOAuth({
         onSuccess: async (tokenResponse) => {
-          if (!recaptchaToken) {
-            toast({
-              variant: "destructive",
-              title: "Security Check Required",
-              description: "Please complete the reCAPTCHA verification before Google login.",
-            });
-            return;
-          }
-
           googleMutation.mutate(
             // High Security: Explicitly send undefined for password on first attempt to force needsPassword flow
-            { data: { accessToken: tokenResponse.access_token, password: undefined, recaptchaToken } as any },
+            { data: { accessToken: tokenResponse.access_token, password: undefined } as any },
             {
               onSuccess: (data: any) => {
                 if (data.needsPassword) {
@@ -153,9 +144,9 @@ export default function Login() {
   };
 
   const onGooglePasswordSubmit = (values: z.infer<typeof googleSetPasswordSchema>) => {
-    if (!googleTempToken || !recaptchaToken) return;
+    if (!googleTempToken) return;
     googleMutation.mutate(
-      { data: { accessToken: googleTempToken, password: values.password, recaptchaToken } as any },
+      { data: { accessToken: googleTempToken, password: values.password } as any },
       {
         onSuccess: (data: any) => {
           queryClient.setQueryData(getGetCurrentUserQueryKey(), { user: data });

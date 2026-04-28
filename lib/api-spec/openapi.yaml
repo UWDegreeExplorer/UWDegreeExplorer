@@ -537,7 +537,7 @@ components:
           minLength: 6
         recaptchaToken:
           type: string
-      required: [accessToken, recaptchaToken]
+      required: [accessToken]
 
     User:
       type: object

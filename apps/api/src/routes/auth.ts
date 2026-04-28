@@ -157,14 +157,7 @@ router.post("/google", async (req, res) => {
     res.status(400).json({ message: "Invalid Google data" });
     return;
   }
-    const { accessToken, password, recaptchaToken } = parsed.data;
-    
-    // Medium Security: Verify reCAPTCHA for Google login/registration path
-    const isHuman = await verifyRecaptcha(recaptchaToken);
-    if (!isHuman) {
-      res.status(400).json({ message: "Please complete the CAPTCHA" });
-      return;
-    }
+    const { accessToken, password } = parsed.data;
 
     try {
       const userRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`);

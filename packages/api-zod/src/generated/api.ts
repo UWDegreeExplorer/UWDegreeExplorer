@@ -122,7 +122,7 @@ export const UpdateCurrentUserResponse = zod.object({
 export const GoogleLoginBody = zod.object({
   "accessToken": zod.string(),
   "password": zod.string().min(6).optional(),
-  "recaptchaToken": zod.string().min(1, "reCAPTCHA is required")
+  "recaptchaToken": zod.string().optional()
 })
 
 export const GoogleLoginResponse = zod.union([zod.object({
