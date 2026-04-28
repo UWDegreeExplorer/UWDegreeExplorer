@@ -47,7 +47,7 @@ router.get("/courses", async (req, res) => {
     }
 
     const results = await db
-      .selectDistinctOn([courses.courseId], {
+      .selectDistinctOn([courses.subjectCode, courses.catalogNumber], {
         courseId: courses.courseId,
         subjectCode: courses.subjectCode,
         catalogNumber: courses.catalogNumber,
@@ -62,7 +62,7 @@ router.get("/courses", async (req, res) => {
       .leftJoin(subjectBreadth, eq(courses.subjectCode, subjectBreadth.subjectCode))
       .leftJoin(courseRequirements, eq(courses.courseId, courseRequirements.courseId))
       .where(whereClause.length > 0 ? and(...whereClause) : undefined)
-      .orderBy(courses.courseId, sql`${courseVersions.versionId} DESC`)
+      .orderBy(courses.subjectCode, courses.catalogNumber, sql`${courseVersions.versionId} DESC`)
       .limit(100);
 
     console.log(`[Planner API] q=${q}, sub=${subject}, lvl=${level}. Found ${results.length} raw results.`);
