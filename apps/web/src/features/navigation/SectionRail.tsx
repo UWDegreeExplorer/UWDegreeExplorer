@@ -332,7 +332,7 @@ export function SectionRail({
           </p>
         </div>
       )}
-    </aside>
+    </motion.aside>
   );
 }
 
