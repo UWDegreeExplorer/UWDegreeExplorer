@@ -4,7 +4,9 @@ The Campus Forum Connect API is a RESTful service driven by OpenAPI schemas and 
 
 ## Authentication
 Authentication is managed via `express-session` backed by a PostgreSQL session store.
-- **`POST /api/auth/google`**: Handles Google OAuth login/registration. Exchanges a Google **access token** for a local user session. If the email is new, it automatically registers a new user with a generated secure local password hash.
+- **`POST /api/auth/google`**: Handles Google OAuth login/registration. Exchanges a Google **access token** and **reCAPTCHA token** for a local user session. 
+  - If the user exists, it logs them in.
+  - If the email is new, it first returns `needsPassword: true`. The client must then prompt the user for a password and re-submit the request with both the `accessToken` and the chosen `password`. This ensures the user has a local password from their first sign-in.
 - **`POST /api/auth/logout`**: Destroys the current user session.
 - **`GET /api/auth/me`**: Returns the currently authenticated user's profile information.
 - **`PATCH /api/auth/me`**: Updates the current user's profile (e.g., `displayName`).

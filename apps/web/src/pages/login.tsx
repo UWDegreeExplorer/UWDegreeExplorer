@@ -65,8 +65,18 @@ export default function Login() {
     if (clientId) {
       const loginHook = useGoogleOAuth({
         onSuccess: async (tokenResponse) => {
+          if (!recaptchaToken) {
+            toast({
+              variant: "destructive",
+              title: "Security Check Required",
+              description: "Please complete the reCAPTCHA verification before Google login.",
+            });
+            return;
+          }
+
           googleMutation.mutate(
-            { data: { accessToken: tokenResponse.access_token, password: googleForm.getValues().password || undefined } as any },
+            // High Security: Explicitly send undefined for password on first attempt to force needsPassword flow
+            { data: { accessToken: tokenResponse.access_token, password: undefined, recaptchaToken } as any },
             {
               onSuccess: (data: any) => {
                 if (data.needsPassword) {
@@ -143,13 +153,19 @@ export default function Login() {
   };
 
   const onGooglePasswordSubmit = (values: z.infer<typeof googleSetPasswordSchema>) => {
-    if (!googleTempToken) return;
+    if (!googleTempToken || !recaptchaToken) return;
     googleMutation.mutate(
-      { data: { accessToken: googleTempToken, password: values.password } as any },
+      { data: { accessToken: googleTempToken, password: values.password, recaptchaToken } as any },
       {
         onSuccess: (data: any) => {
           queryClient.setQueryData(getGetCurrentUserQueryKey(), { user: data });
           toast({ title: "Welcome!", description: `Logged in as ${data.displayName}` });
+          
+          // Clean up state
+          setShowGooglePassword(false);
+          setGoogleTempToken(null);
+          googleForm.reset();
+          
           setLocation("/");
         },
         onError: (error: any) => {
@@ -277,7 +293,17 @@ export default function Login() {
         </div>
       </div>
 
-      <Dialog open={showGooglePassword} onOpenChange={setShowGooglePassword}>
+      <Dialog 
+        open={showGooglePassword} 
+        onOpenChange={(open) => {
+          setShowGooglePassword(open);
+          if (!open) {
+            // High Security: Reset form and token when dialog is dismissed
+            googleForm.reset();
+            setGoogleTempToken(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Complete Your Registration</DialogTitle>

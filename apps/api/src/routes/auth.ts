@@ -157,42 +157,55 @@ router.post("/google", async (req, res) => {
     res.status(400).json({ message: "Invalid Google data" });
     return;
   }
-  const { accessToken, password } = parsed.data;
-
-  try {
-    const userRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`);
-    const googleUser = await userRes.json() as any;
-    const { name, picture, email, email_verified } = googleUser;
-
-    if (!email_verified) {
-      res.status(401).json({ message: "Email not verified" });
+    const { accessToken, password, recaptchaToken } = parsed.data;
+    
+    // Medium Security: Verify reCAPTCHA for Google login/registration path
+    const isHuman = await verifyRecaptcha(recaptchaToken);
+    if (!isHuman) {
+      res.status(400).json({ message: "Please complete the CAPTCHA" });
       return;
     }
 
-    let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    try {
+      const userRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`);
+      const googleUser = await userRes.json() as any;
+      const { name, picture, email, email_verified } = googleUser;
 
-    if (!user) {
-      // New user: check if password was provided in the second step
-      if (!password) {
-        res.status(200).json({ 
-          needsPassword: true, 
-          email, 
-          suggestedName: name 
-        });
+      if (!email_verified) {
+        res.status(401).json({ message: "Email not verified" });
         return;
       }
 
-      // Create new user with the user-provided password
-      const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
-      const passwordHash = await bcrypt.hash(password, 10);
-      [user] = await db.insert(usersTable).values({
-        username: `${baseUsername}${Math.random().toString(36).slice(-4)}`,
-        displayName: name || baseUsername,
-        email,
-        passwordHash,
-        avatarUrl: picture || null,
-      }).returning();
-    }
+      let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+
+      if (!user) {
+        // High Security: First request must NOT have a password to trigger the needsPassword flow
+        if (!password) {
+          res.status(200).json({ 
+            needsPassword: true, 
+            email, 
+            suggestedName: name 
+          });
+          return;
+        }
+
+        // High Security: Enforce minimum password length in backend (6 chars)
+        if (password.length < 6) {
+          res.status(400).json({ message: "Password must be at least 6 characters" });
+          return;
+        }
+
+        // Create new user with the user-provided password
+        const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+        const passwordHash = await bcrypt.hash(password, 10);
+        [user] = await db.insert(usersTable).values({
+          username: `${baseUsername}${Math.random().toString(36).slice(-4)}`,
+          displayName: name || baseUsername,
+          email,
+          passwordHash,
+          avatarUrl: picture || null,
+        }).returning();
+      }
 
     if (!user) {
       res.status(500).json({ message: "Auth failed" });
