@@ -274,16 +274,16 @@ router.delete("/:id", async (req, res) => {
     return;
   }
 
-  // 1. Cleanup reports for the post itself
-  await db.delete(reportsTable).where(
+  // 1. Mark reports for the post itself as resolved
+  await db.update(reportsTable).set({ status: "resolved" }).where(
     and(
       eq(reportsTable.targetType, "post"),
       eq(reportsTable.targetId, id)
     )
   );
 
-  // 2. Cleanup reports for all comments belonging to this post (MUST be before deleting comments)
-  await db.delete(reportsTable).where(
+  // 2. Mark reports for all comments belonging to this post as resolved
+  await db.update(reportsTable).set({ status: "resolved" }).where(
     and(
       eq(reportsTable.targetType, "comment"),
       sql`target_id IN (SELECT id FROM ${commentsTable} WHERE post_id = ${id})`
