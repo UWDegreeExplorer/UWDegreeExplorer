@@ -114,15 +114,20 @@ export function SettingsPane() {
   };
 
   const handleSendCode = async () => {
+    if (!verifyEmailPrefix.trim()) {
+      toast({ variant: "destructive", title: "Required", description: "Please enter your university username." });
+      return;
+    }
+    const fullEmail = `${verifyEmailPrefix.trim()}@uwaterloo.ca`;
     setIsVerifying(true);
     try {
       await customFetch("/api/auth/student-verification/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: verifyEmail })
+        body: JSON.stringify({ email: fullEmail })
       });
       setVerifyStep("code");
-      toast({ title: "Code sent", description: "Check your email for the verification code." });
+      toast({ title: "Code sent", description: `Check ${fullEmail} for the verification code.` });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
@@ -314,8 +319,21 @@ export function SettingsPane() {
                   <p className="text-sm text-muted-foreground mb-2">Bind your @uwaterloo.ca email to display a verified badge.</p>
                   {verifyStep === "email" ? (
                     <div className="flex items-center gap-2 max-w-sm">
-                      <Input placeholder="username@uwaterloo.ca" value={verifyEmail} onChange={(e) => setVerifyEmail(e.target.value)} disabled={isVerifying} />
-                      <Button onClick={handleSendCode} disabled={isVerifying}>{isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Code"}</Button>
+                      <div className="flex-1 flex items-center group">
+                        <Input 
+                          placeholder="username" 
+                          value={verifyEmailPrefix} 
+                          onChange={(e) => setVerifyEmailPrefix(e.target.value)} 
+                          disabled={isVerifying} 
+                          className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary transition-all"
+                        />
+                        <div className="px-3 h-10 flex items-center bg-muted border border-l-0 rounded-r-md text-xs text-muted-foreground font-semibold select-none group-focus-within:border-primary transition-all">
+                          @uwaterloo.ca
+                        </div>
+                      </div>
+                      <Button onClick={handleSendCode} disabled={isVerifying}>
+                        {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Code"}
+                      </Button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 max-w-sm">
