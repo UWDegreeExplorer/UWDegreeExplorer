@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requestVerificationCode, verifyCode } from "../lib/verification-service";
 
@@ -28,6 +28,26 @@ router.post("/send-code", async (req, res) => {
   }
 
   const { email } = parsed.data;
+
+  // Check if this student email is already used by another verified account
+  const existingVerified = await db
+    .select()
+    .from(usersTable)
+    .where(
+      and(
+        eq(usersTable.studentEmail, email),
+        eq(usersTable.isStudentVerified, true),
+        ne(usersTable.id, userId) // Allow current user to retry/re-verify their own
+      )
+    )
+    .limit(1);
+
+  if (existingVerified.length > 0) {
+    res.status(409).json({ 
+      message: "This student email is already bound to another account." 
+    });
+    return;
+  }
 
   const allowedDomains = ["@uwaterloo.ca", "@edu.uwaterloo.ca"];
   const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
