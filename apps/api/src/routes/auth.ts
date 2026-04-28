@@ -327,7 +327,8 @@ router.post("/register/verify", async (req, res) => {
   if (!result.success || !result.pendingUserData) return;
 
   const { username, displayName, password: passwordHash } = result.pendingUserData;
-  const isUWaterloo = email.endsWith("@uwaterloo.ca");
+  const allowedDomains = ["@uwaterloo.ca", "@edu.uwaterloo.ca"];
+  const isUWaterloo = allowedDomains.some(domain => email.endsWith(domain));
 
   const [user] = await db.insert(usersTable).values({
     username, displayName, email, passwordHash,

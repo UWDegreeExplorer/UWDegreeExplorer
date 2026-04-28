@@ -29,11 +29,15 @@ router.post("/send-code", async (req, res) => {
 
   const { email } = parsed.data;
 
-  // Domain check temporarily disabled as per user instruction
-  // if (!email.endsWith("@uwaterloo.ca")) {
-  //   res.status(400).json({ message: "Only @uwaterloo.ca emails are allowed." });
-  //   return;
-  // }
+  const allowedDomains = ["@uwaterloo.ca", "@edu.uwaterloo.ca"];
+  const isAllowed = allowedDomains.some(domain => email.endsWith(domain));
+
+  if (!isAllowed) {
+    res.status(400).json({ 
+      message: "Only University of Waterloo emails (@uwaterloo.ca) are allowed for student verification." 
+    });
+    return;
+  }
 
   const result = await requestVerificationCode(email);
   if (!result.success) {
