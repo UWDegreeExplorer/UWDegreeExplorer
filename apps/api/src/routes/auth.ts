@@ -179,13 +179,21 @@ router.post("/google", async (req, res) => {
       let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
 
       if (!user) {
-        // High Security: First request must NOT have a password to trigger the needsPassword flow
+        // High Security (P1): Enforce 2-step flow using server-side session state
         if (!password) {
+          // Step 1: Identity verified via Google, set the lock in session
+          (req.session as any).pendingGoogleEmail = email;
           res.status(200).json({ 
             needsPassword: true, 
             email, 
             suggestedName: name 
           });
+          return;
+        }
+
+        // Step 2: Password submission - verify the session lock exists and matches
+        if ((req.session as any).pendingGoogleEmail !== email) {
+          res.status(403).json({ message: "Registration session expired or invalid. Please try Google login again." });
           return;
         }
 
@@ -205,6 +213,9 @@ router.post("/google", async (req, res) => {
           passwordHash,
           avatarUrl: picture || null,
         }).returning();
+
+        // High Security: Clear the session lock after successful creation
+        delete (req.session as any).pendingGoogleEmail;
       }
 
     if (!user) {
