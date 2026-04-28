@@ -139,6 +139,68 @@ router.post("/", async (req, res) => {
   });
 });
 
+// Report a post
+router.post("/:id/report", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const postId = parseInt(req.params.id);
+  if (isNaN(postId)) {
+    res.status(400).json({ message: "Invalid post ID" });
+    return;
+  }
+
+  const parsed = ReportPostBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: "Invalid report data" });
+    return;
+  }
+
+  // Check if post exists
+  const [post] = await db
+    .select()
+    .from(postsTable)
+    .where(eq(postsTable.id, postId))
+    .limit(1);
+
+  if (!post) {
+    res.status(404).json({ message: "Post not found" });
+    return;
+  }
+
+  // Anti-spam check
+  const [existing] = await db
+    .select()
+    .from(reportsTable)
+    .where(
+      and(
+        eq(reportsTable.reporterId, userId),
+        eq(reportsTable.targetType, "post"),
+        eq(reportsTable.targetId, postId),
+        eq(reportsTable.status, "pending")
+      )
+    )
+    .limit(1);
+
+  if (existing) {
+    res.status(409).json({ message: "You have already reported this post and it is pending review." });
+    return;
+  }
+
+  await db.insert(reportsTable).values({
+    reporterId: userId,
+    targetType: "post",
+    targetId: postId,
+    reason: parsed.data.reason,
+    details: parsed.data.details ?? null,
+  });
+
+  res.json({ ok: true });
+});
+
 router.get("/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) {
@@ -425,68 +487,6 @@ router.post("/:id/bookmark", async (req, res) => {
     });
     res.json({ bookmarked: true });
   }
-});
-
-// Report a post
-router.post("/:id/report", async (req, res) => {
-  const userId = req.session.userId;
-  if (!userId) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
-  const postId = parseInt(req.params.id);
-  if (isNaN(postId)) {
-    res.status(400).json({ message: "Invalid post ID" });
-    return;
-  }
-
-  const parsed = ReportPostBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ message: "Invalid report data" });
-    return;
-  }
-
-  // Check if post exists
-  const [post] = await db
-    .select()
-    .from(postsTable)
-    .where(eq(postsTable.id, postId))
-    .limit(1);
-
-  if (!post) {
-    res.status(404).json({ message: "Post not found" });
-    return;
-  }
-
-  // Anti-spam check
-  const [existing] = await db
-    .select()
-    .from(reportsTable)
-    .where(
-      and(
-        eq(reportsTable.reporterId, userId),
-        eq(reportsTable.targetType, "post"),
-        eq(reportsTable.targetId, postId),
-        eq(reportsTable.status, "pending")
-      )
-    )
-    .limit(1);
-
-  if (existing) {
-    res.status(409).json({ message: "You have already reported this post and it is pending review." });
-    return;
-  }
-
-  await db.insert(reportsTable).values({
-    reporterId: userId,
-    targetType: "post",
-    targetId: postId,
-    reason: parsed.data.reason,
-    details: parsed.data.details ?? null,
-  });
-
-  res.json({ ok: true });
 });
 
 export default router;
