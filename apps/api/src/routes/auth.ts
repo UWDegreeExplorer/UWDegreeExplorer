@@ -172,7 +172,7 @@ router.post("/google", async (req, res) => {
     let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
 
     if (!user) {
-      // If user doesn't exist and no password provided, ask for password
+      // New user: check if password was provided in the second step
       if (!password) {
         res.status(200).json({ 
           needsPassword: true, 
@@ -182,7 +182,7 @@ router.post("/google", async (req, res) => {
         return;
       }
 
-      // Create new user with provided password
+      // Create new user with the user-provided password
       const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
       const passwordHash = await bcrypt.hash(password, 10);
       [user] = await db.insert(usersTable).values({
