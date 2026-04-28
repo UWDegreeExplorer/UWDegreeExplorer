@@ -46,41 +46,22 @@ export function SectionRail({
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
       <div className={["flex items-center p-4 h-16", isCollapsed ? "justify-center" : "justify-between"].join(" ")}>
-        <AnimatePresence mode="wait">
-          {!isCollapsed ? (
-            <motion.div
-              key="expanded-header"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              className="flex-1 mr-2 flex items-center"
-            >
-              <Button
-                size="sm"
-                className="flex-1 justify-start gap-2.5 shadow-sm overflow-hidden whitespace-nowrap"
-                onClick={() => {
-                  if (currentUser) {
-                    window.location.href = "/new";
-                  } else {
-                    window.location.href = "/login";
-                  }
-                }}
-              >
-                <PencilLine className="w-4 h-4 shrink-0" />
-                <span>New Post</span>
-              </Button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="collapsed-header"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-            >
-              {/* Optional: Icon for new post when collapsed if needed */}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {!isCollapsed && (
+          <Button
+            size="sm"
+            className="flex-1 mr-2 justify-start gap-2.5 shadow-sm overflow-hidden whitespace-nowrap"
+            onClick={() => {
+              if (currentUser) {
+                window.location.href = "/new";
+              } else {
+                window.location.href = "/login";
+              }
+            }}
+          >
+            <PencilLine className="w-4 h-4 shrink-0" />
+            <span>New Post</span>
+          </Button>
+        )}
 
         {!hideToggle && onToggle && (
           <Button 
