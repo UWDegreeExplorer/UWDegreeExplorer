@@ -327,9 +327,17 @@ export function PostDetailPane({ postId }: { postId: number }) {
     }
   });
 
+  const handleToggleBookmark = () => {
+    if (!currentUser) {
+      toast({ title: "Please sign in", description: "You need to be logged in to bookmark items." });
+      return;
+    }
+    toggleBookmark({});
+  };
+
   const handleToggleLike = async () => {
     if (!currentUser) {
-      toast({ title: "Please sign in", description: "You need to be logged in to like posts." });
+      toast({ title: "Please sign in", description: "You need to be logged in to like items." });
       return;
     }
     try {
@@ -439,8 +447,8 @@ export function PostDetailPane({ postId }: { postId: number }) {
               <Button
                 variant={post.isBookmarked ? "default" : "outline"}
                 size="sm"
-                disabled={!currentUser || bookmarkPending}
-                onClick={() => toggleBookmark({})}
+                disabled={bookmarkPending}
+                onClick={handleToggleBookmark}
                 className={["h-8 gap-1.5", post.isBookmarked ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-primary"].join(" ")}
               >
                 {bookmarkPending ? (

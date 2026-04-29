@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import ReCAPTCHA from "react-google-recaptcha";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  identifier: z.string().min(1, "Username or email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -111,7 +111,7 @@ export default function Login() {
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      identifier: "",
       password: "",
     },
   });
@@ -189,12 +189,12 @@ export default function Login() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="username"
+                  name="identifier"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username</FormLabel>
+                      <FormLabel>Username or Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your username" {...field} />
+                        <Input placeholder="Enter your username or email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -159,6 +159,10 @@ export function PostList({
 
   const handleBookmark = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
+    if (!currentUser) {
+      toast({ title: "Please sign in", description: "You need to be logged in to bookmark items." });
+      return;
+    }
     try {
       await customFetch(`/api/posts/${id}/bookmark`, { method: "POST" });
       queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });

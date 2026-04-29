@@ -508,13 +508,6 @@ components:
 
     LoginInput:
       type: object
-      properties:
-        username:
-          type: string
-        password:
-          type: string
-        recaptchaToken:
-          type: string
       required: [username, password]
 
     UpdateUserInput:

@@ -53,9 +53,9 @@ export const RegisterUserResponse = zod.object({
  * @summary Log in with username and password
  */
 export const LoginUserBody = zod.object({
-  "username": zod.string(),
+  "identifier": zod.string(),
   "password": zod.string(),
-  "recaptchaToken": zod.string().optional()
+  "recaptchaToken": zod.string()
 })
 
 export const LoginUserResponse = zod.object({

@@ -58,7 +58,7 @@ router.post("/register", async (req, res) => {
     .limit(1);
 
   if (existing.length > 0) {
-    res.status(409).json({ message: "Username or email already in use" });
+    res.status(409).json({ message: "You already have an account. Please sign in or reset your password." });
     return;
   }
 
@@ -97,7 +97,7 @@ router.post("/login", async (req, res) => {
     res.status(401).json({ message: "Invalid credentials" });
     return;
   }
-  const { username, password, recaptchaToken } = parsed.data;
+  const { identifier, password, recaptchaToken } = parsed.data;
 
   const isHuman = await verifyRecaptcha(recaptchaToken);
   if (!isHuman) {
@@ -108,7 +108,7 @@ router.post("/login", async (req, res) => {
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.username, username))
+    .where(or(eq(usersTable.username, identifier), eq(usersTable.email, identifier)))
     .limit(1);
 
   if (!user) {
@@ -308,8 +308,10 @@ router.post("/register/send-code", async (req, res) => {
     return;
   }
   const existing = await db.select().from(usersTable).where(or(eq(usersTable.username, username), eq(usersTable.email, email))).limit(1);
-  if (existing.length > 0) res.status(409).json({ message: "In use" });
-  if (existing.length > 0) return;
+  if (existing.length > 0) {
+    res.status(409).json({ message: "You already have an account. Please sign in or reset your password." });
+    return;
+  }
 
   const passwordHash = await bcrypt.hash(password, 10);
   const result = await requestVerificationCode(email, { ...parsed.data, password: passwordHash });
