@@ -10,10 +10,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, History, Info, AlertTriangle, Sparkles, Heart, ThumbsUp, Brain } from "lucide-react";
+import { BookOpen, History, Info, AlertTriangle, Sparkles, Heart, ThumbsUp, Brain, FileText, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatTermCode } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface CourseDetail {
   courseId: string;
@@ -108,11 +109,23 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
           <ScrollArea className="flex-1">
             <div className="p-8 space-y-8 pb-12">
               <SheetHeader>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="text-primary border-primary/20 font-mono">
-                    {course.subjectCode} {course.catalogNumber}
-                  </Badge>
-                  <Badge variant="secondary">{course.units} Units</Badge>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-primary border-primary/20 font-mono">
+                      {course.subjectCode} {course.catalogNumber}
+                    </Badge>
+                    <Badge variant="secondary">{course.units} Units</Badge>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 gap-2 border-primary/20 text-primary hover:bg-primary/5"
+                    onClick={() => window.open(`https://outline.uwaterloo.ca/viewer/?q=${course.subjectCode}%20${course.catalogNumber}`, '_blank')}
+                  >
+                    <FileText size={14} />
+                    <span className="text-xs font-bold">Official Outline</span>
+                    <ExternalLink size={12} className="opacity-50" />
+                  </Button>
                 </div>
                 <SheetTitle className="text-3xl font-bold leading-tight">
                   {course.title}
