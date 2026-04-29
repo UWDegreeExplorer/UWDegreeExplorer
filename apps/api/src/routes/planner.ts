@@ -111,9 +111,9 @@ async function fetchUWFlowRatings(subjectCode: string, catalogNumber: string) {
     const course = result?.data?.course?.[0];
     if (course && course.rating) {
       return {
-        liked: course.rating.liked ? Math.round(course.rating.liked * 100) : null,
-        easy: course.rating.easy ? Math.round(course.rating.easy * 100) : null,
-        useful: course.rating.useful ? Math.round(course.rating.useful * 100) : null,
+        liked: typeof course.rating.liked === 'number' ? Math.round(course.rating.liked * 100) : null,
+        easy: typeof course.rating.easy === 'number' ? Math.round(course.rating.easy * 100) : null,
+        useful: typeof course.rating.useful === 'number' ? Math.round(course.rating.useful * 100) : null,
       };
     }
   } catch (error) {

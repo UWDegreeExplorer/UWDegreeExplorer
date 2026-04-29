@@ -116,23 +116,24 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
                 </SheetTitle>
               </SheetHeader>
 
-              {course.uwflowRating && (
-                <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-lg font-semibold">
-                      <Sparkles className="h-5 w-5 text-amber-500" />
-                      <h2>UWFlow Insights</h2>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-primary hover:text-primary hover:bg-primary/5 gap-1.5 h-8"
-                      onClick={() => window.open(`https://uwflow.com/course/${(course.subjectCode + course.catalogNumber).toLowerCase()}`, '_blank')}
-                    >
-                      <span className="text-xs font-bold">View on UWFlow</span>
-                      <ExternalLink size={12} />
-                    </Button>
+              <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-lg font-semibold">
+                    <Sparkles className="h-5 w-5 text-amber-500" />
+                    <h2>UWFlow Insights</h2>
                   </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-primary hover:text-primary hover:bg-primary/5 gap-1.5 h-8"
+                    onClick={() => window.open(`https://uwflow.com/course/${(course.subjectCode + course.catalogNumber).toLowerCase()}`, '_blank')}
+                  >
+                    <span className="text-xs font-bold">View on UWFlow</span>
+                    <ExternalLink size={12} />
+                  </Button>
+                </div>
+
+                {course.uwflowRating && (course.uwflowRating.liked !== null || course.uwflowRating.useful !== null || course.uwflowRating.easy !== null) ? (
                   <div className="flex gap-3">
                     <RatingBadge 
                       label="Liked" 
@@ -153,8 +154,12 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
                       color="bg-emerald-500" 
                     />
                   </div>
-                </section>
-              )}
+                ) : (
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-dashed text-center">
+                    <p className="text-sm text-muted-foreground italic">No ratings available yet for this course.</p>
+                  </div>
+                )}
+              </section>
 
               <div className="space-y-6">
                 <section>
