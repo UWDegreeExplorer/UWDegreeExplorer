@@ -2,7 +2,13 @@ import { db } from "./index";
 import { programs } from "./schema/planner";
 import fs from "fs";
 
-const csvPath = "/Users/kaius/Project/UW_Planner/uwaterloo_programs_list.csv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const csvPath = path.join(__dirname, "../data/uwaterloo_programs_list.csv");
 
 async function seed() {
   console.log("Reading CSV from:", csvPath);
