@@ -10,10 +10,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, History, Info, AlertTriangle, Sparkles, Heart, ThumbsUp, Brain } from "lucide-react";
+import { BookOpen, History, Info, AlertTriangle, Sparkles, Heart, ThumbsUp, Brain, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatTermCode } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface CourseDetail {
   courseId: string;
@@ -117,9 +118,20 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
 
               {course.uwflowRating && (
                 <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="flex items-center gap-2 mb-4 text-lg font-semibold">
-                    <Sparkles className="h-5 w-5 text-amber-500" />
-                    <h2>UWFlow Insights</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <Sparkles className="h-5 w-5 text-amber-500" />
+                      <h2>UWFlow Insights</h2>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-primary hover:text-primary hover:bg-primary/5 gap-1.5 h-8"
+                      onClick={() => window.open(`https://uwflow.com/course/${(course.subjectCode + course.catalogNumber).toLowerCase()}`, '_blank')}
+                    >
+                      <span className="text-xs font-bold">View on UWFlow</span>
+                      <ExternalLink size={12} />
+                    </Button>
                   </div>
                   <div className="flex gap-3">
                     <RatingBadge 
