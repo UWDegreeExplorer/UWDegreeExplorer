@@ -43,11 +43,15 @@ interface CourseDetailSheetProps {
 
 const RatingBadge = ({ label, value, icon: Icon, color }: { label: string, value: number | null, icon: any, color: string }) => {
   if (value === null) return null;
+  // Convert bg-xxx-500 to text-xxx-600 for better contrast on light backgrounds
+  const textColor = color.replace('bg-', 'text-').replace('-500', '-600');
+  const bgColor = color.replace('-500', '-500/10');
+
   return (
-    <div className="flex-1 p-3 rounded-2xl bg-muted/50 border border-border/50 space-y-2">
+    <div className="flex-1 p-3 rounded-2xl bg-muted/30 border border-border/50 space-y-2">
       <div className="flex items-center justify-between">
-        <div className={`p-1.5 rounded-lg ${color} bg-opacity-10`}>
-          <Icon size={16} className={color.replace('bg-', 'text-')} />
+        <div className={`p-1.5 rounded-lg ${bgColor}`}>
+          <Icon size={16} className={textColor} />
         </div>
         <span className="text-lg font-bold">{value}%</span>
       </div>
@@ -59,7 +63,7 @@ const RatingBadge = ({ label, value, icon: Icon, color }: { label: string, value
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${value}%` }}
-            className={`h-full ${color}`}
+            className={`h-full ${color} rounded-full`}
           />
         </div>
       </div>
