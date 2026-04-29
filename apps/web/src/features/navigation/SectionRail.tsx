@@ -14,7 +14,9 @@ import {
   Inbox as InboxIcon, 
   Heart, 
   MessageSquare, 
-  GraduationCap 
+  GraduationCap,
+  BookOpen,
+  Calendar
 } from "lucide-react";
 import { type SectionFilter, SECTION_LABELS, SECTION_ICONS } from "@/lib/constants";
 
@@ -177,6 +179,28 @@ export function SectionRail({
                 className="truncate"
               >
                 Course Explorer
+              </motion.span>
+            )}
+          </button>
+          <button
+            onClick={() => isCollapsed ? onToggle?.() : onSelect("make-calendar")}
+            title={isCollapsed ? "Make Calendar" : ""}
+            className={[
+              "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-all relative group",
+              isCollapsed ? "justify-center h-10 w-10 mx-auto px-0" : "",
+              active === "make-calendar"
+                ? "bg-primary/10 text-primary"
+                : "text-foreground/80 hover:bg-accent hover:text-foreground",
+            ].join(" ")}
+          >
+            <Calendar className={["w-5 h-5 shrink-0 transition-transform duration-200", !isCollapsed ? "group-hover:scale-110" : ""].join(" ")} />
+            {!isCollapsed && (
+              <motion.span
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="truncate"
+              >
+                Make Calendar
               </motion.span>
             )}
           </button>

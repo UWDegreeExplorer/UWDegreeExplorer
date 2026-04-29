@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { parseQuestSchedule } from "../utils/scheduleParser";
+import { generateICS } from "../utils/icsGenerator";
 import { db } from "@workspace/db";
 import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth } from "@workspace/db/schema";
 import { eq, ilike, or, and, sql, not } from "drizzle-orm";
@@ -181,6 +183,34 @@ router.get("/courses/:id", async (req, res) => {
   } catch (error) {
     console.error("Failed to fetch course details:", error);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Parse Quest Schedule Text
+router.post("/parse-schedule", (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: "No text provided" });
+  try {
+    const result = parseQuestSchedule(text);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to parse schedule" });
+  }
+});
+
+// Generate ICS File
+router.post("/generate-ics", (req, res) => {
+  const { courses } = req.body;
+  if (!courses || !Array.isArray(courses)) {
+    return res.status(400).json({ error: "Invalid courses data" });
+  }
+  try {
+    const ics = generateICS(courses);
+    res.setHeader("Content-Type", "text/calendar");
+    res.setHeader("Content-Disposition", "attachment; filename=uw_schedule.ics");
+    res.send(ics);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to generate ICS" });
   }
 });
 
