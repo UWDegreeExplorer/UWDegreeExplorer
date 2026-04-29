@@ -10,7 +10,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, History, Info, AlertTriangle } from "lucide-react";
+import { BookOpen, History, Info, AlertTriangle, Sparkles, Heart, ThumbsUp, Brain } from "lucide-react";
+import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatTermCode } from "@/lib/utils";
 
@@ -26,6 +27,11 @@ interface CourseDetail {
   coreqRaw: string;
   antireqRaw: string;
   offeringHistory: string[];
+  uwflowRating?: {
+    liked: number | null;
+    easy: number | null;
+    useful: number | null;
+  } | null;
 }
 
 interface CourseDetailSheetProps {
@@ -33,6 +39,32 @@ interface CourseDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const RatingBadge = ({ label, value, icon: Icon, color }: { label: string, value: number | null, icon: any, color: string }) => {
+  if (value === null) return null;
+  return (
+    <div className="flex-1 p-3 rounded-2xl bg-muted/50 border border-border/50 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className={`p-1.5 rounded-lg ${color} bg-opacity-10`}>
+          <Icon size={16} className={color.replace('bg-', 'text-')} />
+        </div>
+        <span className="text-lg font-bold">{value}%</span>
+      </div>
+      <div className="space-y-1">
+        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <span>{label}</span>
+        </div>
+        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${value}%` }}
+            className={`h-full ${color}`}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
   courseId,
@@ -73,7 +105,7 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
             <div className="p-8 space-y-8 pb-12">
               <SheetHeader>
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="text-primary border-primary/20">
+                  <Badge variant="outline" className="text-primary border-primary/20 font-mono">
                     {course.subjectCode} {course.catalogNumber}
                   </Badge>
                   <Badge variant="secondary">{course.units} Units</Badge>
@@ -82,6 +114,35 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
                   {course.title}
                 </SheetTitle>
               </SheetHeader>
+
+              {course.uwflowRating && (
+                <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center gap-2 mb-4 text-lg font-semibold">
+                    <Sparkles className="h-5 w-5 text-amber-500" />
+                    <h2>UWFlow Insights</h2>
+                  </div>
+                  <div className="flex gap-3">
+                    <RatingBadge 
+                      label="Liked" 
+                      value={course.uwflowRating.liked} 
+                      icon={Heart} 
+                      color="bg-rose-500" 
+                    />
+                    <RatingBadge 
+                      label="Useful" 
+                      value={course.uwflowRating.useful} 
+                      icon={ThumbsUp} 
+                      color="bg-blue-500" 
+                    />
+                    <RatingBadge 
+                      label="Easy" 
+                      value={course.uwflowRating.easy} 
+                      icon={Brain} 
+                      color="bg-emerald-500" 
+                    />
+                  </div>
+                </section>
+              )}
 
               <div className="space-y-6">
                 <section>

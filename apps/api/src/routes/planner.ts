@@ -77,6 +77,51 @@ router.get("/courses", async (req, res) => {
   }
 });
 
+// Helper to fetch ratings from UWFlow
+async function fetchUWFlowRatings(subjectCode: string, catalogNumber: string) {
+  const code = `${subjectCode}${catalogNumber}`.toLowerCase().replace(/\s+/g, '');
+  const url = "https://uwflow.com/graphql";
+  const query = `
+    query getCourse($code: String) {
+      course(where: {code: {_eq: $code}}) {
+        rating {
+          liked
+          easy
+          useful
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0",
+      },
+      body: JSON.stringify({
+        operationName: "getCourse",
+        variables: { code },
+        query,
+      }),
+    });
+
+    const result = (await response.json()) as any;
+    const course = result?.data?.course?.[0];
+    if (course && course.rating) {
+      return {
+        liked: course.rating.liked ? Math.round(course.rating.liked * 100) : null,
+        easy: course.rating.easy ? Math.round(course.rating.easy * 100) : null,
+        useful: course.rating.useful ? Math.round(course.rating.useful * 100) : null,
+      };
+    }
+  } catch (error) {
+    console.error(`[Planner API] Failed to fetch UWFlow ratings for ${code}:`, error);
+  }
+  return null;
+}
+
 // Get single course details with requirements and history
 router.get("/courses/:id", async (req, res) => {
   try {
@@ -101,7 +146,15 @@ router.get("/courses/:id", async (req, res) => {
       return;
     }
 
-    // 2. Get offering history
+    const { course, version, requirements } = courseData[0];
+
+    // 2. Fetch UWFlow ratings in parallel
+    const uwflowRating = await fetchUWFlowRatings(
+      course.subjectCode || "", 
+      course.catalogNumber || ""
+    );
+
+    // 3. Get offering history
     const offerings = await db
       .select({
         termCode: courseOfferings.termCode,
@@ -113,8 +166,6 @@ router.get("/courses/:id", async (req, res) => {
     // Deduplicate terms for history
     const history = Array.from(new Set(offerings.map(o => o.termCode))).filter(Boolean);
 
-    const { course, version, requirements } = courseData[0];
-
     res.json({
       ...course,
       title: version?.title,
@@ -125,6 +176,7 @@ router.get("/courses/:id", async (req, res) => {
       coreqRaw: requirements?.coreqRaw,
       antireqRaw: requirements?.antireqRaw,
       offeringHistory: history,
+      uwflowRating,
     });
   } catch (error) {
     console.error("Failed to fetch course details:", error);

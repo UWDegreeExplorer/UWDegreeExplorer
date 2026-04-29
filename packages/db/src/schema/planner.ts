@@ -50,3 +50,10 @@ export const subjectBreadth = pgTable("planner_subject_breadth", {
   subjectCode: text("subject_code").primaryKey(),
   category: text("category").notNull(), // Humanities, Pure Sciences, Social Sciences, etc.
 });
+
+// 6. 专业列表表
+export const programs = pgTable("planner_programs", {
+  id: text("id").primaryKey(), // 4位数字 ID
+  name: text("name").notNull(),
+  category: text("category"),
+});
