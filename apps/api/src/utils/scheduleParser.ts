@@ -58,7 +58,7 @@ export function parseQuestSchedule(rawText: string): ParseResult {
       
       // Look for Class Nbr, Section, Component sequence
       // Note: We check if i >= 2 to ensure we have ClassNbr and Section above
-      if (/^(LEC|TUT|LAB|TST)$/.test(line) && i >= 2) {
+      if (/^(LEC|TUT|LAB)$/.test(line) && i >= 2) {
         const classNbr = blockLines[i-2];
         const section = blockLines[i-1];
 
