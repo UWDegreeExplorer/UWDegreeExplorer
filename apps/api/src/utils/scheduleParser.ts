@@ -23,7 +23,8 @@ function standardizeTime(timeStr: string): string {
   const cleanTime = timeStr.trim().toUpperCase();
   if (!cleanTime || cleanTime === "TBA") return "TBA";
 
-  const formats = ["h:mmaa", "hh:mmaa", "haa", "hhaa", "HH:mm", "H:mm"];
+  // Support formats with and without spaces before AM/PM
+  const formats = ["h:mmaa", "hh:mmaa", "h:mm aa", "hh:mm aa", "haa", "hhaa", "HH:mm", "H:mm"];
   for (const fmt of formats) {
     try {
       const parsedDate = parse(cleanTime, fmt, new Date());
@@ -35,8 +36,8 @@ function standardizeTime(timeStr: string): string {
 
 export function parseQuestSchedule(rawText: string): ParseResult {
   // 1. Clean and normalize text
-  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const fullText = lines.join("\n");
+  const rawLines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const fullText = rawLines.join("\n");
 
   // 2. Detect Term
   const termMatch = fullText.match(/(Winter|Spring|Fall)\s\d{4}/i);
@@ -55,20 +56,31 @@ export function parseQuestSchedule(rawText: string): ParseResult {
 
     for (let i = 0; i < blockLines.length; i++) {
       const line = blockLines[i];
+      const tokens = line.split(/\s+/);
       
-      // Look for Class Nbr, Section, Component sequence
-      // Note: We check if i >= 2 to ensure we have ClassNbr and Section above
-      if (/^(LEC|TUT|LAB)$/.test(line) && i >= 2) {
-        const classNbr = blockLines[i-2];
-        const section = blockLines[i-1];
+      // Look for Component Type (LEC, TUT, LAB)
+      const typeIdx = tokens.findIndex(t => /^(LEC|TUT|LAB)$/.test(t));
+      
+      if (typeIdx !== -1) {
+        let classNbr = "";
+        let section = "";
+        const type = tokens[typeIdx];
 
-        if (/^\d{3,5}$/.test(classNbr) && /^\d{1,3}$/.test(section)) {
-          const type = line;
+        // Layout A: Same line (ClassNbr Section Type ...)
+        if (typeIdx >= 2 && /^\d{3,5}$/.test(tokens[typeIdx-2]) && /^\d{1,3}$/.test(tokens[typeIdx-1])) {
+          classNbr = tokens[typeIdx-2];
+          section = tokens[typeIdx-1];
+        } 
+        // Layout B: Multi-line (ClassNbr\nSection\nType)
+        else if (i >= 2 && /^\d{3,5}$/.test(blockLines[i-2]) && /^\d{1,3}$/.test(blockLines[i-1])) {
+          classNbr = blockLines[i-2];
+          section = blockLines[i-1];
+        }
 
+        if (classNbr && section) {
           // FLEXIBLE SCANNING: Look forward for the Date Range line
           let dateLineIdx = -1;
-          // Look ahead up to 8 lines to find the date range "YYYY/MM/DD - YYYY/MM/DD"
-          for (let k = i + 1; k < Math.min(i + 8, blockLines.length); k++) {
+          for (let k = i; k < Math.min(i + 10, blockLines.length); k++) {
             if (blockLines[k].match(/(\d{2,4}[/-]\d{2}[/-]\d{2,4})\s*-\s*(\d{2,4}[/-]\d{2}[/-]\d{2,4})/)) {
               dateLineIdx = k;
               break;
@@ -76,27 +88,35 @@ export function parseQuestSchedule(rawText: string): ParseResult {
           }
 
           if (dateLineIdx !== -1) {
-            // Lines between 'type' and 'dateLine' are the meeting details
-            // meetingLines[0]: Time
-            // meetingLines[1]: Room
-            // meetingLines[2+]: Instructor
-            const meetingLines = blockLines.slice(i + 1, dateLineIdx);
-            const dateLine = blockLines[dateLineIdx];
-            
-            const timeLine = meetingLines[0] || "TBA";
-            const roomLine = meetingLines[1] || "TBA";
-            const instructorLines = meetingLines.slice(2);
-            const instructor = instructorLines.length > 0 
-              ? instructorLines
-                  .map(line => line.replace(/To be Announced/g, "").trim())
-                  .filter(Boolean)
-                  .join(", ")
-                  .replace(/,\s*,/g, ",") // Remove double commas
-                  .replace(/^,|,$/g, "") // Remove leading/trailing commas
-                  .trim() 
-              : null;
+            // Collect all potential meeting info tokens from the suffix of the current line 
+            // and all lines up to the date line.
+            const sameLineSuffix = tokens.slice(typeIdx + 1).join(" ");
+            const midLines = blockLines.slice(i + 1, dateLineIdx);
+            const rawInfoLines = [sameLineSuffix, ...midLines].filter(Boolean);
 
-            const dateMatch = dateLine.match(/(\d{2,4}[/-]\d{2}[/-]\d{2,4})\s*-\s*(\d{2,4}[/-]\d{2}[/-]\d{2,4})/);
+            let timeLine = "TBA";
+            let roomLine = "TBA";
+            const instructorParts: string[] = [];
+
+            // Heuristic allocation
+            for (const infoLine of rawInfoLines) {
+              // If it looks like Time (contains digits and hyphen or is TBA)
+              if (infoLine.match(/(\d+:\d+|TBA)/) && timeLine === "TBA") {
+                timeLine = infoLine;
+              } 
+              // If it looks like Room (no comma, usually short or starts with building code)
+              else if (roomLine === "TBA" && !infoLine.includes(",")) {
+                roomLine = infoLine;
+              } 
+              // Otherwise, it's an Instructor
+              else {
+                instructorParts.push(infoLine.replace(/To be Announced/g, "").trim());
+              }
+            }
+
+            const instructor = instructorParts.filter(Boolean).join(", ").replace(/,\s*,/g, ",").trim() || null;
+            const dateMatch = blockLines[dateLineIdx].match(/(\d{2,4}[/-]\d{2}[/-]\d{2,4})\s*-\s*(\d{2,4}[/-]\d{2}[/-]\d{2,4})/);
+            
             if (dateMatch) {
               const timeParts = timeLine.match(/^([MTWRFh]+)?\s*(.+?)\s*-\s*(.+)$/);
               const startTimeRaw = timeParts ? timeParts[2] : "TBA";
@@ -133,14 +153,14 @@ export function parseQuestSchedule(rawText: string): ParseResult {
                 startTime: standardizeTime(startTimeRaw),
                 endTime: standardizeTime(endTimeRaw),
                 room: roomLine,
-                instructor: instructor || null,
+                instructor,
                 startDate: formatDate(dateMatch[1]),
                 endDate: formatDate(dateMatch[2]),
                 isOnline: roomLine.includes("ONLN") || roomLine.includes("Online"),
               });
             }
             
-            // Advance outer loop index to the date line we just processed
+            // Sync index to avoid reprocessing
             i = dateLineIdx;
           }
         }
