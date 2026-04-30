@@ -183,12 +183,12 @@ export function SectionRail({
             )}
           </button>
           <button
-            onClick={() => isCollapsed ? onToggle?.() : onSelect("make-calendar")}
+            onClick={() => isCollapsed ? onToggle?.() : onSelect("calendar")}
             title={isCollapsed ? "Make Calendar" : ""}
             className={[
               "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-all relative group",
               isCollapsed ? "justify-center h-10 w-10 mx-auto px-0" : "",
-              active === "make-calendar"
+              active === "calendar"
                 ? "bg-primary/10 text-primary"
                 : "text-foreground/80 hover:bg-accent hover:text-foreground",
             ].join(" ")}

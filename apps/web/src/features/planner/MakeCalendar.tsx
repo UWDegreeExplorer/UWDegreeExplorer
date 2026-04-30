@@ -63,8 +63,6 @@ export function MakeCalendar() {
     }
   };
 
-  };
-
   // Redoing handleDownload with correct blob handling
   const downloadICS = async () => {
     if (!result || result.courses.length === 0) return;

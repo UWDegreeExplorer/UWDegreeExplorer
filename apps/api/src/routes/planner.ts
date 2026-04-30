@@ -189,7 +189,10 @@ router.get("/courses/:id", async (req, res) => {
 // Parse Quest Schedule Text
 router.post("/parse-schedule", (req, res) => {
   const { text } = req.body;
-  if (!text) return res.status(400).json({ error: "No text provided" });
+  if (!text) {
+    res.status(400).json({ error: "No text provided" });
+    return;
+  }
   try {
     const result = parseQuestSchedule(text);
     res.json(result);
@@ -202,7 +205,8 @@ router.post("/parse-schedule", (req, res) => {
 router.post("/generate-ics", (req, res) => {
   const { courses } = req.body;
   if (!courses || !Array.isArray(courses)) {
-    return res.status(400).json({ error: "Invalid courses data" });
+    res.status(400).json({ error: "Invalid courses data" });
+    return;
   }
   try {
     const ics = generateICS(courses);
