@@ -190,13 +190,23 @@ router.get("/courses/:id", async (req, res) => {
 router.post("/parse-schedule", (req, res) => {
   const { text } = req.body;
   if (!text) {
+    logger.warn("Parse schedule called with no text");
     res.status(400).json({ error: "No text provided" });
     return;
   }
+  
+  logger.info({ textLength: text.length }, "Starting schedule parse");
+  
   try {
     const result = parseQuestSchedule(text);
+    logger.info({ 
+      coursesFound: result.courses.length,
+      term: result.term 
+    }, "Schedule parse completed");
+    
     res.json(result);
   } catch (error) {
+    logger.error({ error }, "Failed to parse schedule");
     res.status(500).json({ error: "Failed to parse schedule" });
   }
 });
