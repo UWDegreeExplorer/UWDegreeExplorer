@@ -19,130 +19,132 @@ export interface ParseResult {
   courses: ParsedCourse[];
 }
 
-function _standardize_time_range(raw_time_str: string): string {
-    if (!raw_time_str || raw_time_str.includes("TBA")) {
-        return "TBA";
-    }
+function standardizeTime(timeStr: string): string {
+  const cleanTime = timeStr.trim().toUpperCase();
+  if (!cleanTime || cleanTime === "TBA") return "TBA";
+
+  const formats = ["h:mmaa", "hh:mmaa", "haa", "hhaa", "HH:mm", "H:mm"];
+  for (const fmt of formats) {
     try {
-        const match = raw_time_str.match(/\d/);
-        if (!match) return raw_time_str;
-        const start_idx = match.index!;
-        const days_part = raw_time_str.substring(0, start_idx).trim();
-        const times_part = raw_time_str.substring(start_idx).trim();
-        
-        const time_segments = times_part.split("-").map(t => t.trim());
-        if (time_segments.length !== 2) return raw_time_str;
-        
-        const converted_times: string[] = [];
-        for (const t of time_segments) {
-            let dt: Date;
-            if (t.includes("AM") || t.includes("PM")) {
-                dt = parse(t, "h:mmaa", new Date());
-                if (!isValid(dt)) dt = parse(t, "hh:mmaa", new Date());
-            } else {
-                dt = parse(t, "HH:mm", new Date());
-            }
-            if (isValid(dt)) {
-                converted_times.push(format(dt, "HH:mm"));
-            } else {
-                converted_times.push(t);
-            }
-        }
-        return `${days_part} ${converted_times[0]} - ${converted_times[1]}`;
-    } catch (e) {
-        return raw_time_str;
-    }
+      const parsedDate = parse(cleanTime, fmt, new Date());
+      if (isValid(parsedDate)) return format(parsedDate, "HH:mm");
+    } catch { /* ignore */ }
+  }
+  return cleanTime;
 }
 
 export function parseQuestSchedule(rawText: string): ParseResult {
-    // Exact Python cleaning logic
-    const lines = rawText.split('\n').map(line => line.trim()).filter(line => line !== "");
-    const full_text = lines.join('\n');
+  // 1. Clean and normalize text
+  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const fullText = lines.join("\n");
 
-    // Detect Academic Term
-    const term_match = full_text.match(/(Winter|Spring|Fall)\s\d{4}/);
-    const current_term = term_match ? term_match[0] : "Unknown Term";
+  // 2. Detect Term
+  const termMatch = fullText.match(/(Winter|Spring|Fall)\s\d{4}/i);
+  const term = termMatch ? termMatch[0] : "Unknown Term";
 
-    // Split text into blocks by course headers
-    // Python: re.split(r'\n([A-Z]{2,}\s\d+[A-Z]?\s-\s.+)', full_text)
-    // We use a manual split to mimic the behavior of keeping the delimiter
-    const course_header_regex = /\n([A-Z]{2,}\s\d+[A-Z]?\s-\s.+)/g;
-    let match;
-    const course_blocks: string[] = [];
-    let lastIndex = 0;
-    while ((match = course_header_regex.exec(full_text)) !== null) {
-        course_blocks.push(full_text.substring(lastIndex, match.index));
-        course_blocks.push(match[1]);
-        lastIndex = course_header_regex.lastIndex;
-    }
-    course_blocks.push(full_text.substring(lastIndex));
+  // 3. Split into course blocks using a lookahead for course headers
+  // Pattern: [Subject] [Catalog] - [Title]
+  const courseBlocks = fullText.split(/\n(?=[A-Z]{1,5}\s\d+[A-Z]?\s*-\s*)/);
+  const courses: ParsedCourse[] = [];
 
-    const parsed_results: ParseResult = { term: current_term, courses: [] };
+  for (const block of courseBlocks) {
+    const blockLines = block.split("\n");
+    if (blockLines.length === 0) continue;
 
-    for (let i = 1; i < course_blocks.length; i += 2) {
-        const course_header = course_blocks[i].trim();
-        const course_body = course_blocks[i + 1];
+    // Find course code in the first line of the block
+    const headerMatch = blockLines[0].match(/^([A-Z]{1,5}\s\d+[A-Z]?)/);
+    const courseCode = headerMatch ? headerMatch[1] : "Unknown";
 
-        const code_match = course_header.match(/^([A-Z]{2,}\s\d+[A-Z]?)/);
-        const course_code = code_match ? code_match[1] : "Unknown";
+    // 4. Scan for component blocks (Class Nbr -> Section -> Component)
+    // We look for 3 consecutive lines that match the pattern
+    for (let i = 0; i < blockLines.length; i++) {
+      const line = blockLines[i];
+      
+      // Potential Class Nbr (3-5 digits)
+      if (/^\d{3,5}$/.test(line)) {
+        // Look ahead for Section and Component
+        if (i + 2 < blockLines.length) {
+          const section = blockLines[i+1];
+          const type = blockLines[i+2];
 
-        // Python pattern
-        const component_pattern = /(\d{3,4})\n(\d{3})\n(LEC|TUT|LAB|TST)\n([\s\S]+?)\n([\s\S]+?)\n([\s\S]+?)\n(\d{2,4}\/\d{2}\/\d{2,4})/g;
-        
-        let m;
-        while ((m = component_pattern.exec(course_body)) !== null) {
-            if (m[3] === "TST") continue;
+          if (/^\d{1,3}$/.test(section) && /^(LEC|TUT|LAB|TST)$/.test(type)) {
+            if (type === "TST") {
+              i += 2; // Skip TST header
+              continue;
+            }
 
-            const standardized_time = _standardize_time_range(m[4]);
-            const room = m[5].trim();
-            const instructor = m[6].replace(/\n/g, ", ").trim();
-            const start_date_raw = m[7];
+            // We found a component! Now look for its meetings.
+            // A meeting consists of 4 lines: Time, Room, Instructor, Dates
+            // We search greedily for these 4 lines following the header
+            let searchIdx = i + 3;
+            while (searchIdx + 3 < blockLines.length) {
+              const timeLine = blockLines[searchIdx];
+              const roomLine = blockLines[searchIdx+1];
+              const instructorLine = blockLines[searchIdx+2];
+              const dateLine = blockLines[searchIdx+3];
 
-            // For the end date, Python matched only the first date. 
-            // To get the end date correctly from the line "2026/05/11 - 2026/08/05",
-            // we look at the line in course_body where the date was found.
-            const date_line_match = course_body.substring(m.index).split('\n').find(l => l.includes(start_date_raw));
-            const end_date_raw = date_line_match?.split("-")[1]?.trim() || start_date_raw;
+              // Check if dateLine looks like a date range
+              const dateMatch = dateLine.match(/(\d{2,4}[/-]\d{2}[/-]\d{2,4})\s*-\s*(\d{2,4}[/-]\d{2}[/-]\d{2,4})/);
+              
+              if (dateMatch) {
+                // This is a valid meeting
+                const timeParts = timeLine.match(/^([MTWRFh]+)?\s*(.+?)\s*-\s*(.+)$/);
+                if (timeParts || timeLine === "TBA") {
+                  const startTimeRaw = timeParts ? timeParts[2] : "TBA";
+                  const endTimeRaw = timeParts ? timeParts[3] : "TBA";
+                  const daysRaw = timeParts ? timeParts[1] || "" : "";
 
-            const timeParts = standardized_time.match(/^([MTWRFh]+)?\s*(.+?)\s*-\s*(.+)$/);
-            const days: string[] = [];
-            if (timeParts && timeParts[1]) {
-                const daysRaw = timeParts[1];
-                for (let j = 0; j < daysRaw.length; j++) {
+                  const days: string[] = [];
+                  for (let j = 0; j < daysRaw.length; j++) {
                     const char = daysRaw[j];
-                    if (char === 'T' && daysRaw[j + 1] === 'h') {
-                        days.push('TH');
-                        j++;
-                    } else if (char === 'M') days.push('MO');
+                    if (char === 'T' && daysRaw[j+1] === 'h') { days.push('TH'); j++; }
+                    else if (char === 'M') days.push('MO');
                     else if (char === 'T') days.push('TU');
                     else if (char === 'W') days.push('WE');
                     else if (char === 'F') days.push('FR');
+                  }
+
+                  const formatDate = (d: string) => {
+                    try {
+                      if (d.includes("/") && d.split("/")[0].length === 4) return d.replace(/\//g, "-");
+                      const formats = ["MM/dd/yyyy", "MM-dd-yyyy", "yyyy/MM/dd"];
+                      for (const f of formats) {
+                        const p = parse(d, f, new Date());
+                        if (isValid(p)) return format(p, "yyyy-MM-dd");
+                      }
+                      return d;
+                    } catch { return d; }
+                  };
+
+                  courses.push({
+                    courseCode,
+                    type,
+                    section,
+                    days,
+                    startTime: standardizeTime(startTimeRaw),
+                    endTime: standardizeTime(endTimeRaw),
+                    room: roomLine,
+                    instructor: instructorLine.includes("To be Announced") ? null : instructorLine,
+                    startDate: formatDate(dateMatch[1]),
+                    endDate: formatDate(dateMatch[2]),
+                    isOnline: roomLine.includes("ONLN") || roomLine.includes("Online"),
+                  });
+                  
+                  searchIdx += 4; // Move to next potential meeting
+                  continue;
                 }
+              }
+              
+              // If we didn't find a meeting, stop searching this component
+              break;
             }
-
-            const formatDate = (d: string) => {
-                try {
-                    if (d.includes("/") && d.split("/")[0].length === 4) return d.replace(/\//g, "-");
-                    const p = parse(d, "MM/dd/yyyy", new Date());
-                    return isValid(p) ? format(p, "yyyy-MM-dd") : d;
-                } catch { return d; }
-            };
-
-            parsed_results.courses.push({
-                courseCode: course_code,
-                type: m[3],
-                section: m[2],
-                days,
-                startTime: timeParts ? timeParts[2] : "TBA",
-                endTime: timeParts ? timeParts[3] : "TBA",
-                room,
-                instructor: instructor.includes("To be Announced") ? null : instructor,
-                startDate: formatDate(start_date_raw),
-                endDate: formatDate(end_date_raw),
-                isOnline: room.includes("ONLN") || room.includes("Online"),
-            });
+            
+            i = searchIdx - 1; // Move outer loop to end of processed meetings
+          }
         }
+      }
     }
+  }
 
-    return parsed_results;
+  return { term, courses };
 }
