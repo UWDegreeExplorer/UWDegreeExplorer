@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { logger } from "../lib/logger";
 import { parseQuestSchedule } from "../utils/scheduleParser";
 import { generateICS } from "../utils/icsGenerator";
 import { db } from "@workspace/db";
