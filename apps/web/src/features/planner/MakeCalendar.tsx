@@ -40,7 +40,7 @@ export function MakeCalendar() {
     
     setIsParsing(true);
     try {
-      const data = await customFetch<ParseResult>("/planner/parse-schedule", {
+      const data = await customFetch<ParseResult>("/api/planner/parse-schedule", {
         method: "POST",
         body: JSON.stringify({ text: scheduleText }),
       });
@@ -67,7 +67,7 @@ export function MakeCalendar() {
     
     setIsGenerating(true);
     try {
-      const blob = await customFetch<Blob>("/planner/generate-ics", {
+      const blob = await customFetch<Blob>("/api/planner/generate-ics", {
         method: "POST",
         body: JSON.stringify({ courses: result.courses }),
         responseType: "blob",
