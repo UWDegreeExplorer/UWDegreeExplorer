@@ -59,14 +59,14 @@ app.use(
 // Rate limiting to prevent brute force and abuse
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 100, // Limit each IP to 100 requests per 15 minutes
+  limit: 1000, // Limit each IP to 1000 requests per 15 minutes (to allow for polling)
   standardHeaders: "draft-7",
   legacyHeaders: false,
 });
 
 const loginLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  limit: 5, // Limit each IP to 5 requests per minute
+  limit: 15, // Limit each IP to 15 requests per minute
   message: { message: "Too many login attempts, please try again after a minute" },
   standardHeaders: "draft-7",
   legacyHeaders: false,
