@@ -2,7 +2,7 @@ import { Router } from "express";
 import { logger } from "../lib/logger";
 import { parseQuestSchedule } from "../utils/scheduleParser";
 import { generateICS } from "../utils/icsGenerator";
-import { db } from "@workspace/db";
+import { db, userSchedules } from "@workspace/db";
 import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth } from "@workspace/db/schema";
 import { eq, ilike, or, and, sql, not } from "drizzle-orm";
 
@@ -226,6 +226,118 @@ router.post("/generate-ics", (req, res) => {
     res.send(ics);
   } catch (error) {
     res.status(500).json({ error: "Failed to generate ICS" });
+  }
+});
+
+// --- PERSISTENCE ROUTES ---
+
+// List all saved terms for current user
+router.get("/schedules", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const schedules = await db
+      .select({ term: userSchedules.term, updatedAt: userSchedules.updatedAt })
+      .from(userSchedules)
+      .where(eq(userSchedules.userId, userId))
+      .orderBy(sql`${userSchedules.term} DESC`);
+
+    res.json(schedules);
+  } catch (error) {
+    logger.error({ error }, "Failed to fetch saved schedules");
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Save or Update a schedule for a term
+router.post("/schedules", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { term, courses } = req.body;
+  if (!term || !courses) {
+    res.status(400).json({ error: "Missing term or courses data" });
+    return;
+  }
+
+  try {
+    await db
+      .insert(userSchedules)
+      .values({
+        userId,
+        term,
+        data: courses,
+      })
+      .onConflictDoUpdate({
+        target: [userSchedules.userId, userSchedules.term],
+        set: {
+          data: courses,
+          updatedAt: new Date(),
+        },
+      });
+
+    res.json({ success: true, term });
+  } catch (error) {
+    logger.error({ error }, "Failed to save schedule");
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Get detailed schedule for a specific term
+router.get("/schedules/:term", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { term } = req.params;
+
+  try {
+    const [schedule] = await db
+      .select()
+      .from(userSchedules)
+      .where(and(eq(userSchedules.userId, userId), eq(userSchedules.term, term)))
+      .limit(1);
+
+    if (!schedule) {
+      res.status(404).json({ error: "Schedule not found" });
+      return;
+    }
+
+    res.json(schedule);
+  } catch (error) {
+    logger.error({ error }, "Failed to fetch schedule detail");
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Delete a saved schedule
+router.delete("/schedules/:term", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { term } = req.params;
+
+  try {
+    await db
+      .delete(userSchedules)
+      .where(and(eq(userSchedules.userId, userId), eq(userSchedules.term, term)));
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, "Failed to delete schedule");
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
