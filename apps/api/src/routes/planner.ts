@@ -3,8 +3,12 @@ import { logger } from "../lib/logger";
 import { parseQuestSchedule } from "../utils/scheduleParser";
 import { generateICS } from "../utils/icsGenerator";
 import { db, userSchedules } from "@workspace/db";
-import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth } from "@workspace/db/schema";
+import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth, userWorkloads } from "@workspace/db/schema";
 import { eq, ilike, or, and, sql, not } from "drizzle-orm";
+import * as analyzer from "../utils/workloadAnalyzer";
+
+// Initialize Geo Data
+analyzer.initGeoData();
 
 const router = Router();
 
@@ -337,6 +341,149 @@ router.delete("/schedules/:term", async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     logger.error({ error }, "Failed to delete schedule");
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// --- WORKLOAD CALCULATOR ROUTES ---
+
+router.post("/workload/analyze", async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: "No text provided" });
+
+  try {
+    const data = parseQuestSchedule(text);
+    
+    // Fetch all ratings and analyze commute in parallel
+    const courseResults = await Promise.all(data.courses.map(async (c) => {
+      const [subject, catalog] = c.courseCode.split(" ");
+      const [courseRatings, profRatings] = await Promise.all([
+        fetchUWFlowRatings(subject, catalog),
+        analyzer.fetchUWFlowProfRatings(c.instructor || "")
+      ]);
+      return { ...c, courseRatings, profRatings };
+    }));
+
+    // Organize by day for commute analysis
+    const dayMap: any = { MO: "Mon", TU: "Tue", WE: "Wed", TH: "Thu", FR: "Fri" };
+    const dayStruct: any = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] };
+
+    courseResults.forEach((c) => {
+      const parts = c.time.split(" ");
+      if (parts.length < 3) return;
+      const daysStr = parts[0];
+      const startStr = parts[1];
+      const endStr = parts[parts.length - 1];
+      
+      const bParts = c.room.split(" ");
+      const bCode = bParts[0];
+      const bFloor = (bParts[1] && bParts[1][0]) || "1";
+
+      // Parse days
+      let i = 0;
+      while (i < daysStr.length) {
+        let dKey = daysStr[i];
+        if (daysStr[i] === "T" && daysStr[i+1] === "h") {
+          dKey = "TH";
+          i += 2;
+        } else {
+          i += 1;
+        }
+        const dayName = dayMap[dKey];
+        if (dayName) {
+          dayStruct[dayName].push({
+            start: new Date(`1970-01-01T${startStr}:00`),
+            end: new Date(`1970-01-01T${endStr}:00`),
+            bCode,
+            bFloor,
+            ref: c
+          });
+        }
+      }
+    });
+
+    // Run commute analysis per day
+    Object.keys(dayStruct).forEach((day) => {
+      const dailyCourses = dayStruct[day].sort((a: any, b: any) => a.start - b.start);
+      for (let i = 0; i < dailyCourses.length - 1; i++) {
+        const curr = dailyCourses[i];
+        const nxt = dailyCourses[i+1];
+        if (curr.bCode !== "ONLN" && nxt.bCode !== "ONLN") {
+          const wTime = analyzer.getWalkingTime(curr.bCode, curr.bFloor, nxt.bCode, nxt.bFloor);
+          const gap = (nxt.start - curr.end) / 60000;
+          const stress = wTime > gap ? "impossible" : (wTime > 15 || gap - wTime < 5) ? "high" : "low";
+          
+          if (!curr.ref.commute) curr.ref.commute = [];
+          curr.ref.commute.push({ to: nxt.ref.courseCode, walk: wTime, gap, stress, day });
+        }
+      }
+    });
+
+    const finalScore = analyzer.calculateWorkloadScore(data.term, courseResults);
+    res.json({ term: data.term, courses: courseResults, score: finalScore });
+  } catch (error) {
+    logger.error({ error }, "Workload analysis failed");
+    res.status(500).json({ error: "Analysis failed" });
+  }
+});
+
+router.get("/workload", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const results = await db
+      .select({ term: userWorkloads.term, score: userWorkloads.score, updatedAt: userWorkloads.updatedAt })
+      .from(userWorkloads)
+      .where(eq(userWorkloads.userId, userId))
+      .orderBy(sql`${userWorkloads.term} DESC`);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.post("/workload", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { term, courses, score } = req.body;
+  try {
+    await db.insert(userWorkloads).values({ userId, term, data: courses, score }).onConflictDoUpdate({
+      target: [userWorkloads.userId, userWorkloads.term],
+      set: { data: courses, score, updatedAt: new Date() }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.get("/workload/:term", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const [result] = await db
+      .select()
+      .from(userWorkloads)
+      .where(and(eq(userWorkloads.userId, userId), eq(userWorkloads.term, req.params.term)))
+      .limit(1);
+    if (!result) return res.status(404).json({ error: "Not found" });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.delete("/workload/:term", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    await db.delete(userWorkloads).where(and(eq(userWorkloads.userId, userId), eq(userWorkloads.term, req.params.term)));
+    res.json({ success: true });
+  } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
