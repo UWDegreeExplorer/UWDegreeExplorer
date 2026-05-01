@@ -13,10 +13,11 @@ import NewPost from "@/pages/new-post";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // Keep data fresh for 60 seconds by default
-      gcTime: 5 * 60 * 1000, // Cache data for 5 minutes
+      staleTime: 10 * 1000, // Keep data fresh for 10 seconds
+      gcTime: 5 * 60 * 1000,
       retry: 1,
-      refetchOnWindowFocus: false, // Prevent unnecessary refetching when switching tabs
+      refetchOnWindowFocus: true,
+      refetchInterval: 30 * 1000, // Poll every 30 seconds
     },
   },
 });

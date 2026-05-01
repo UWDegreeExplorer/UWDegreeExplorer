@@ -152,7 +152,7 @@ export default function Home() {
   const isMobile = !isDesktop && !isTablet;
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
 
-  const onSelectSection = (s: SectionFilter) => {
+  const onSelectSection = (s: SectionFilter, commentId?: number) => {
     setActiveSection(s);
     setSearch("");
     setSidebarOpen(false);
@@ -166,8 +166,13 @@ export default function Home() {
     } else if (s === "likes") {
       setLocation("/likes");
     } else if (matchPost || matchSettings || matchBookmarks || matchActivity || matchLikes) {
-      setLocation("/");
+      setLocation(commentId ? `/post/${selectedId}?commentId=${commentId}` : "/");
     }
+  };
+
+  const handleSelectPost = (id: number, commentId?: number) => {
+    const url = commentId ? `/post/${id}?commentId=${commentId}` : `/post/${id}`;
+    setLocation(url);
   };
 
   const [matchSettings] = useRoute("/settings");
@@ -252,7 +257,7 @@ export default function Home() {
                     selectedId={selectedId}
                     search={search}
                     onSearchChange={setSearch}
-                    onSelect={(id) => setLocation(`/post/${id}`)}
+                    onSelect={handleSelectPost}
                   />
                 </Panel>
 
@@ -287,7 +292,7 @@ export default function Home() {
                     selectedId={selectedId}
                     search={search}
                     onSearchChange={setSearch}
-                    onSelect={(id) => setLocation(`/post/${id}`)}
+                    onSelect={handleSelectPost}
                   />
                 </div>
                 <main className="flex-1 min-w-0 bg-background h-full overflow-hidden">
@@ -333,7 +338,7 @@ export default function Home() {
                 selectedId={selectedId}
                 search={search}
                 onSearchChange={setSearch}
-                onSelect={(id) => setLocation(`/post/${id}`)}
+                onSelect={handleSelectPost}
               />
             )}
           </div>

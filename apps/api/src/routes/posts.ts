@@ -422,14 +422,21 @@ router.post("/:id/comments", async (req, res) => {
     .where(eq(postsTable.id, postId))
     .limit(1);
 
-  if (post && post.authorId && post.authorId !== userId) {
+  // Collect user IDs to notify to avoid duplicates
+  const notifiedUserIds = new Set<number>();
+  notifiedUserIds.add(userId); // Don't notify the person who commented
+
+  if (post && post.authorId && !notifiedUserIds.has(post.authorId)) {
     await db.insert(notificationsTable).values({
       userId: post.authorId,
+      actorId: effectiveAnonymous ? null : userId,
       actorName: authorNameSnapshot,
       type: "reply_to_post",
       postId: post.id,
       postTitle: post.title,
+      commentId: comment.id,
     });
+    notifiedUserIds.add(post.authorId);
   }
 
   if (parentId) {
@@ -438,14 +445,17 @@ router.post("/:id/comments", async (req, res) => {
       .from(commentsTable)
       .where(eq(commentsTable.id, parentId))
       .limit(1);
-    if (parentComment && parentComment.authorId && parentComment.authorId !== userId) {
+    if (parentComment && parentComment.authorId && !notifiedUserIds.has(parentComment.authorId)) {
       await db.insert(notificationsTable).values({
         userId: parentComment.authorId,
+        actorId: effectiveAnonymous ? null : userId,
         actorName: authorNameSnapshot,
         type: "reply_to_comment",
         postId: postId,
         postTitle: post?.title || "Post",
+        commentId: comment.id,
       });
+      notifiedUserIds.add(parentComment.authorId);
     }
   }
 

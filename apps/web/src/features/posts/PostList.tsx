@@ -25,7 +25,7 @@ export function PostList({
 }: {
   section: SectionFilter;
   selectedId: number | null;
-  onSelect: (id: number) => void;
+  onSelect: (id: number, commentId?: number) => void;
   search: string;
   onSearchChange: (val: string) => void;
 }) {
@@ -76,6 +76,31 @@ export function PostList({
       queryClient.invalidateQueries({ queryKey: ["/notifications/unread-count"] });
     }
   });
+
+  const { mutate: markRead } = useCustomMutation<any, any>("/notifications/:id/read", {
+    fetchOptions: { method: "POST" },
+    onSuccess: () => {
+      refetchNotify();
+      queryClient.invalidateQueries({ queryKey: ["/notifications/unread-count"] });
+    }
+  });
+
+  const handleNotificationClick = (n: any) => {
+    if (!n.isRead) {
+      markRead({ id: n.id });
+    }
+    
+    if (n.postDeleted) {
+      toast({
+        variant: "destructive",
+        title: "Post not found",
+        description: "This post has been deleted and is no longer available.",
+      });
+      return;
+    }
+
+    onSelect(n.postId, n.commentId);
+  };
 
   const isLoading = 
     (section === "inbox" ? notifyLoading : 
@@ -354,7 +379,7 @@ export function PostList({
                 {Array.isArray(notifications) && notifications.map((n) => (
                   <li key={n.id}>
                     <button
-                      onClick={() => onSelect(n.postId)}
+                      onClick={() => handleNotificationClick(n)}
                       className={[
                         "w-full text-left px-6 py-4 transition-colors hover:bg-accent/50",
                         !n.isRead && "bg-primary/[0.03] relative after:absolute after:left-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary"
@@ -364,6 +389,9 @@ export function PostList({
                         <Badge variant={n.isRead ? "outline" : "secondary"} className="text-[10px] py-0">
                           {n.type === "reply_to_post" ? "Post Reply" : "Comment Reply"}
                         </Badge>
+                        {n.postDeleted && (
+                          <Badge variant="destructive" className="text-[10px] py-0">Deleted</Badge>
+                        )}
                         <span className="text-[10px] text-muted-foreground">{relTime(n.createdAt)}</span>
                       </div>
                       <p className="text-sm leading-snug">

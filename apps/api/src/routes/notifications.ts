@@ -34,12 +34,15 @@ router.get("/", async (req, res) => {
       type: notificationsTable.type,
       postId: notificationsTable.postId,
       postTitle: postsTable.title,
+      savedPostTitle: notificationsTable.postTitle,
       actorName: usersTable.displayName,
+      savedActorName: notificationsTable.actorName,
+      commentId: notificationsTable.commentId,
       isRead: notificationsTable.isRead,
       createdAt: notificationsTable.createdAt,
     })
     .from(notificationsTable)
-    .innerJoin(postsTable, eq(notificationsTable.postId, postsTable.id))
+    .leftJoin(postsTable, eq(notificationsTable.postId, postsTable.id))
     .leftJoin(usersTable, eq(notificationsTable.actorId, usersTable.id))
     .where(eq(notificationsTable.userId, userId))
     .orderBy(desc(notificationsTable.createdAt))
@@ -47,9 +50,33 @@ router.get("/", async (req, res) => {
 
   res.json(rows.map(r => ({
     ...r,
-    actorName: r.actorName || "Anonymous",
-    createdAt: r.createdAt.toISOString()
+    postTitle: r.postTitle || r.savedPostTitle || "Deleted Post",
+    actorName: r.actorName || r.savedActorName || "Anonymous",
+    createdAt: r.createdAt.toISOString(),
+    postDeleted: !r.postTitle
   })));
+});
+
+// Mark single notification as read
+router.post("/:id/read", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).end();
+    return;
+  }
+
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ message: "Invalid ID" });
+    return;
+  }
+
+  await db
+    .update(notificationsTable)
+    .set({ isRead: true })
+    .where(and(eq(notificationsTable.id, id), eq(notificationsTable.userId, userId)));
+
+  res.json({ ok: true });
 });
 
 // Mark all as read

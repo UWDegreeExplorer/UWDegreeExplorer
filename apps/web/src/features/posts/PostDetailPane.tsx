@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useGetPost, useDeletePost, useGetCurrentUser, useCreateComment, useCustomMutation, customFetch, getGetPostQueryKey, getGetRecentActivityQueryKey, getGetSectionStatsQueryKey, getListPostsQueryKey, type Comment, type Section } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { relTime } from "@/lib/utils";
+import { relTime, cn } from "@/lib/utils";
 import { SECTION_LABELS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,12 +31,15 @@ function CommentNode({
   depth: number;
   isAnonymousMode: boolean;
   onReport: (id: number, type: "post" | "comment") => void;
+  targetedCommentId?: number | null;
 }) {
   const [showReply, setShowReply] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: userData } = useGetCurrentUser();
   const currentUser = userData?.user;
+
+  const isTargeted = targetedCommentId === comment.id;
 
   const handleLike = async () => {
     if (!currentUser) {
@@ -56,10 +59,14 @@ function CommentNode({
 
   return (
     <div
+      id={`comment-${comment.id}`}
       className="relative"
       style={{ marginLeft: indent === 0 ? 0 : `${indent * 20}px` }}
     >
-      <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-sm">
+      <div className={cn(
+        "rounded-lg border px-4 py-3 shadow-sm transition-all duration-1000",
+        isTargeted ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card"
+      )}>
         <div className="flex items-center gap-2 text-sm">
           <div className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-[10px] font-medium">
             {comment.isAnonymous ? (
@@ -104,12 +111,17 @@ function CommentNode({
             <span>{(comment as any).likeCount || 0}</span>
           </motion.button>
           <motion.button
-            whileTap={{ scale: 0.8 }}
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1.5"
-            onClick={() => onReport(comment.id, "comment")}
+            whileTap={(comment as any).isReported ? undefined : { scale: 0.8 }}
+            className={cn(
+              "h-7 px-2 text-xs transition-colors flex items-center gap-1.5",
+              (comment as any).isReported 
+                ? "text-destructive font-medium cursor-default opacity-80" 
+                : "text-muted-foreground hover:text-destructive"
+            )}
+            onClick={() => !(comment as any).isReported && onReport(comment.id, "comment")}
           >
-            <Flag className="w-3 h-3" />
-            Report
+            <Flag className={cn("w-3 h-3", (comment as any).isReported && "fill-current")} />
+            {(comment as any).isReported ? "Reported" : "Report"}
           </motion.button>
         </div>
         {showReply && (
@@ -136,6 +148,7 @@ function CommentNode({
               depth={depth + 1}
               isAnonymousMode={isAnonymousMode}
               onReport={onReport}
+              targetedCommentId={targetedCommentId}
             />
           ))}
         </div>
@@ -286,6 +299,21 @@ export function PostDetailPane({ postId }: { postId: number }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const searchParams = new URLSearchParams(window.location.search);
+  const targetedCommentId = searchParams.get("commentId") ? Number(searchParams.get("commentId")) : null;
+
+  useEffect(() => {
+    if (!isLoading && data && targetedCommentId) {
+      // Wait a bit for the DOM to render
+      setTimeout(() => {
+        const element = document.getElementById(`comment-${targetedCommentId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 500);
+    }
+  }, [isLoading, data, targetedCommentId]);
+
   const handleReportClick = (id: number, type: "post" | "comment") => {
     if (!currentUser) {
       toast({ title: "Please sign in", description: "You need to be logged in to report content." });
@@ -432,15 +460,20 @@ export function PostDetailPane({ postId }: { postId: number }) {
             )}
           </div>
           <div className="flex items-center gap-1.5">
-            <motion.div whileTap={{ scale: 0.95 }}>
+            <motion.div whileTap={(post as any).isReported ? undefined : { scale: 0.95 }}>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 text-muted-foreground hover:text-destructive transition-colors"
-                onClick={() => handleReportClick(postId, "post")}
+                className={cn(
+                  "h-8 gap-1.5 transition-colors",
+                  (post as any).isReported 
+                    ? "text-destructive border-destructive/20 bg-destructive/5 font-medium cursor-default" 
+                    : "text-muted-foreground hover:text-destructive"
+                )}
+                onClick={() => !(post as any).isReported && handleReportClick(postId, "post")}
               >
-                <Flag className="w-3.5 h-3.5" />
-                Report
+                <Flag className={cn("w-3.5 h-3.5", (post as any).isReported && "fill-current")} />
+                {(post as any).isReported ? "Reported" : "Report"}
               </Button>
             </motion.div>
             <motion.div whileTap={{ scale: 0.95 }}>
@@ -576,6 +609,7 @@ export function PostDetailPane({ postId }: { postId: number }) {
                   depth={0}
                   isAnonymousMode={isAnonymousMode}
                   onReport={handleReportClick}
+                  targetedCommentId={targetedCommentId}
                 />
               ))}
             </div>
