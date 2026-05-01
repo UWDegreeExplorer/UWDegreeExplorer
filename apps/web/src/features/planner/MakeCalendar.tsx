@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
+import { customFetch } from "@workspace/api-client-react";
+
 interface ParsedCourse {
   courseCode: string;
   type: string;
@@ -38,15 +40,11 @@ export function MakeCalendar() {
     
     setIsParsing(true);
     try {
-      const response = await fetch("/api/planner/parse-schedule", {
+      const data = await customFetch<ParseResult>("/planner/parse-schedule", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: scheduleText }),
       });
       
-      if (!response.ok) throw new Error("Failed to parse");
-      
-      const data = await response.json();
       setResult(data);
       toast({
         title: "Schedule Parsed!",
@@ -69,13 +67,11 @@ export function MakeCalendar() {
     
     setIsGenerating(true);
     try {
-      const response = await fetch("/api/planner/generate-ics", {
+      const blob = await customFetch<Blob>("/planner/generate-ics", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courses: result.courses }),
+        responseType: "blob",
       });
-      
-      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
