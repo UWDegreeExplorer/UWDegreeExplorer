@@ -77,17 +77,16 @@ export function PostList({
     }
   });
 
-  const { mutate: markRead } = useCustomMutation<any, any>("/notifications/:id/read", {
-    fetchOptions: { method: "POST" },
-    onSuccess: () => {
-      refetchNotify();
-      queryClient.invalidateQueries({ queryKey: ["/notifications/unread-count"] });
-    }
-  });
-
-  const handleNotificationClick = (n: any) => {
+  const handleNotificationClick = async (n: any) => {
     if (!n.isRead) {
-      markRead({ id: n.id });
+      try {
+        await customFetch(`/api/notifications/${n.id}/read`, { method: "POST" });
+        // Optimistically update the local state or just refetch
+        refetchNotify();
+        queryClient.invalidateQueries({ queryKey: ["/notifications/unread-count"] });
+      } catch (err) {
+        console.error("Failed to mark notification as read", err);
+      }
     }
     
     if (n.postDeleted) {
