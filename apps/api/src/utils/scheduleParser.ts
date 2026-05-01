@@ -44,14 +44,14 @@ export function parseQuestSchedule(rawText: string): ParseResult {
   const term = termMatch ? termMatch[0] : "Unknown Term";
 
   // 3. Split into course blocks
-  const courseBlocks = fullText.split(/\n(?=[A-Z]{1,5}\s\d+[A-Z]?\s*-\s*)/);
+  const courseBlocks = fullText.split(/\n(?=[A-Z]{2,8}\s\d+[A-Z]?\s*-\s*)/);
   const courses: ParsedCourse[] = [];
 
   for (const block of courseBlocks) {
     const blockLines = block.split("\n");
     if (blockLines.length === 0) continue;
 
-    const headerMatch = blockLines[0].match(/^([A-Z]{1,5}\s\d+[A-Z]?)/);
+    const headerMatch = blockLines[0].match(/^([A-Z]{2,8}\s\d+[A-Z]?)/);
     const courseCode = headerMatch ? headerMatch[1] : "Unknown";
 
     for (let i = 0; i < blockLines.length; i++) {
