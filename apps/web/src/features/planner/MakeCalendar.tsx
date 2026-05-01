@@ -2,11 +2,25 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon, Download, Info, CheckCircle2, AlertCircle, Loader2, History, Trash2, Clock, MapPin, User } from "lucide-react";
+import { 
+  Calendar as CalendarIcon, 
+  Download, 
+  Info, 
+  CheckCircle2, 
+  Loader2, 
+  History, 
+  Trash2, 
+  Clock, 
+  MapPin, 
+  User, 
+  Plus, 
+  ChevronRight,
+  CloudUpload,
+  CalendarCheck
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-
 import { customFetch } from "@workspace/api-client-react";
 
 interface ParsedCourse {
@@ -47,14 +61,18 @@ export function MakeCalendar() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<ParseResult | null>(null);
   const [savedTerms, setSavedTerms] = useState<SavedTerm[]>([]);
+  const [isSidebarLoading, setIsSidebarLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchSavedSchedules = async () => {
+    setIsSidebarLoading(true);
     try {
       const data = await customFetch<SavedTerm[]>("/api/planner/schedules");
       setSavedTerms(data);
     } catch (error) {
       console.error("Failed to fetch saved schedules", error);
+    } finally {
+      setIsSidebarLoading(false);
     }
   };
 
@@ -73,6 +91,7 @@ export function MakeCalendar() {
       });
       
       setResult(data);
+      setScheduleText(""); // Clear text after successful parse
       
       // Automatic Silent Save
       try {
@@ -80,19 +99,19 @@ export function MakeCalendar() {
           method: "POST",
           body: JSON.stringify({ term: data.term, courses: data.courses }),
         });
-        fetchSavedSchedules(); // Refresh list
+        fetchSavedSchedules();
       } catch (saveError) {
         console.error("Silent save failed", saveError);
       }
 
       toast({
-        title: "Schedule Parsed!",
-        description: `Found ${data.courses.length} course components for ${data.term}. Saved to your account.`,
+        title: "Schedule Saved",
+        description: `${data.term} has been added to your account.`,
       });
     } catch (error) {
       toast({
         title: "Parsing Failed",
-        description: "Could not recognize the schedule format. Please make sure you copied the entire Quest page.",
+        description: "Format not recognized. Ensure you copied the entire Quest page.",
         variant: "destructive",
       });
     } finally {
@@ -105,8 +124,8 @@ export function MakeCalendar() {
       const data = await customFetch<any>(`/api/planner/schedules/${encodeURIComponent(term)}`);
       setResult({ term: data.term, courses: data.data });
       toast({
-        title: "Loaded Schedule",
-        description: `Now viewing ${term}.`,
+        title: `Loaded ${term}`,
+        description: "Viewing your saved schedule.",
       });
     } catch (error) {
       toast({
@@ -119,7 +138,7 @@ export function MakeCalendar() {
 
   const deleteSchedule = async (term: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`Are you sure you want to delete the schedule for ${term}?`)) return;
+    if (!confirm(`Permanently delete ${term}?`)) return;
 
     try {
       await customFetch(`/api/planner/schedules/${encodeURIComponent(term)}`, {
@@ -129,7 +148,7 @@ export function MakeCalendar() {
       if (result?.term === term) setResult(null);
       toast({
         title: "Deleted",
-        description: `${term} has been removed from your account.`,
+        description: `${term} removed.`,
       });
     } catch (error) {
       toast({
@@ -140,7 +159,6 @@ export function MakeCalendar() {
     }
   };
 
-  // Redoing handleDownload with correct blob handling
   const downloadICS = async () => {
     if (!result || result.courses.length === 0) return;
     
@@ -161,13 +179,13 @@ export function MakeCalendar() {
       document.body.removeChild(a);
       
       toast({
-        title: "Calendar Generated!",
-        description: "Your .ics file is ready. Import it into your favorite calendar app.",
+        title: "Success",
+        description: ".ics file downloaded.",
       });
     } catch (error) {
       toast({
-        title: "Generation Failed",
-        description: "An error occurred while creating the calendar file.",
+        title: "Error",
+        description: "Failed to generate file.",
         variant: "destructive",
       });
     } finally {
@@ -176,191 +194,245 @@ export function MakeCalendar() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 pb-20 space-y-8 animate-in fade-in duration-700">
-      <div className="space-y-2">
-        <h1 className="text-4xl font-serif font-medium tracking-tight">Make Calendar</h1>
-        <p className="text-muted-foreground text-lg">Transform your Quest schedule into a digital calendar file (.ics)</p>
+    <div className="min-h-screen bg-[#0a0c10] text-gray-100 font-sans selection:bg-emerald-500/30">
+      {/* Dynamic Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-20">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-600 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600 rounded-full blur-[120px]" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <div className="lg:col-span-5 space-y-6">
-          <Card className="border-none shadow-2xl bg-card/40 backdrop-blur-md overflow-hidden">
-            <div className="h-1.5 w-full bg-primary/20">
-              <motion.div 
-                className="h-full bg-primary"
-                initial={{ width: 0 }}
-                animate={{ width: isParsing ? "70%" : result ? "100%" : "0%" }}
-                transition={{ duration: 0.5 }}
-              />
+      <div className="relative flex min-h-screen">
+        {/* Sidebar */}
+        <aside className="w-80 border-r border-white/5 bg-white/5 backdrop-blur-xl hidden lg:flex flex-col p-6 space-y-8">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <CalendarCheck className="w-6 h-6 text-white" />
             </div>
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <CalendarIcon className="w-5 h-5" />
-                </div>
-                Step 1: Paste Quest Schedule
-              </CardTitle>
-              <CardDescription className="text-base">
-                Select all text (Ctrl+A) on the Quest "My Class Schedule" page and paste it below.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Textarea 
-                placeholder="Paste your schedule here..."
-                className="min-h-[300px] font-mono text-sm bg-background/30 border-primary/5 focus:border-primary/20 transition-all resize-none rounded-2xl p-4 leading-relaxed"
-                value={scheduleText}
-                onChange={(e) => {
-                  setScheduleText(e.target.value);
-                  if (result) setResult(null);
-                }}
-              />
-              <div className="flex gap-3">
-                <Button 
-                  onClick={handleParse}
-                  disabled={isParsing || !scheduleText.trim()}
-                  className="flex-1 h-12 text-sm font-bold gap-2 rounded-xl shadow-xl shadow-primary/10"
-                >
-                  {isParsing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  {result ? "Re-parse Schedule" : "Parse Schedule"}
-                </Button>
-                
-                {result && (
-                  <Button 
-                    onClick={downloadICS}
-                    disabled={isGenerating}
-                    variant="outline"
-                    className="flex-1 h-12 text-sm font-bold gap-2 rounded-xl border-primary/20 text-primary hover:bg-primary/5"
-                  >
-                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                    Download .ics
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            <div>
+              <h2 className="font-bold text-lg tracking-tight">Quest Planner</h2>
+              <p className="text-xs text-emerald-500/70 font-semibold tracking-wider uppercase">Beta Experience</p>
+            </div>
+          </div>
 
-          {savedTerms.length > 0 && (
-            <Card className="border-none shadow-xl bg-card/20 backdrop-blur-sm rounded-2xl">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2 font-bold uppercase tracking-wider text-muted-foreground">
-                  <History className="w-4 h-4" />
-                  Your Saved Schedules
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {savedTerms.map((st) => (
-                  <div 
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Saved Terms</h3>
+              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                {savedTerms.length}
+              </Badge>
+            </div>
+
+            <div className="space-y-2 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
+              {isSidebarLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-14 rounded-2xl bg-white/5 animate-pulse" />
+                ))
+              ) : savedTerms.length > 0 ? (
+                savedTerms.map((st) => (
+                  <motion.div
                     key={st.term}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    whileHover={{ scale: 1.02 }}
                     onClick={() => loadSavedSchedule(st.term)}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
-                      result?.term === st.term 
-                        ? "bg-primary/10 border-primary/20" 
-                        : "bg-background/50 border-transparent hover:border-primary/20"
+                    className={`group flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all border ${
+                      result?.term === st.term
+                        ? "bg-emerald-500/10 border-emerald-500/30 shadow-lg shadow-emerald-500/5"
+                        : "bg-white/5 border-transparent hover:bg-white/10"
                     }`}
                   >
-                    <div className="flex flex-col">
+                    <div className="flex flex-col gap-0.5">
                       <span className="font-bold text-sm">{st.term}</span>
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-2.5 h-2.5" />
+                      <span className="text-[10px] text-gray-500 group-hover:text-gray-400 transition-colors">
                         Updated {new Date(st.updatedAt).toLocaleDateString()}
                       </span>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={(e) => deleteSchedule(st.term, e)}
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => deleteSchedule(st.term, e)}
+                        className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <ChevronRight className={`w-4 h-4 transition-transform ${result?.term === st.term ? "text-emerald-500" : "text-gray-600 group-hover:translate-x-1"}`} />
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="px-4 py-8 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto">
+                    <History className="w-6 h-6 text-gray-600" />
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">No saved schedules found. Paste one to get started.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-auto p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+            <h4 className="text-xs font-bold text-emerald-500 mb-2 flex items-center gap-2">
+              <Info className="w-3 h-3" />
+              Pro Tip
+            </h4>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Copy the <strong>entire</strong> Quest page (Ctrl+A) for the best parsing results.
+            </p>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-12 space-y-12">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-4">
+              <h1 className="text-5xl md:text-6xl font-serif font-medium tracking-tight text-white">
+                Make <span className="text-emerald-500 underline decoration-emerald-500/30 underline-offset-8">Calendar</span>
+              </h1>
+              <p className="text-gray-400 text-lg max-w-xl leading-relaxed">
+                Seamlessly convert your Quest course schedule into a universal .ics format with a single paste.
+              </p>
+            </div>
+            {result && (
+              <Button
+                onClick={downloadICS}
+                disabled={isGenerating}
+                className="h-14 px-8 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-2xl shadow-xl shadow-emerald-500/20 transition-all flex gap-3"
+              >
+                {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                Export to .ics
+              </Button>
+            )}
+          </header>
+
+          <div className="grid grid-cols-1 gap-12">
+            {/* Input Section - Only show if no result or explicitly requested */}
+            <AnimatePresence>
+              {(!result || isParsing) && (
+                <motion.section
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="space-y-6"
+                >
+                  <Card className="border-none bg-white/5 backdrop-blur-2xl shadow-3xl rounded-[2.5rem] overflow-hidden group">
+                    <div className="h-1 w-full bg-emerald-500/20">
+                      <motion.div
+                        className="h-full bg-emerald-500"
+                        initial={{ width: 0 }}
+                        animate={{ width: isParsing ? "70%" : "0%" }}
+                        transition={{ duration: 1 }}
+                      />
+                    </div>
+                    <CardHeader className="p-8 pb-4">
+                      <CardTitle className="text-2xl flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                          <CloudUpload className="w-6 h-6" />
+                        </div>
+                        Drop your schedule here
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-8 pt-0 space-y-6">
+                      <Textarea
+                        placeholder="Paste Quest text here..."
+                        className="min-h-[250px] bg-black/40 border-white/5 focus:border-emerald-500/30 rounded-3xl p-6 font-mono text-sm leading-relaxed custom-scrollbar transition-all"
+                        value={scheduleText}
+                        onChange={(e) => setScheduleText(e.target.value)}
+                      />
+                      <Button
+                        onClick={handleParse}
+                        disabled={isParsing || !scheduleText.trim()}
+                        className="w-full h-16 text-lg font-bold bg-white text-black hover:bg-gray-200 rounded-3xl flex gap-3 shadow-2xl"
+                      >
+                        {isParsing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                        Generate My Calendar
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.section>
+              )}
+            </AnimatePresence>
+
+            {/* Results Section */}
+            <AnimatePresence mode="wait">
+              {result && !isParsing && (
+                <motion.section
+                  key="results"
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-8"
+                >
+                  <div className="flex items-center justify-between px-4">
+                    <div className="flex items-center gap-4">
+                      <h2 className="text-3xl font-serif font-medium text-white">{result.term}</h2>
+                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 py-1.5 px-4 font-bold text-sm">
+                        {result.courses.length} Components
+                      </Badge>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setResult(null)} 
+                      className="text-gray-500 hover:text-emerald-500 flex gap-2 rounded-xl"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Plus className="w-4 h-4" /> Import Another
                     </Button>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-          
-          <Card className="border-none shadow-lg bg-primary/5 border-l-4 border-l-primary rounded-2xl">
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm flex items-center gap-2 font-bold uppercase tracking-wider text-primary">
-                <Info className="w-4 h-4" />
-                Quick Guide
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-2 pb-4">
-              <p>1. Go to <strong>Quest &gt; Enroll &gt; My Class Schedule</strong>.</p>
-              <p>2. Select term and copy the <strong>entire page</strong> (Ctrl+A / Cmd+A).</p>
-              <p>3. Paste it here and it will be <strong>saved automatically</strong>.</p>
-            </CardContent>
-          </Card>
-        </div>
 
-        <div className="lg:col-span-7 space-y-6">
-          <AnimatePresence mode="wait">
-            {result ? (
-              <motion.div
-                key="results"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-4"
-              >
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="font-serif text-3xl font-medium">{result.term}</h3>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary border-none py-1.5 px-4 font-bold rounded-full">
-                    {result.courses.length} Components
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  {result.courses.map((course, idx) => (
-                    <motion.div
-                      key={`${course.courseCode}-${course.section}-${idx}`}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="p-5 rounded-3xl bg-card border border-border/50 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 group-hover:bg-primary transition-colors" />
-                      
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-3">
-                            <span className="font-serif text-2xl font-bold tracking-tight">{course.courseCode}</span>
-                            <Badge variant="outline" className="bg-muted/50 border-none font-bold px-2 py-0.5 rounded-lg text-[10px]">
-                              {course.type} {course.section}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-y-1 gap-x-4">
-                            <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                              <User className="w-3.5 h-3.5 text-primary/60" />
-                              {course.instructor || "To be Announced"}
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {result.courses.map((course, idx) => (
+                      <motion.div
+                        key={`${course.courseCode}-${course.section}-${idx}`}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="group relative p-6 rounded-[2rem] bg-white/5 border border-white/5 hover:border-emerald-500/20 hover:bg-white/10 transition-all"
+                      >
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="space-y-1">
+                            <h4 className="text-2xl font-serif font-bold text-white tracking-tight">{course.courseCode}</h4>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-white/5 border-none text-[10px] font-black uppercase px-2 py-0.5 rounded-md text-emerald-500">
+                                {course.type}
+                              </Badge>
+                              <span className="text-[10px] text-gray-500 font-bold">Section {course.section}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                              <MapPin className="w-3.5 h-3.5 text-primary/60" />
-                              {course.room}
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="flex items-center gap-2 bg-emerald-500/10 px-4 py-2 rounded-2xl border border-emerald-500/20">
+                              <Clock className="w-4 h-4 text-emerald-500" />
+                              <span className="text-lg font-mono font-bold text-emerald-400">
+                                {course.startTime} – {course.endTime}
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          <div className="flex items-center gap-2 bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
-                            <Clock className="w-4 h-4 text-primary" />
-                            <span className="text-lg font-mono font-bold text-primary">
-                              {course.startTime} – {course.endTime}
-                            </span>
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                          <div className="flex items-center gap-3 text-gray-300">
+                            <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center">
+                              <User className="w-4 h-4 text-emerald-500/70" />
+                            </div>
+                            <span className="text-sm font-medium truncate">{course.instructor || "TBA"}</span>
                           </div>
-                          
+                          <div className="flex items-center gap-3 text-gray-300">
+                            <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center">
+                              <MapPin className="w-4 h-4 text-emerald-500/70" />
+                            </div>
+                            <span className="text-sm font-medium truncate">{course.room}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-6 border-t border-white/5">
                           <div className="flex gap-1.5">
                             {["MO", "TU", "WE", "TH", "FR"].map(dayKey => {
                               const isActive = course.days.includes(dayKey);
                               return (
                                 <div 
                                   key={dayKey}
-                                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-black transition-all ${
+                                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black transition-all ${
                                     isActive 
-                                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110" 
-                                      : "bg-muted text-muted-foreground/30"
+                                      ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 scale-110" 
+                                      : "bg-white/5 text-gray-700"
                                   }`}
                                 >
                                   {dayMap[dayKey]}
@@ -368,33 +440,45 @@ export function MakeCalendar() {
                               );
                             })}
                           </div>
+                          <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+                            {course.isOnline ? "Online" : "In Person"}
+                          </span>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                className="h-[700px] rounded-[3rem] border-2 border-dashed border-border flex flex-col items-center justify-center text-center p-12 space-y-6 bg-muted/5"
-              >
-                <div className="w-24 h-24 rounded-[2rem] bg-muted flex items-center justify-center rotate-3 shadow-inner">
-                  <CalendarIcon className="w-12 h-12 text-muted-foreground/40" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-serif font-medium">Schedule Preview</h3>
-                  <p className="text-base text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                    Paste your schedule or select a saved term from the sidebar to visualize your academic term.
-                  </p>
-                </div>
-              </motion.div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.section>
+              )}
+            </AnimatePresence>
+            
+            {/* Empty State when no result */}
+            {!result && !isParsing && (
+               <div className="h-[400px] flex flex-col items-center justify-center text-center opacity-20 hover:opacity-40 transition-opacity">
+                  <div className="w-32 h-32 rounded-[3rem] border-2 border-dashed border-gray-600 flex items-center justify-center mb-6 rotate-12">
+                     <CalendarIcon className="w-16 h-16" />
+                  </div>
+                  <p className="text-xl font-serif">Workspace Empty</p>
+               </div>
             )}
-          </AnimatePresence>
-        </div>
+          </div>
+        </main>
       </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(16, 185, 129, 0.2);
+          border-radius: 20px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(16, 185, 129, 0.4);
+        }
+      `}</style>
     </div>
   );
 }
