@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useGetPost, useDeletePost, useGetCurrentUser, useCreateComment, useCustomMutation, customFetch, getGetPostQueryKey, getGetRecentActivityQueryKey, getGetSectionStatsQueryKey, getListPostsQueryKey, type Comment, type Section } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,6 +24,7 @@ function CommentNode({
   depth,
   isAnonymousMode,
   onReport,
+  targetedCommentId,
 }: {
   comment: Comment;
   childrenByParent: Map<number | null, Comment[]>;
