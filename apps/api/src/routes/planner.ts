@@ -382,13 +382,18 @@ router.post("/workload/analyze", async (req, res) => {
 
         const dayName = dayMap[dKey];
         if (dayName) {
-          dayStruct[dayName].push({
-            start: new Date(`1970-01-01T${startStr}:00`),
-            end: new Date(`1970-01-01T${endStr}:00`),
-            bCode,
-            bFloor,
-            ref: c
-          });
+          const startDate = new Date(`1970-01-01T${startStr}:00`);
+          const endDate = new Date(`1970-01-01T${endStr}:00`);
+
+          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            dayStruct[dayName].push({
+              start: startDate,
+              end: endDate,
+              bCode,
+              bFloor,
+              ref: c
+            });
+          }
         }
       }
     });
@@ -412,9 +417,9 @@ router.post("/workload/analyze", async (req, res) => {
 
     const finalScore = analyzer.calculateWorkloadScore(data.term, courseResults);
     return res.json({ term: data.term, courses: courseResults, score: finalScore });
-  } catch (error) {
+  } catch (error: any) {
     logger.error({ error }, "Workload analysis failed");
-    return res.status(500).json({ error: "Analysis failed" });
+    return res.status(500).json({ error: error.message || "Analysis failed" });
   }
 });
 

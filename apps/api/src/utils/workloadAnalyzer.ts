@@ -265,11 +265,12 @@ export function calculateWorkloadScore(term: string, courses: any[]) {
       comVal = Math.max(...c.commute.map((cm: any) => COMMUTE_MAP[cm.stress] || 0));
     }
 
-    const isEarly = c.time.includes("08:30");
-    const isLate = ["18:", "19:", "20:"].some((t) => c.time.includes(t));
+    const cTime = c.time || "";
+    const isEarly = cTime.includes("08:30");
+    const isLate = ["18:", "19:", "20:"].some((t) => cTime.includes(t));
     const tCoeff = isEarly ? TIME_MAP.early : isLate ? TIME_MAP.late : TIME_MAP.regular;
     const sCoeff = SPOT_MAP[c.isOnline ? "online" : "onsite"];
-    const typeCoeff = TYPE_MAP[c.type] || 0.8;
+    const typeCoeff = TYPE_MAP[c.type || "Other"] || 0.8;
 
     const courseWorkload = tCoeff * sCoeff * typeCoeff * (comVal + lessonScore + profScore);
     c.individualWorkload = Math.round(courseWorkload * 100) / 100;
