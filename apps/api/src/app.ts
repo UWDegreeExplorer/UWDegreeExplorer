@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
@@ -76,5 +76,13 @@ app.use("/api/auth/login", loginLimiter);
 app.use("/api", apiLimiter);
 app.use("/api", statusCheck);
 app.use("/api", router);
+
+// Global error handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  logger.error({ err }, "Unhandled error");
+  res.status(500).json({
+    message: err.message || "Internal Server Error",
+  });
+});
 
 export default app;
