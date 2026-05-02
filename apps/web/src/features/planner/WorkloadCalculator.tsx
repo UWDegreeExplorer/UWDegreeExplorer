@@ -369,7 +369,7 @@ export const WorkloadCalculator: React.FC = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-muted-foreground">Early Morning</span>
-                        <span className="font-bold">{result.courses.filter(c => c.time.includes("08:30")).length}</span>
+                        <span className="font-bold">{result.courses.filter(c => c.time?.includes("08:30")).length}</span>
                       </div>
                     </CardContent>
                   </Card>

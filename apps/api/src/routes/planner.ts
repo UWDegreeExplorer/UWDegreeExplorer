@@ -339,7 +339,7 @@ router.post("/workload/analyze", async (req, res) => {
         analyzer.fetchUWFlowRatings(subject || "Unknown", catalog || "Unknown"),
         analyzer.fetchUWFlowProfRatings(c.instructor || "")
       ]);
-      return { ...c, courseRatings, profRatings };
+      return { ...c, time: c.time || "", courseRatings, profRatings };
     }));
 
     // Organize by day for commute analysis
