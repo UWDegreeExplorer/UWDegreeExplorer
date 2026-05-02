@@ -84,50 +84,7 @@ router.get("/courses", async (req, res) => {
   }
 });
 
-// Helper to fetch ratings from UWFlow
-async function fetchUWFlowRatings(subjectCode: string, catalogNumber: string) {
-  const code = `${subjectCode}${catalogNumber}`.toLowerCase().replace(/\s+/g, '');
-  const url = "https://uwflow.com/graphql";
-  const query = `
-    query getCourse($code: String) {
-      course(where: {code: {_eq: $code}}) {
-        rating {
-          liked
-          easy
-          useful
-        }
-      }
-    }
-  `;
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0",
-      },
-      body: JSON.stringify({
-        operationName: "getCourse",
-        variables: { code },
-        query,
-      }),
-    });
-
-    const result = (await response.json()) as any;
-    const course = result?.data?.course?.[0];
-    if (course && course.rating) {
-      return {
-        liked: typeof course.rating.liked === 'number' ? Math.round(course.rating.liked * 100) : null,
-        easy: typeof course.rating.easy === 'number' ? Math.round(course.rating.easy * 100) : null,
-        useful: typeof course.rating.useful === 'number' ? Math.round(course.rating.useful * 100) : null,
-      };
-    }
-  } catch (error) {
-    console.error(`[Planner API] Failed to fetch UWFlow ratings for ${code}:`, error);
-  }
-  return null;
-}
+// --- CALENDAR ROUTES ---
 
 // Get single course details with requirements and history
 router.get("/courses/:id", async (req, res) => {
@@ -156,7 +113,7 @@ router.get("/courses/:id", async (req, res) => {
     const { course, version, requirements } = courseData[0];
 
     // 2. Fetch UWFlow ratings in parallel
-    const uwflowRating = await fetchUWFlowRatings(
+    const uwflowRating = await analyzer.fetchUWFlowRatings(
       course.subjectCode || "", 
       course.catalogNumber || ""
     );
@@ -349,6 +306,10 @@ router.delete("/schedules/:term", async (req, res) => {
 
 router.post("/workload/analyze", async (req, res) => {
   const { text, courses, term } = req.body;
+  
+  // Debug log to see what's coming in
+  console.log(`[Workload Analyze] Request received. Text length: ${text?.length || 0}, Courses: ${courses?.length || 0}, Term: ${term}`);
+
   if (!text && (!courses || !term)) {
     return res.status(400).json({ error: "No text or course data provided" });
   }
@@ -358,8 +319,10 @@ router.post("/workload/analyze", async (req, res) => {
     if (courses && term) {
       // Normalize courses if coming from DB (they use startTime/endTime/days instead of a single time string)
       const normalizedCourses = courses.map((c: any) => {
-        if (!c.time && c.days && c.startTime && c.endTime) {
-          return { ...c, time: `${c.days.join("")} ${c.startTime} ${c.endTime}` };
+        // If it's already a string, keep it. If it's an array, join it.
+        const dayStr = Array.isArray(c.days) ? c.days.join("") : (c.days || "");
+        if (!c.time && dayStr && c.startTime && c.endTime) {
+          return { ...c, time: `${dayStr} ${c.startTime} ${c.endTime}` };
         }
         return c;
       });
@@ -372,7 +335,7 @@ router.post("/workload/analyze", async (req, res) => {
     const courseResults = await Promise.all(data.courses.map(async (c: any) => {
       const [subject, catalog] = c.courseCode.split(" ");
       const [courseRatings, profRatings] = await Promise.all([
-        fetchUWFlowRatings(subject, catalog),
+        analyzer.fetchUWFlowRatings(subject, catalog),
         analyzer.fetchUWFlowProfRatings(c.instructor || "")
       ]);
       return { ...c, courseRatings, profRatings };

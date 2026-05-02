@@ -247,3 +247,33 @@ export function calculateWorkloadScore(term: string, courses: any[]) {
 
   return Math.round(termCoeff * totalScore * 100) / 100;
 }
+
+// --- RATINGS FETCHERS ---
+
+export async function fetchUWFlowRatings(subjectCode: string, catalogNumber: string) {
+  const code = `${subjectCode}${catalogNumber}`.toLowerCase().replace(/\s+/g, '');
+  const url = "https://uwflow.com/graphql";
+  const query = `
+    query getCourse($code: String) {
+      course(where: {code: {_eq: $code}}) {
+        rating {
+          liked
+          easy
+          useful
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0" },
+      body: JSON.stringify({ operationName: "getCourse", variables: { code }, query }),
+    });
+    const data = (await res.json()) as any;
+    return data?.data?.course?.[0]?.rating || { liked: 80, easy: 80, useful: 80 };
+  } catch (e) {
+    return { liked: 80, easy: 80, useful: 80 };
+  }
+}

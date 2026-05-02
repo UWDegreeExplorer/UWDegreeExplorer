@@ -161,18 +161,13 @@ export const WorkloadCalculator: React.FC = () => {
     setIsAnalyzing(true);
     try {
       // 1. Get raw schedule
-      const schedule = await customFetch<{ term: string; schedule: any[] }>(`/api/planner/schedules/${term}`);
+      const schedule = await customFetch<{ term: string; data: any[] }>(`/api/planner/schedules/${term}`);
       
-      // 2. We need a way to analyze raw objects. 
-      // For simplicity, let's just trigger a re-analysis by converting back to something or use a new endpoint.
-      // But actually, we can just fetch the result if it exists or POST the raw data.
-      // Let's assume the user might want to re-run it.
-      
-      // We'll add a check if they just want to load it
+      // 2. Trigger analysis
       const data = await customFetch<AnalysisResult>("/api/planner/workload/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courses: schedule.schedule, term: schedule.term }), // Backend needs to support 'courses' body
+        body: JSON.stringify({ courses: schedule.data, term: schedule.term }), 
       });
       
       setResult(data);
