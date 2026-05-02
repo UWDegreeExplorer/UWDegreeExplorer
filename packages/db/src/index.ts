@@ -4,9 +4,16 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Try multiple possible paths to .env
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
+const envPaths = [
+  path.resolve(__dirname, "../../../.env"),
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "../../.env"),
+  path.resolve(process.cwd(), "../../../.env"),
+];
+
+for (const envPath of envPaths) {
+  dotenv.config({ path: envPath });
+}
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
@@ -16,7 +23,7 @@ const { Pool } = pg;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    `DATABASE_URL must be set. Attempted paths: ${envPaths.join(", ")}. CWD: ${process.cwd()}`,
   );
 }
 
