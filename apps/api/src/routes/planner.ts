@@ -356,7 +356,14 @@ router.post("/workload/analyze", async (req, res) => {
   try {
     let data;
     if (courses && term) {
-      data = { term, courses };
+      // Normalize courses if coming from DB (they use startTime/endTime/days instead of a single time string)
+      const normalizedCourses = courses.map((c: any) => {
+        if (!c.time && c.days && c.startTime && c.endTime) {
+          return { ...c, time: `${c.days.join("")} ${c.startTime} ${c.endTime}` };
+        }
+        return c;
+      });
+      data = { term, courses: normalizedCourses };
     } else {
       data = parseQuestSchedule(text);
     }

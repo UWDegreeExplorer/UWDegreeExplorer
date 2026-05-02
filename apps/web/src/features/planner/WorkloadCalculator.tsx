@@ -213,7 +213,7 @@ export const WorkloadCalculator: React.FC = () => {
             Analysis History
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-6">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {isHistoryLoading ? (
             <div className="flex flex-col items-center justify-center h-32 space-y-2 opacity-50">
               <Loader2 className="animate-spin" size={20} />
@@ -221,66 +221,44 @@ export const WorkloadCalculator: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Analyzed Section */}
-              {workloadHistory.length > 0 && (
-                <div className="space-y-2">
-                  <div className="px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                    <Activity size={12} className="text-emerald-500" /> Analyzed Terms
-                  </div>
-                  {workloadHistory.map((h) => (
-                    <button
-                      key={h.term}
-                      onClick={() => loadFromHistory(h.term)}
-                      className={`w-full group text-left p-3 rounded-xl border transition-all ${
-                        result?.term === h.term 
-                          ? "bg-primary/5 border-primary/20 ring-1 ring-primary/20" 
-                          : "bg-background hover:border-primary/20"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-bold text-sm">{h.term}</div>
-                          <div className={`text-xs font-mono mt-1 ${getScoreColor(h.score)}`}>
-                            Score: {Math.round(h.score)}
+              {/* Merged History List */}
+              {[...workloadHistory, ...scheduleHistory].sort((a, b) => b.term.localeCompare(a.term)).map((item) => {
+                const isAnalyzed = 'score' in item;
+                return (
+                  <button
+                    key={item.term}
+                    onClick={() => isAnalyzed ? loadFromHistory(item.term) : analyzeSchedule(item.term)}
+                    className={`w-full group text-left p-3 rounded-xl border transition-all ${
+                      result?.term === item.term 
+                        ? "bg-primary/5 border-primary/20 ring-1 ring-primary/20" 
+                        : "bg-background hover:border-primary/20"
+                    } ${!isAnalyzed ? "border-dashed opacity-70 hover:opacity-100" : ""}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-bold text-sm">{item.term}</div>
+                        {isAnalyzed ? (
+                          <div className={`text-xs font-mono mt-1 ${getScoreColor((item as any).score)}`}>
+                            Score: {Math.round((item as any).score)}
                           </div>
-                        </div>
+                        ) : (
+                          <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-tighter">
+                            Click to analyze
+                          </div>
+                        )}
+                      </div>
+                      {isAnalyzed && (
                         <button 
-                          onClick={(e) => deleteHistory(e, h.term)}
+                          onClick={(e) => deleteHistory(e, item.term)}
                           className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/10 hover:text-rose-600 rounded-lg transition-all"
                         >
                           <Trash2 size={14} />
                         </button>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Saved from Calendar Section */}
-              {scheduleHistory.length > 0 && (
-                <div className="space-y-2">
-                  <div className="px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                    <CalendarIcon size={12} className="text-blue-500" /> From Calendar
-                  </div>
-                  {scheduleHistory.map((s) => (
-                    <button
-                      key={s.term}
-                      onClick={() => analyzeSchedule(s.term)}
-                      className="w-full group text-left p-3 rounded-xl border border-dashed bg-muted/5 hover:bg-primary/5 hover:border-primary/30 transition-all"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="font-bold text-sm">{s.term}</div>
-                          <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-tighter">Needs Analysis</div>
-                        </div>
-                        <div className="p-1.5 bg-background rounded-lg border group-hover:border-primary/50 group-hover:text-primary transition-all">
-                          <Plus size={14} />
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
 
               {workloadHistory.length === 0 && scheduleHistory.length === 0 && (
                 <div className="text-center py-10 opacity-40">
