@@ -29,11 +29,24 @@ const FLOOR_COST = 14; // seconds per floor
 
 export function initGeoData() {
   try {
-    const geoDir = path.join(__dirname, "../assets/geo");
+    const potentialPaths = [
+      path.join(__dirname, "../assets/geo"),
+      path.join(__dirname, "../../assets/geo"), // Dist fallback
+      path.join(process.cwd(), "apps/api/src/assets/geo"), // Local fallback
+      path.join(process.cwd(), "src/assets/geo")
+    ];
+
+    let geoDir = potentialPaths.find(p => fs.existsSync(p));
+    if (!geoDir) {
+      console.error("[Workload Analyzer] Could not find geo assets directory in any potential path.");
+      return;
+    }
+
     const buildingsPath = path.join(geoDir, "buildings.json");
     const pathsPath = path.join(geoDir, "paths.json");
 
     if (fs.existsSync(buildingsPath) && fs.existsSync(pathsPath)) {
+      console.log(`[Workload Analyzer] Loading geo data from: ${geoDir}`);
       const buildingsData = JSON.parse(fs.readFileSync(buildingsPath, "utf-8"));
       const pathsData = JSON.parse(fs.readFileSync(pathsPath, "utf-8"));
 
@@ -135,16 +148,22 @@ export function getWalkingTime(sCode: string, sFloor: string, eCode: string, eFl
 
   try {
     const nodes = Object.keys(graph);
+    if (nodes.length === 0) {
+      console.warn("[Workload Analyzer] Graph is empty, using fallback walking time");
+      return 9;
+    }
+
     const n1 = nodes.reduce((a, b) => {
       const ca = a.split(",").map(Number) as [number, number];
       const cb = b.split(",").map(Number) as [number, number];
       return getDistance(c1, ca) < getDistance(c1, cb) ? a : b;
-    });
+    }, nodes[0]);
+
     const n2 = nodes.reduce((a, b) => {
       const ca = a.split(",").map(Number) as [number, number];
       const cb = b.split(",").map(Number) as [number, number];
       return getDistance(c2, ca) < getDistance(c2, cb) ? a : b;
-    });
+    }, nodes[0]);
 
     const travelSeconds = dijkstra(n1, n2);
     if (travelSeconds === Infinity) return 9;

@@ -161,7 +161,7 @@ export const WorkloadCalculator: React.FC = () => {
     setIsAnalyzing(true);
     try {
       // 1. Get raw schedule
-      const schedule = await customFetch<{ term: string; data: any[] }>(`/api/planner/schedules/${term}`);
+      const schedule = await customFetch<{ term: string; data: any[] }>(`/api/planner/schedules/${encodeURIComponent(term)}`);
       
       // 2. Trigger analysis
       const data = await customFetch<AnalysisResult>("/api/planner/workload/analyze", {
