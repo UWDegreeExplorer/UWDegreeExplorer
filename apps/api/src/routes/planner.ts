@@ -355,7 +355,7 @@ router.post("/workload/analyze", async (req, res) => {
     const data = parseQuestSchedule(text);
     
     // Fetch all ratings and analyze commute in parallel
-    const courseResults = await Promise.all(data.courses.map(async (c) => {
+    const courseResults = await Promise.all(data.courses.map(async (c: any) => {
       const [subject, catalog] = c.courseCode.split(" ");
       const [courseRatings, profRatings] = await Promise.all([
         fetchUWFlowRatings(subject, catalog),
@@ -368,7 +368,7 @@ router.post("/workload/analyze", async (req, res) => {
     const dayMap: any = { MO: "Mon", TU: "Tue", WE: "Wed", TH: "Thu", FR: "Fri" };
     const dayStruct: any = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] };
 
-    courseResults.forEach((c) => {
+    courseResults.forEach((c: any) => {
       const parts = c.time.split(" ");
       if (parts.length < 3) return;
       const daysStr = parts[0];
@@ -420,10 +420,10 @@ router.post("/workload/analyze", async (req, res) => {
     });
 
     const finalScore = analyzer.calculateWorkloadScore(data.term, courseResults);
-    res.json({ term: data.term, courses: courseResults, score: finalScore });
+    return res.json({ term: data.term, courses: courseResults, score: finalScore });
   } catch (error) {
     logger.error({ error }, "Workload analysis failed");
-    res.status(500).json({ error: "Analysis failed" });
+    return res.status(500).json({ error: "Analysis failed" });
   }
 });
 
@@ -437,9 +437,9 @@ router.get("/workload", async (req, res) => {
       .from(userWorkloads)
       .where(eq(userWorkloads.userId, userId))
       .orderBy(sql`${userWorkloads.term} DESC`);
-    res.json(results);
+    return res.json(results);
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -453,9 +453,9 @@ router.post("/workload", async (req, res) => {
       target: [userWorkloads.userId, userWorkloads.term],
       set: { data: courses, score, updatedAt: new Date() }
     });
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -470,9 +470,9 @@ router.get("/workload/:term", async (req, res) => {
       .where(and(eq(userWorkloads.userId, userId), eq(userWorkloads.term, req.params.term)))
       .limit(1);
     if (!result) return res.status(404).json({ error: "Not found" });
-    res.json(result);
+    return res.json(result);
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -480,11 +480,13 @@ router.delete("/workload/:term", async (req, res) => {
   const userId = req.session.userId;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
+  const { term } = req.params;
+
   try {
-    await db.delete(userWorkloads).where(and(eq(userWorkloads.userId, userId), eq(userWorkloads.term, req.params.term)));
-    res.json({ success: true });
+    await db.delete(userWorkloads).where(and(eq(userWorkloads.userId, userId), eq(userWorkloads.term, term)));
+    return res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

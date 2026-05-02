@@ -91,7 +91,7 @@ export const WorkloadCalculator: React.FC = () => {
   const fetchHistory = async () => {
     setIsHistoryLoading(true);
     try {
-      const data = await customFetch("/api/planner/workload");
+      const data = await customFetch<{ term: string; score: number; updatedAt: string }[]>("/api/planner/workload");
       setHistory(data);
     } catch (err) {
       console.error(err);
@@ -104,14 +104,14 @@ export const WorkloadCalculator: React.FC = () => {
     if (!inputText.trim()) return;
     setIsAnalyzing(true);
     try {
-      const data = await customFetch("/api/planner/workload/analyze", {
+      const data = await customFetch<AnalysisResult>("/api/planner/workload/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: inputText }),
       });
       setResult(data);
       // Auto-save
-      await customFetch("/api/planner/workload", {
+      await customFetch<{ success: boolean }>("/api/planner/workload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ term: data.term, courses: data.courses, score: data.score }),
@@ -128,7 +128,7 @@ export const WorkloadCalculator: React.FC = () => {
   const loadFromHistory = async (term: string) => {
     setIsAnalyzing(true);
     try {
-      const data = await customFetch(`/api/planner/workload/${term}`);
+      const data = await customFetch<{ term: string; data: CourseResult[]; score: number }>(`/api/planner/workload/${term}`);
       setResult({ term: data.term, courses: data.data, score: data.score });
     } catch (err) {
       toast({ title: "Load Failed", description: "Failed to load history.", variant: "destructive" });
@@ -378,15 +378,15 @@ export const WorkloadCalculator: React.FC = () => {
                         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                           <div className="space-y-3">
                             <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b pb-1">Course</div>
-                            <RatingBar label="Liked" value={course.courseRatings.liked} icon={Heart} color="bg-rose-500" />
-                            <RatingBar label="Easy" value={course.courseRatings.easy} icon={Brain} color="bg-emerald-500" />
-                            <RatingBar label="Useful" value={course.courseRatings.useful} icon={ThumbsUp} color="bg-blue-500" />
+                            <RatingBar label="Liked" value={course.courseRatings?.liked ?? null} icon={Heart} color="bg-rose-500" />
+                            <RatingBar label="Easy" value={course.courseRatings?.easy ?? null} icon={Brain} color="bg-emerald-500" />
+                            <RatingBar label="Useful" value={course.courseRatings?.useful ?? null} icon={ThumbsUp} color="bg-blue-500" />
                           </div>
                           <div className="space-y-3">
                             <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b pb-1">Instructor</div>
-                            <RatingBar label="Clear" value={course.profRatings.clear} icon={Zap} color="bg-amber-500" />
-                            <RatingBar label="Engaging" value={course.profRatings.engaging} icon={Activity} color="bg-indigo-500" />
-                            <RatingBar label="Liked" value={course.profRatings.liked} icon={Heart} color="bg-rose-500" />
+                            <RatingBar label="Clear" value={course.profRatings?.clear ?? null} icon={Zap} color="bg-amber-500" />
+                            <RatingBar label="Engaging" value={course.profRatings?.engaging ?? null} icon={Activity} color="bg-indigo-500" />
+                            <RatingBar label="Liked" value={course.profRatings?.liked ?? null} icon={Heart} color="bg-rose-500" />
                           </div>
                         </div>
 
