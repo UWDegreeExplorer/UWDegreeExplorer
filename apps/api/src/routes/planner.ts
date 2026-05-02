@@ -333,9 +333,10 @@ router.post("/workload/analyze", async (req, res) => {
     
     // Fetch all ratings and analyze commute in parallel
     const courseResults = await Promise.all(data.courses.map(async (c: any) => {
-      const [subject, catalog] = c.courseCode.split(" ");
+      const code = c.courseCode || "Unknown Unknown";
+      const [subject, catalog] = code.split(" ");
       const [courseRatings, profRatings] = await Promise.all([
-        analyzer.fetchUWFlowRatings(subject, catalog),
+        analyzer.fetchUWFlowRatings(subject || "Unknown", catalog || "Unknown"),
         analyzer.fetchUWFlowProfRatings(c.instructor || "")
       ]);
       return { ...c, courseRatings, profRatings };
@@ -346,13 +347,15 @@ router.post("/workload/analyze", async (req, res) => {
     const dayStruct: any = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] };
 
     courseResults.forEach((c: any) => {
-      const parts = c.time.split(" ");
+      const timeStr = c.time || "";
+      const parts = timeStr.split(" ");
       if (parts.length < 3) return;
       const daysStr = parts[0];
       const startStr = parts[1];
       const endStr = parts[parts.length - 1];
       
-      const bParts = c.room.split(" ");
+      const roomStr = c.room || "Unknown";
+      const bParts = roomStr.split(" ");
       const bCode = bParts[0];
       const bFloor = (bParts[1] && bParts[1][0]) || "1";
 

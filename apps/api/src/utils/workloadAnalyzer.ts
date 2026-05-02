@@ -173,8 +173,8 @@ export async function fetchUWFlowProfRatings(instructorName: string) {
     let firstName = "";
     if (name.includes(",")) {
       const parts = name.split(",");
-      lastName = parts[0].trim();
-      firstName = parts[1].trim().split(" ")[0]; // Get first name only
+      lastName = (parts[0] || "").trim();
+      firstName = (parts[1] || "").trim().split(" ")[0] || ""; // Get first name safely
     } else {
       lastName = name.split(" ").pop() || "";
       firstName = name.split(" ")[0];
