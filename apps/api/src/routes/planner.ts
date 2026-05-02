@@ -348,11 +348,18 @@ router.delete("/schedules/:term", async (req, res) => {
 // --- WORKLOAD CALCULATOR ROUTES ---
 
 router.post("/workload/analyze", async (req, res) => {
-  const { text } = req.body;
-  if (!text) return res.status(400).json({ error: "No text provided" });
+  const { text, courses, term } = req.body;
+  if (!text && (!courses || !term)) {
+    return res.status(400).json({ error: "No text or course data provided" });
+  }
 
   try {
-    const data = parseQuestSchedule(text);
+    let data;
+    if (courses && term) {
+      data = { term, courses };
+    } else {
+      data = parseQuestSchedule(text);
+    }
     
     // Fetch all ratings and analyze commute in parallel
     const courseResults = await Promise.all(data.courses.map(async (c: any) => {

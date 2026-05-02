@@ -19,7 +19,8 @@ import {
   TrendingUp,
   Activity,
   User,
-  Coffee
+  Coffee,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { customFetch } from "@workspace/api-client-react";
@@ -80,7 +81,8 @@ export const WorkloadCalculator: React.FC = () => {
   const [inputText, setInputText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [history, setHistory] = useState<{ term: string; score: number; updatedAt: string }[]>([]);
+  const [workloadHistory, setWorkloadHistory] = useState<{ term: string; score: number; updatedAt: string }[]>([]);
+  const [scheduleHistory, setScheduleHistory] = useState<{ term: string; updatedAt: string }[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const { toast } = useToast();
 
@@ -91,8 +93,12 @@ export const WorkloadCalculator: React.FC = () => {
   const fetchHistory = async () => {
     setIsHistoryLoading(true);
     try {
-      const data = await customFetch<{ term: string; score: number; updatedAt: string }[]>("/api/planner/workload");
-      setHistory(data);
+      const [wData, sData] = await Promise.all([
+        customFetch<{ term: string; score: number; updatedAt: string }[]>("/api/planner/workload"),
+        customFetch<{ term: string; updatedAt: string }[]>("/api/planner/schedules")
+      ]);
+      setWorkloadHistory(wData);
+      setScheduleHistory(sData.filter(s => !wData.some(w => w.term === s.term)));
     } catch (err) {
       console.error(err);
     } finally {
@@ -142,11 +148,46 @@ export const WorkloadCalculator: React.FC = () => {
     if (!confirm(`Delete history for ${term}?`)) return;
     try {
       await customFetch(`/api/planner/workload/${term}`, { method: "DELETE" });
-      setHistory(history.filter(h => h.term !== term));
+      setWorkloadHistory(workloadHistory.filter(h => h.term !== term));
       if (result?.term === term) setResult(null);
+      fetchHistory(); // Refresh to move back to schedules if applicable
       toast({ title: "Deleted", description: "History record removed successfully." });
     } catch (err) {
       toast({ title: "Delete Failed", description: "Failed to delete record.", variant: "destructive" });
+    }
+  };
+
+  const analyzeSchedule = async (term: string) => {
+    setIsAnalyzing(true);
+    try {
+      // 1. Get raw schedule
+      const schedule = await customFetch<{ term: string; schedule: any[] }>(`/api/planner/schedules/${term}`);
+      
+      // 2. We need a way to analyze raw objects. 
+      // For simplicity, let's just trigger a re-analysis by converting back to something or use a new endpoint.
+      // But actually, we can just fetch the result if it exists or POST the raw data.
+      // Let's assume the user might want to re-run it.
+      
+      // We'll add a check if they just want to load it
+      const data = await customFetch<AnalysisResult>("/api/planner/workload/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courses: schedule.schedule, term: schedule.term }), // Backend needs to support 'courses' body
+      });
+      
+      setResult(data);
+      // Auto-save
+      await customFetch<{ success: boolean }>("/api/planner/workload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ term: data.term, courses: data.courses, score: data.score }),
+      });
+      fetchHistory();
+      toast({ title: "Import Successful", description: `Analyzed ${term} from your Calendar.` });
+    } catch (err) {
+      toast({ title: "Analysis Failed", description: "Failed to analyze saved schedule.", variant: "destructive" });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -172,44 +213,82 @@ export const WorkloadCalculator: React.FC = () => {
             Analysis History
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        <div className="flex-1 overflow-y-auto p-3 space-y-6">
           {isHistoryLoading ? (
             <div className="flex flex-col items-center justify-center h-32 space-y-2 opacity-50">
               <Loader2 className="animate-spin" size={20} />
               <span className="text-xs">Loading records...</span>
             </div>
-          ) : history.length === 0 ? (
-            <div className="text-center py-10 opacity-40">
-              <HistoryIcon className="mx-auto mb-2" size={32} />
-              <p className="text-xs">No records yet</p>
-            </div>
           ) : (
-            history.map((h) => (
-              <button
-                key={h.term}
-                onClick={() => loadFromHistory(h.term)}
-                className={`w-full group text-left p-3 rounded-xl border transition-all ${
-                  result?.term === h.term 
-                    ? "bg-primary/5 border-primary/20 ring-1 ring-primary/20" 
-                    : "bg-background hover:border-primary/20"
-                }`}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-bold text-sm">{h.term}</div>
-                    <div className={`text-xs font-mono mt-1 ${getScoreColor(h.score)}`}>
-                      Score: {Math.round(h.score)}
-                    </div>
+            <>
+              {/* Analyzed Section */}
+              {workloadHistory.length > 0 && (
+                <div className="space-y-2">
+                  <div className="px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                    <Activity size={12} className="text-emerald-500" /> Analyzed Terms
                   </div>
-                  <button 
-                    onClick={(e) => deleteHistory(e, h.term)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/10 hover:text-rose-600 rounded-lg transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {workloadHistory.map((h) => (
+                    <button
+                      key={h.term}
+                      onClick={() => loadFromHistory(h.term)}
+                      className={`w-full group text-left p-3 rounded-xl border transition-all ${
+                        result?.term === h.term 
+                          ? "bg-primary/5 border-primary/20 ring-1 ring-primary/20" 
+                          : "bg-background hover:border-primary/20"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-bold text-sm">{h.term}</div>
+                          <div className={`text-xs font-mono mt-1 ${getScoreColor(h.score)}`}>
+                            Score: {Math.round(h.score)}
+                          </div>
+                        </div>
+                        <button 
+                          onClick={(e) => deleteHistory(e, h.term)}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/10 hover:text-rose-600 rounded-lg transition-all"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </button>
-            ))
+              )}
+
+              {/* Saved from Calendar Section */}
+              {scheduleHistory.length > 0 && (
+                <div className="space-y-2">
+                  <div className="px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                    <CalendarIcon size={12} className="text-blue-500" /> From Calendar
+                  </div>
+                  {scheduleHistory.map((s) => (
+                    <button
+                      key={s.term}
+                      onClick={() => analyzeSchedule(s.term)}
+                      className="w-full group text-left p-3 rounded-xl border border-dashed bg-muted/5 hover:bg-primary/5 hover:border-primary/30 transition-all"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="font-bold text-sm">{s.term}</div>
+                          <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-tighter">Needs Analysis</div>
+                        </div>
+                        <div className="p-1.5 bg-background rounded-lg border group-hover:border-primary/50 group-hover:text-primary transition-all">
+                          <Plus size={14} />
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {workloadHistory.length === 0 && scheduleHistory.length === 0 && (
+                <div className="text-center py-10 opacity-40">
+                  <HistoryIcon className="mx-auto mb-2" size={32} />
+                  <p className="text-xs">No records yet</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
