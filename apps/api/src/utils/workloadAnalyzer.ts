@@ -168,10 +168,22 @@ export async function fetchUWFlowProfRatings(instructorName: string) {
   const scores = { liked: [] as number[], clear: [] as number[], engaging: [] as number[] };
 
   for (const name of names) {
-    const lastName = name.split(" ").pop();
+    // Quest usually uses "LastName, FirstName"
+    let lastName = "";
+    let firstName = "";
+    if (name.includes(",")) {
+      const parts = name.split(",");
+      lastName = parts[0].trim();
+      firstName = parts[1].trim().split(" ")[0]; // Get first name only
+    } else {
+      lastName = name.split(" ").pop() || "";
+      firstName = name.split(" ")[0];
+    }
+
     const query = `
       query getProf($name_query: String) {
         prof(where: {name: {_ilike: $name_query}}) {
+          name
           rating { liked clear engaging }
         }
       }
@@ -183,7 +195,7 @@ export async function fetchUWFlowProfRatings(instructorName: string) {
         headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0" },
         body: JSON.stringify({
           operationName: "getProf",
-          variables: { name_query: `%${lastName}%` },
+          variables: { name_query: `%${lastName}%${firstName}%` },
           query,
         }),
       });
@@ -216,7 +228,7 @@ export function calculateWorkloadScore(term: string, courses: any[]) {
   const TIME_MAP: any = { early: 1.5, late: 1.4, regular: 1.0 };
   const SPOT_MAP: any = { online: 0.7, onsite: 1.0 };
   const TYPE_MAP: any = { LEC: 1.0, TUT: 0.6, LAB: 0.8, Other: 0.8 };
-  const COMMUTE_MAP: any = { impossible: 95, high: 90, low: 70, none: 0 };
+  const COMMUTE_MAP: any = { impossible: 100, high: 40, low: 5, none: 0 };
 
   const termType = term.split(" ")[0];
   const termCoeff = TERM_MAP[termType] || 1.2;

@@ -356,16 +356,27 @@ router.post("/workload/analyze", async (req, res) => {
       const bCode = bParts[0];
       const bFloor = (bParts[1] && bParts[1][0]) || "1";
 
-      // Parse days
+      // Improved day parsing to handle both MO/TU and M/T/Th
       let i = 0;
       while (i < daysStr.length) {
-        let dKey = daysStr[i];
-        if (daysStr[i] === "T" && daysStr[i+1] === "h") {
+        let dKey = "";
+        // Check for 2-letter codes first (MO, TU, WE, TH, FR)
+        const nextTwo = daysStr.substring(i, i + 2);
+        if (["MO", "TU", "WE", "TH", "FR"].includes(nextTwo)) {
+          dKey = nextTwo;
+          i += 2;
+        } 
+        // Then check for legacy/Quest style
+        else if (daysStr[i] === "T" && daysStr[i+1] === "h") {
           dKey = "TH";
           i += 2;
         } else {
+          // Map single letters to standard keys
+          const singleMap: any = { 'M': 'MO', 'T': 'TU', 'W': 'WE', 'F': 'FR' };
+          dKey = singleMap[daysStr[i]] || daysStr[i];
           i += 1;
         }
+
         const dayName = dayMap[dKey];
         if (dayName) {
           dayStruct[dayName].push({
