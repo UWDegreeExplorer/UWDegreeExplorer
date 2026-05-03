@@ -358,14 +358,16 @@ router.delete("/:id", async (req, res) => {
     sql`comment_id IN (SELECT id FROM ${commentsTable} WHERE post_id = ${id})`
   );
 
-  // 4. Delete associated post data
-  await db.delete(commentsTable).where(eq(commentsTable.postId, id));
-  await db.delete(bookmarksTable).where(eq(bookmarksTable.postId, id));
+  // 4. Delete associated post data (Delete children/referencing tables first)
   await db.delete(notificationsTable).where(eq(notificationsTable.postId, id));
-  await db.delete(draftsTable).where(eq(draftsTable.postId, id));
   await db.delete(likesTable).where(eq(likesTable.postId, id));
-
-  // 5. Finally delete the post
+  await db.delete(bookmarksTable).where(eq(bookmarksTable.postId, id));
+  await db.delete(draftsTable).where(eq(draftsTable.postId, id));
+  
+  // 5. Delete comments (references might have been cleared by notifications delete)
+  await db.delete(commentsTable).where(eq(commentsTable.postId, id));
+  
+  // 6. Finally delete the post
   await db.delete(postsTable).where(eq(postsTable.id, id));
 
   res.json({ message: "Post deleted" });
