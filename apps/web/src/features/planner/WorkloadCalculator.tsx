@@ -106,6 +106,16 @@ export const WorkloadCalculator: React.FC = () => {
     }
   };
 
+  // Auto-analyze the latest schedule on mount
+  useEffect(() => {
+    if (!result && !isAnalyzing && (workloadHistory.length > 0 || scheduleHistory.length > 0)) {
+      const allTerms = [...workloadHistory, ...scheduleHistory].sort((a, b) => b.term.localeCompare(a.term));
+      if (allTerms.length > 0) {
+        analyzeSchedule(allTerms[0].term);
+      }
+    }
+  }, [workloadHistory, scheduleHistory]);
+
   const handleAnalyze = async () => {
     if (!inputText.trim()) return;
     setIsAnalyzing(true);
@@ -222,7 +232,7 @@ export const WorkloadCalculator: React.FC = () => {
                 return (
                   <button
                     key={item.term}
-                    onClick={() => isAnalyzed ? loadFromHistory(item.term) : analyzeSchedule(item.term)}
+                    onClick={() => analyzeSchedule(item.term)}
                     className={`w-full group text-left p-3 rounded-xl border transition-all ${
                       result?.term === item.term 
                         ? "bg-primary/5 border-primary/20 ring-1 ring-primary/20" 

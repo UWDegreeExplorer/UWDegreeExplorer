@@ -179,7 +179,7 @@ export function getWalkingTime(sCode: string, sFloor: string, eCode: string, eFl
 // --- RATINGS LOGIC ---
 
 export async function fetchUWFlowProfRatings(instructorName: string) {
-  if (!instructorName || instructorName.includes("To be Announced")) {
+  if (!instructorName || instructorName.includes("To be Announced") || instructorName.includes("TBA")) {
     return { liked: 80, clear: 80, engaging: 80 };
   }
 
