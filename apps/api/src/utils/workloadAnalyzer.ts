@@ -183,45 +183,38 @@ export async function fetchUWFlowProfRatings(instructorName: string) {
     return { liked: 80, clear: 80, engaging: 80 };
   }
 
-  const names = instructorName.split(",").map((n) => n.trim());
+  // Support multiple instructors separated by commas
+  const names = instructorName.split(",").map((n) => n.trim()).filter(Boolean);
   const scores = { liked: [] as number[], clear: [] as number[], engaging: [] as number[] };
 
-  for (const name of names) {
-    // Quest usually uses "LastName, FirstName"
-    let lastName = "";
-    let firstName = "";
-    if (name.includes(",")) {
-      const parts = name.split(",");
-      lastName = (parts[0] || "").trim();
-      firstName = (parts[1] || "").trim().split(" ")[0] || ""; // Get first name safely
-    } else {
-      lastName = name.split(" ").pop() || "";
-      firstName = name.split(" ")[0];
-    }
-
-    const query = `
-      query getProf($name_query: String) {
-        prof(where: {name: {_ilike: $name_query}}) {
-          name
-          rating { liked clear engaging }
-        }
+  const query = `
+    query getProf($name_query: String) {
+      prof(where: {name: {_ilike: $name_query}}) {
+        rating { liked clear engaging }
       }
-    `;
+    }
+  `;
 
+  for (const name of names) {
     try {
+      // Realign with Python logic: Search by last name only for maximum compatibility
+      const nameParts = name.split(/[\s,]+/).filter(Boolean);
+      const lastName = nameParts[nameParts.length - 1] || "";
+      
       const res = await fetch("https://uwflow.com/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0" },
         body: JSON.stringify({
           operationName: "getProf",
-          variables: { name_query: `%${lastName}%${firstName}%` },
+          variables: { name_query: `%${lastName}%` },
           query,
         }),
       });
 
       const data = (await res.json()) as any;
       const prof = data?.data?.prof?.[0];
-      if (prof && prof.rating) {
+      
+      if (prof?.rating) {
         scores.liked.push(typeof prof.rating.liked === 'number' ? prof.rating.liked * 100 : 80);
         scores.clear.push(typeof prof.rating.clear === 'number' ? prof.rating.clear * 100 : 80);
         scores.engaging.push(typeof prof.rating.engaging === 'number' ? prof.rating.engaging * 100 : 80);
@@ -234,9 +227,9 @@ export async function fetchUWFlowProfRatings(instructorName: string) {
   }
 
   return {
-    liked: scores.liked.reduce((a, b) => a + b, 0) / scores.liked.length,
-    clear: scores.clear.reduce((a, b) => a + b, 0) / scores.clear.length,
-    engaging: scores.engaging.reduce((a, b) => a + b, 0) / scores.engaging.length,
+    liked: scores.liked.length ? scores.liked.reduce((a, b) => a + b, 0) / scores.liked.length : 80,
+    clear: scores.clear.length ? scores.clear.reduce((a, b) => a + b, 0) / scores.clear.length : 80,
+    engaging: scores.engaging.length ? scores.engaging.reduce((a, b) => a + b, 0) / scores.engaging.length : 80,
   };
 }
 
@@ -254,11 +247,12 @@ export function calculateWorkloadScore(term: string, courses: any[]) {
   let totalScore = 0;
 
   courses.forEach((c) => {
-    const lr = c.courseRatings || { liked: 80, easy: 80, useful: 80 };
-    const pr = c.profRatings || { liked: 80, clear: 80, engaging: 80 };
+    const lr = c.courseRatings;
+    const pr = c.profRatings;
 
-    const lessonScore = (100 - (lr.liked || 80)) * 2 + (100 - (lr.easy || 80)) * 1 + (100 - (lr.useful || 80)) * 0.5;
-    const profScore = (100 - (pr.liked || 80)) * 2 + (100 - (pr.clear || 80)) * 1 + (100 - (pr.engaging || 80)) * 0.5;
+    // Ensure we use the percentage values (0-100) correctly in calculations
+    const lessonScore = (100 - (lr.liked ?? 80)) * 2 + (100 - (lr.easy ?? 80)) * 1 + (100 - (lr.useful ?? 80)) * 0.5;
+    const profScore = (100 - (pr.liked ?? 80)) * 2 + (100 - (pr.clear ?? 80)) * 1 + (100 - (pr.engaging ?? 80)) * 0.5;
 
     let comVal = 0;
     if (!c.isOnline && c.commute && c.commute.length > 0) {
