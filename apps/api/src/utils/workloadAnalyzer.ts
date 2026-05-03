@@ -222,9 +222,9 @@ export async function fetchUWFlowProfRatings(instructorName: string) {
       const data = (await res.json()) as any;
       const prof = data?.data?.prof?.[0];
       if (prof && prof.rating) {
-        scores.liked.push(prof.rating.liked ? prof.rating.liked * 100 : 80);
-        scores.clear.push(prof.rating.clear ? prof.rating.clear * 100 : 80);
-        scores.engaging.push(prof.rating.engaging ? prof.rating.engaging * 100 : 80);
+        scores.liked.push(typeof prof.rating.liked === 'number' ? prof.rating.liked * 100 : 80);
+        scores.clear.push(typeof prof.rating.clear === 'number' ? prof.rating.clear * 100 : 80);
+        scores.engaging.push(typeof prof.rating.engaging === 'number' ? prof.rating.engaging * 100 : 80);
       } else {
         scores.liked.push(80); scores.clear.push(80); scores.engaging.push(80);
       }
@@ -304,7 +304,15 @@ export async function fetchUWFlowRatings(subjectCode: string, catalogNumber: str
       body: JSON.stringify({ operationName: "getCourse", variables: { code }, query }),
     });
     const data = (await res.json()) as any;
-    return data?.data?.course?.[0]?.rating || { liked: 80, easy: 80, useful: 80 };
+    const r = data?.data?.course?.[0]?.rating;
+    if (r) {
+      return {
+        liked: typeof r.liked === 'number' ? r.liked * 100 : 80,
+        easy: typeof r.easy === 'number' ? r.easy * 100 : 80,
+        useful: typeof r.useful === 'number' ? r.useful * 100 : 80,
+      };
+    }
+    return { liked: 80, easy: 80, useful: 80 };
   } catch (e) {
     return { liked: 80, easy: 80, useful: 80 };
   }
