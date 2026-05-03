@@ -188,7 +188,6 @@ export const WorkloadCalculator: React.FC = () => {
         body: JSON.stringify({ term: data.term, courses: data.courses, score: data.score }),
       });
       fetchHistory();
-      toast({ title: "Import Successful", description: `Analyzed ${term} from your Calendar.` });
     } catch (err) {
       toast({ title: "Analysis Failed", description: "Failed to analyze saved schedule.", variant: "destructive" });
     } finally {

@@ -12,6 +12,7 @@ import likesRouter from "./likes";
 import commentsRouter from "./comments";
 import dmRouter from "./dm";
 import plannerRouter from "./planner";
+import gradesRouter from "./grades";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use("/notifications", notificationsRouter);
 router.use("/drafts", draftsRouter);
 router.use("/auth/student-verification", verificationRouter);
 router.use("/planner", plannerRouter);
+router.use("/planner/grades", gradesRouter);
 
 export default router;

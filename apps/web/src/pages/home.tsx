@@ -33,6 +33,7 @@ import { MessagePanel } from "../features/messages/MessagePanel";
 import { CourseExplorer } from "../features/planner/CourseExplorer";
 import { MakeCalendar } from "../features/planner/MakeCalendar";
 import { WorkloadCalculator } from "../features/planner/WorkloadCalculator";
+import { GradeCalculator } from "../features/planner/GradeCalculator";
 
 import { relTime, excerpt } from "@/lib/utils";
 import {
@@ -179,7 +180,9 @@ export default function Home() {
       setLocation("/calendar");
     } else if (s === "workload") {
       setLocation("/workload");
-    } else if (matchPost || matchSettings || matchBookmarks || matchActivity || matchLikes || matchCourses || matchCalendar || matchWorkload) {
+    } else if (s === "grades") {
+      setLocation("/grades");
+    } else if (matchPost || matchSettings || matchBookmarks || matchActivity || matchLikes || matchCourses || matchCalendar || matchWorkload || matchGrades) {
       setLocation(commentId ? `/post/${selectedId}?commentId=${commentId}` : "/");
     }
   };
@@ -201,6 +204,7 @@ export default function Home() {
   const [matchCourses] = useRoute("/courses");
   const [matchCalendar] = useRoute("/calendar");
   const [matchWorkload] = useRoute("/workload");
+  const [matchGrades] = useRoute("/grades");
 
   useEffect(() => {
     if (matchSettings) {
@@ -217,6 +221,8 @@ export default function Home() {
       setActiveSection("calendar");
     } else if (matchWorkload) {
       setActiveSection("workload");
+    } else if (matchGrades) {
+      setActiveSection("grades");
     }
   }, [matchSettings, matchBookmarks, matchActivity, matchLikes, matchCourses, matchCalendar, matchWorkload]);
 
@@ -292,6 +298,12 @@ export default function Home() {
               <Panel defaultSize={80} minSize={60}>
                 <main className="flex-1 flex flex-col bg-background h-full min-w-0 overflow-y-auto">
                   <WorkloadCalculator />
+                </main>
+              </Panel>
+            ) : activeSection === "grades" ? (
+              <Panel defaultSize={80} minSize={60}>
+                <main className="flex-1 flex flex-col bg-background h-full min-w-0 overflow-y-auto">
+                  <GradeCalculator />
                 </main>
               </Panel>
             ) : activeSection === "messages" ? (
@@ -370,6 +382,10 @@ export default function Home() {
             ) : activeSection === "workload" ? (
               <main className="flex-1 min-w-0 bg-background h-full overflow-y-auto">
                 <WorkloadCalculator />
+              </main>
+            ) : activeSection === "grades" ? (
+              <main className="flex-1 min-w-0 bg-background h-full overflow-y-auto">
+                <GradeCalculator />
               </main>
             ) : activeSection === "messages" ? (
               <>
@@ -463,6 +479,18 @@ export default function Home() {
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   <WorkloadCalculator />
+                </div>
+              </div>
+            ) : activeSection === "grades" ? (
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <div className="px-3 py-1.5 border-b border-border flex items-center bg-card/10 backdrop-blur-sm sticky top-0 z-10">
+                  <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="-ml-1 gap-1.5 h-8 text-muted-foreground hover:text-foreground transition-colors">
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-xs font-medium">Home</span>
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <GradeCalculator />
                 </div>
               </div>
             ) : selectedId ? (
