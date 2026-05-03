@@ -14,7 +14,8 @@ import {
   FolderPlus,
   FilePlus,
   MoreVertical,
-  ArrowLeft
+  ArrowLeft,
+  Calendar
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,10 +48,12 @@ interface CourseGrade {
   courseCode: string;
   targetGrade: number;
   components: GradeComponent[];
+  isActive?: boolean;
 }
 
 export const GradeCalculator: React.FC = () => {
   const [courseSummaries, setCourseSummaries] = useState<CourseGrade[]>([]);
+  const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<CourseGrade | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -145,9 +148,27 @@ export const GradeCalculator: React.FC = () => {
     }
   };
 
-  // --- Calculation Logic ---
+  const handleDeleteCourse = async (id: number) => {
+    try {
+      await customFetch(`/api/planner/grades/course/${id}`, { method: "DELETE" });
+      setCourseSummaries(courseSummaries.filter(c => c.id !== id));
+      toast({ title: "Course Removed" });
+    } catch (err) {
+      toast({ title: "Failed to delete course", variant: "destructive" });
+    }
+  };
+
+  const groupedTerms = useMemo(() => {
+    const groups: Record<string, CourseGrade[]> = {};
+    courseSummaries.forEach(c => {
+      if (!groups[c.term]) groups[c.term] = [];
+      groups[c.term].push(c);
+    });
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [courseSummaries]);
+
   const totals = useMemo(() => {
-    if (!selectedCourse) return { current: 0, weighted: 0, totalWeight: 0 };
+    if (!selectedCourse) return { current: 0, totalWeight: 0 };
     
     const calculateNode = (nodes: GradeComponent[], parentId: number | null): number => {
       let contribution = 0;
@@ -162,190 +183,250 @@ export const GradeCalculator: React.FC = () => {
       return contribution;
     };
 
-    const totalWeight = selectedCourse.components.reduce((acc, curr) => acc + (curr.parentId === null ? curr.weight : 0), 0);
-    const currentScore = calculateNode(selectedCourse.components, null);
-    
     return { 
-      current: currentScore,
-      totalWeight: selectedCourse.components.reduce((acc, curr) => curr.isLeaf ? acc + curr.weight : acc, 0)
+      current: calculateNode(selectedCourse.components, null),
+      totalWeight: selectedCourse.components.reduce((acc, curr) => curr.parentId === null ? acc + curr.weight : acc, 0)
     };
   }, [selectedCourse]);
 
-  if (!selectedCourse) {
+  // View 1: Detailed Course Editor
+  if (selectedCourse) {
     return (
-      <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-        <div className="flex justify-between items-center">
-          <div className="space-y-1">
-            <h1 className="text-4xl font-black tracking-tight flex items-center gap-3">
-              <Calculator className="text-primary" size={36} />
-              Grade Calculator
-            </h1>
-            <p className="text-muted-foreground">Track your academic progress and forecast final grades.</p>
+      <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedCourse(null)}>
+            <ArrowLeft size={20} />
+          </Button>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="outline" className="font-mono">{selectedCourse.term}</Badge>
+              <h1 className="text-3xl font-black tracking-tight">{selectedCourse.courseCode}</h1>
+            </div>
+            <p className="text-muted-foreground text-sm">Detailed grade breakdown and contribution analysis.</p>
           </div>
-          <Button onClick={handleSync} className="gap-2 shadow-lg shadow-primary/10">
-            <RefreshCw size={16} />
-            Sync from Calendar
+          <Button variant="outline" className="gap-2" onClick={() => loadCourseDetail(selectedCourse.term, selectedCourse.courseCode)}>
+            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+            Refresh
           </Button>
         </div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map(i => (
-              <Card key={i} className="h-48 animate-pulse bg-muted/20" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence>
-              {courseSummaries.map((course) => (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ y: -4 }}
-                  onClick={() => loadCourseDetail(course.term, course.courseCode)}
-                >
-                  <Card className="cursor-pointer group hover:border-primary/50 transition-all border-2 bg-card/50 backdrop-blur-sm overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <GraduationCap size={80} />
-                    </div>
-                    <CardHeader>
-                      <Badge variant="outline" className="w-fit mb-2 font-mono">{course.term}</Badge>
-                      <CardTitle className="text-2xl font-black">{course.courseCode}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex justify-between items-end">
-                        <div className="space-y-1">
-                          <div className="text-[10px] font-bold uppercase text-muted-foreground">Target</div>
-                          <div className="text-lg font-bold">{course.targetGrade}%</div>
-                        </div>
-                        <Button size="sm" variant="ghost" className="group-hover:bg-primary group-hover:text-primary-foreground">
-                          Open <ChevronRight size={14} className="ml-1" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            
-            {courseSummaries.length === 0 && (
-              <Card className="col-span-full py-20 border-dashed bg-muted/5 flex flex-col items-center justify-center text-center">
-                <Target size={48} className="text-muted-foreground/20 mb-4" />
-                <h3 className="text-lg font-bold">No courses tracked yet</h3>
-                <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
-                  Sync with your calendar to automatically pull your courses for this term.
-                </p>
-                <Button onClick={handleSync} variant="outline" className="gap-2">
-                  <RefreshCw size={16} /> Sync Courses
-                </Button>
-              </Card>
-            )}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-primary/5 border-primary/20 relative overflow-hidden">
+            <div className="absolute -right-2 -bottom-2 opacity-5">
+              <TrendingUp size={100} />
+            </div>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Current Total</CardDescription>
+              <CardTitle className="text-4xl font-black">{totals.current.toFixed(1)}<span className="text-sm opacity-50 ml-1">/ 100</span></CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Progress value={totals.current} className="h-1 bg-primary/10" />
+              <p className="text-[10px] mt-2 text-muted-foreground">Weighted contribution from graded items.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-dashed">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Weight Logged</CardDescription>
+              <CardTitle className="text-4xl font-black">{totals.totalWeight.toFixed(0)}%</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Progress value={totals.totalWeight} className="h-1" />
+              <p className="text-[10px] mt-2 text-muted-foreground">Percentage of total course weight defined.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-2 flex flex-col justify-center p-6 space-y-2">
+             <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-muted-foreground uppercase">Target Grade</span>
+                <span className="text-xl font-black">{selectedCourse.targetGrade}%</span>
+             </div>
+             <div className="pt-2">
+                <div className="text-[10px] uppercase text-muted-foreground font-bold mb-1">Required to hit target</div>
+                <div className="text-lg font-bold">
+                  {totals.totalWeight < 100 
+                    ? `${((selectedCourse.targetGrade - totals.current) / (100 - totals.totalWeight) * 100).toFixed(1)}% avg.`
+                    : "N/A"}
+                </div>
+             </div>
+          </Card>
+        </div>
+
+        <Card className="border-2">
+          <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+            <div>
+              <CardTitle className="text-lg">Grading Components</CardTitle>
+              <CardDescription>Add categories and items as per your syllabus.</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => handleAddComponent(null, false)}>
+                <FolderPlus size={14} /> Category
+              </Button>
+              <Button size="sm" className="gap-2 shadow-lg shadow-primary/20" onClick={() => handleAddComponent(null, true)}>
+                <FilePlus size={14} /> Item
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+             <div className="divide-y divide-border">
+                {selectedCourse.components.filter(c => c.parentId === null).map((comp) => (
+                  <ComponentRow 
+                    key={comp.id} 
+                    component={comp} 
+                    allComponents={selectedCourse.components}
+                    onUpdate={handleUpdateComponent}
+                    onDelete={handleDeleteComponent}
+                    onAddChild={handleAddComponent}
+                  />
+                ))}
+                {selectedCourse.components.filter(c => c.parentId === null).length === 0 && (
+                  <div className="py-20 text-center text-muted-foreground space-y-4">
+                    <div className="flex justify-center"><AlertCircle className="opacity-20" size={40} /></div>
+                    <p className="text-sm">No components yet. Start by adding a category (e.g. Assignments) or a direct item.</p>
+                  </div>
+                )}
+             </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setSelectedCourse(null)}>
-          <ArrowLeft size={20} />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="outline" className="font-mono">{selectedCourse.term}</Badge>
-            <h1 className="text-3xl font-black tracking-tight">{selectedCourse.courseCode}</h1>
+  // View 2: Courses within a selected Term
+  if (selectedTerm) {
+    const coursesInTerm = courseSummaries.filter(c => c.term === selectedTerm);
+    return (
+      <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in slide-in-from-right-4 duration-500">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedTerm(null)}>
+            <ArrowLeft size={20} />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-black tracking-tight">{selectedTerm}</h1>
+            <p className="text-muted-foreground">Select a course to manage your grades.</p>
           </div>
-          <p className="text-muted-foreground text-sm">Detailed grade breakdown and contribution analysis.</p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={() => loadCourseDetail(selectedCourse.term, selectedCourse.courseCode)}>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {coursesInTerm.map((course) => (
+            <motion.div
+              key={course.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -4 }}
+              onClick={() => loadCourseDetail(course.term, course.courseCode)}
+            >
+              <Card className="cursor-pointer group hover:border-primary/50 transition-all border-2 bg-card/50 backdrop-blur-sm overflow-hidden relative">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-2xl font-black">{course.courseCode}</CardTitle>
+                  {course.isActive === false && (
+                    <Badge variant="destructive" className="text-[10px] uppercase">Archived</Badge>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-end">
+                    <div className="space-y-1">
+                      <div className="text-[10px] font-bold uppercase text-muted-foreground">Target</div>
+                      <div className="text-lg font-bold">{course.targetGrade}%</div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="group-hover:bg-primary group-hover:text-primary-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        loadCourseDetail(course.term, course.courseCode);
+                      }}
+                    >
+                      Edit Grades <ChevronRight size={14} className="ml-1" />
+                    </Button>
+                  </div>
+                  {course.isActive === false && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCourse(course.id);
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // View 3: Term Selection (Initial View)
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-center">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-black tracking-tight flex items-center gap-3">
+            <Calculator className="text-primary" size={36} />
+            Grade Calculator
+          </h1>
+          <p className="text-muted-foreground">Track your academic progress by term.</p>
+        </div>
+        <Button onClick={handleSync} className="gap-2 shadow-lg shadow-primary/10">
           <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
-          Refresh
+          Sync from Calendar
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Stats Cards */}
-        <Card className="bg-primary/5 border-primary/20 relative overflow-hidden">
-          <div className="absolute -right-2 -bottom-2 opacity-5">
-            <TrendingUp size={100} />
-          </div>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Current Total</CardDescription>
-            <CardTitle className="text-4xl font-black">{totals.current.toFixed(1)}<span className="text-sm opacity-50 ml-1">/ 100</span></CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Progress value={totals.current} className="h-1 bg-primary/10" />
-            <p className="text-[10px] mt-2 text-muted-foreground">Weighted contribution from graded items.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-dashed">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Weight Logged</CardDescription>
-            <CardTitle className="text-4xl font-black">{totals.totalWeight.toFixed(0)}%</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Progress value={totals.totalWeight} className="h-1" />
-            <p className="text-[10px] mt-2 text-muted-foreground">Percentage of total course weight defined.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-2 flex flex-col justify-center p-6 space-y-2">
-           <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-muted-foreground uppercase">Target Grade</span>
-              <span className="text-xl font-black">{selectedCourse.targetGrade}%</span>
-           </div>
-           <div className="pt-2">
-              <div className="text-[10px] uppercase text-muted-foreground font-bold mb-1">Required to hit target</div>
-              <div className="text-lg font-bold">
-                {totals.totalWeight < 100 
-                  ? `${((selectedCourse.targetGrade - totals.current) / (100 - totals.totalWeight) * 100).toFixed(1)}% avg.`
-                  : "N/A"}
-              </div>
-           </div>
-        </Card>
-      </div>
-
-      {/* Breakdown Editor */}
-      <Card className="border-2">
-        <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
-          <div>
-            <CardTitle className="text-lg">Grading Components</CardTitle>
-            <CardDescription>Add categories and items as per your syllabus.</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="gap-2" onClick={() => handleAddComponent(null, false)}>
-              <FolderPlus size={14} /> Category
-            </Button>
-            <Button size="sm" className="gap-2 shadow-lg shadow-primary/20" onClick={() => handleAddComponent(null, true)}>
-              <FilePlus size={14} /> Item
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-           <div className="divide-y divide-border">
-              {selectedCourse.components.filter(c => c.parentId === null).map((comp) => (
-                <ComponentRow 
-                  key={comp.id} 
-                  component={comp} 
-                  allComponents={selectedCourse.components}
-                  onUpdate={handleUpdateComponent}
-                  onDelete={handleDeleteComponent}
-                  onAddChild={handleAddComponent}
-                />
-              ))}
-              {selectedCourse.components.filter(c => c.parentId === null).length === 0 && (
-                <div className="py-20 text-center text-muted-foreground space-y-4">
-                  <div className="flex justify-center"><AlertCircle className="opacity-20" size={40} /></div>
-                  <p className="text-sm">No components yet. Start by adding a category (e.g. Assignments) or a direct item.</p>
+      {isLoading && courseSummaries.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="h-48 animate-pulse bg-muted/20" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {groupedTerms.map(([term, courses]) => (
+            <motion.div
+              key={term}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ y: -4 }}
+              onClick={() => setSelectedTerm(term)}
+            >
+              <Card className="cursor-pointer border-2 hover:border-primary/50 transition-all bg-card shadow-sm overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10">
+                  <Calendar size={60} />
                 </div>
-              )}
-           </div>
-        </CardContent>
-      </Card>
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold">{term}</CardTitle>
+                  <CardDescription>{courses.length} Courses</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button variant="ghost" size="sm" className="w-full justify-between hover:bg-primary hover:text-primary-foreground">
+                    View Term <ChevronRight size={14} />
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+          
+          {courseSummaries.length === 0 && !isLoading && (
+            <Card className="col-span-full py-20 border-dashed bg-muted/5 flex flex-col items-center justify-center text-center">
+              <Target size={48} className="text-muted-foreground/20 mb-4" />
+              <h3 className="text-lg font-bold">No data yet</h3>
+              <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
+                Click "Sync from Calendar" to import your courses.
+              </p>
+              <Button onClick={handleSync} variant="outline" className="gap-2">
+                <RefreshCw size={16} /> Sync Now
+              </Button>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 };

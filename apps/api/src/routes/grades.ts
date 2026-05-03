@@ -18,7 +18,26 @@ router.get("/", async (req, res) => {
       .where(eq(userCourseGrades.userId, userId))
       .orderBy(sql`${userCourseGrades.term} DESC`, userCourseGrades.courseCode);
 
-    return res.json(grades);
+    // Get all current schedule course codes for reference
+    const schedules = await db
+      .select()
+      .from(userSchedules)
+      .where(eq(userSchedules.userId, userId));
+    
+    const activeCourseMap = new Set();
+    schedules.forEach(s => {
+      const courses = (s.data as any[]) || [];
+      courses.forEach(c => {
+        if (c.courseCode) activeCourseMap.add(`${s.term}-${c.courseCode}`);
+      });
+    });
+
+    const gradesWithStatus = grades.map(g => ({
+      ...g,
+      isActive: activeCourseMap.has(`${g.term}-${g.courseCode}`)
+    }));
+
+    return res.json(gradesWithStatus);
   } catch (error) {
     logger.error({ error }, "Failed to fetch grades");
     return res.status(500).json({ error: "Internal Server Error" });
@@ -160,6 +179,30 @@ router.delete("/components/:id", async (req, res) => {
     return res.json({ success: true });
   } catch (error) {
     logger.error({ error }, "Failed to delete component");
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// 6. Delete a course grade entry
+router.delete("/course/:id", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+
+  try {
+    const [courseGrade] = await db
+      .select({ id: userCourseGrades.id })
+      .from(userCourseGrades)
+      .where(and(eq(userCourseGrades.id, Number(id)), eq(userCourseGrades.userId, userId)))
+      .limit(1);
+
+    if (!courseGrade) return res.status(403).json({ error: "Forbidden" });
+
+    await db.delete(userCourseGrades).where(eq(userCourseGrades.id, Number(id)));
+    return res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, "Failed to delete course grade");
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
