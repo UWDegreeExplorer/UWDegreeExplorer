@@ -197,16 +197,28 @@ export async function fetchUWFlowProfRatings(instructorName: string) {
 
   for (const name of names) {
     try {
-      // Realign with Python logic: Search by last name only for maximum compatibility
+      // Improved parsing: Handle "LastName, FirstName" and "FirstName LastName"
       const nameParts = name.split(/[\s,]+/).filter(Boolean);
-      const lastName = nameParts[nameParts.length - 1] || "";
+      let firstName = "";
+      let lastName = "";
+
+      if (name.includes(",")) {
+        lastName = nameParts[0] || "";
+        firstName = nameParts[1] || "";
+      } else {
+        firstName = nameParts[0] || "";
+        lastName = nameParts[nameParts.length - 1] || "";
+      }
       
+      // Use both first and last name for precision, allowing for middle names in between
+      const nameQuery = firstName && lastName ? `%${firstName}%${lastName}%` : `%${lastName || firstName}%`;
+
       const res = await fetch("https://uwflow.com/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0" },
         body: JSON.stringify({
           operationName: "getProf",
-          variables: { name_query: `%${lastName}%` },
+          variables: { name_query: nameQuery },
           query,
         }),
       });
