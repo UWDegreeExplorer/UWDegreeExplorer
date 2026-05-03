@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { UserCircle2, Loader2, Bookmark, Trash2, MessageCircle, Reply, Send, Heart, Flag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ReportDialog } from "../moderation/ReportDialog";
+import { MessageUserButton } from "../messages/MessageUserButton";
 
 function CommentNode({
   comment,
@@ -24,6 +25,7 @@ function CommentNode({
   depth,
   isAnonymousMode,
   onReport,
+  onOpenConversation,
   targetedCommentId,
 }: {
   comment: Comment;
@@ -32,6 +34,7 @@ function CommentNode({
   depth: number;
   isAnonymousMode: boolean;
   onReport: (id: number, type: "post" | "comment") => void;
+  onOpenConversation?: (id: string) => void;
   targetedCommentId?: number | null;
 }) {
   const [showReply, setShowReply] = useState(false);
@@ -85,6 +88,16 @@ function CommentNode({
           <span className="text-muted-foreground text-xs">
             · {relTime(comment.createdAt)}
           </span>
+          {onOpenConversation && (
+            <MessageUserButton
+              targetUserId={comment.authorId}
+              isAnonymous={comment.isAnonymous}
+              sourcePostId={postId}
+              sourceCommentId={comment.id}
+              onOpenConversation={onOpenConversation}
+              className="h-6 px-1.5 opacity-60 hover:opacity-100 ml-1"
+            />
+          )}
         </div>
         <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
           {comment.body}
@@ -148,6 +161,7 @@ function CommentNode({
               postId={postId}
               depth={depth + 1}
               isAnonymousMode={isAnonymousMode}
+              onOpenConversation={onOpenConversation}
               onReport={onReport}
               targetedCommentId={targetedCommentId}
             />
@@ -289,7 +303,13 @@ export function ReplyComposer({
   );
 }
 
-export function PostDetailPane({ postId }: { postId: number }) {
+export function PostDetailPane({ 
+  postId, 
+  onOpenConversation 
+}: { 
+  postId: number;
+  onOpenConversation?: (id: string) => void;
+}) {
   const [, setLocation] = useLocation();
   const { data, isLoading } = useGetPost(postId);
   const { data: currentUserData } = useGetCurrentUser();
@@ -575,6 +595,15 @@ export function PostDetailPane({ postId }: { postId: number }) {
             )}
           </div>
           <span className="font-medium text-foreground/80 flex items-center gap-1">{post.authorName}{post.isStudentVerified && !post.isAnonymous && <VerifiedBadge className="w-4 h-4" />}</span>
+          {onOpenConversation && (
+            <MessageUserButton
+              targetUserId={post.authorId}
+              isAnonymous={post.isAnonymous}
+              sourcePostId={post.id}
+              onOpenConversation={onOpenConversation}
+              className="ml-2"
+            />
+          )}
           <span>· {relTime(post.createdAt)}</span>
         </div>
 
@@ -609,6 +638,7 @@ export function PostDetailPane({ postId }: { postId: number }) {
                   postId={post.id}
                   depth={0}
                   isAnonymousMode={isAnonymousMode}
+                  onOpenConversation={onOpenConversation}
                   onReport={handleReportClick}
                   targetedCommentId={targetedCommentId}
                 />

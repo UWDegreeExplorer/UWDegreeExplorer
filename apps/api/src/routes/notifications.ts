@@ -38,6 +38,9 @@ router.get("/", async (req, res) => {
       actorName: usersTable.displayName,
       savedActorName: notificationsTable.actorName,
       commentId: notificationsTable.commentId,
+      connectRequestId: notificationsTable.connectRequestId,
+      conversationId: notificationsTable.conversationId,
+      metadata: notificationsTable.metadata,
       isRead: notificationsTable.isRead,
       createdAt: notificationsTable.createdAt,
     })

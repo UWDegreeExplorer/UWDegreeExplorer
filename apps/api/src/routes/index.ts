@@ -10,10 +10,12 @@ import draftsRouter from "./drafts";
 import verificationRouter from "./verification";
 import likesRouter from "./likes";
 import commentsRouter from "./comments";
+import dmRouter from "./dm";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/dm", dmRouter);
 router.use("/likes", likesRouter);
 router.use("/auth", authRouter);
 router.use("/posts/bookmarks", postsBookmarksRouter);

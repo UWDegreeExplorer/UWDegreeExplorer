@@ -63,19 +63,23 @@ router.get("/", async (req, res) => {
     .orderBy(desc(postsTable.lastActivityAt));
 
   res.json(
-    rows.map((r) => ({
-      ...r,
-      authorName: r.isAnonymous ? "Anonymous" : (r.authorName ?? r.authorNameSnapshot),
-      excerpt: "",
-      commentCount: Number(r.commentCount),
-      bookmarkCount: Number(r.bookmarkCount),
-      isBookmarked: Boolean(r.isBookmarked),
-      likeCount: Number(r.likeCount),
-      isLiked: Boolean(r.isLiked),
-      isStudentVerified: Boolean(r.isStudentVerified),
-      createdAt: r.createdAt.toISOString(),
-      lastActivityAt: r.lastActivityAt.toISOString(),
-    })),
+    rows.map((r) => {
+      const isOwner = userId && r.authorId === userId;
+      return {
+        ...r,
+        authorId: (r.isAnonymous && !isOwner) ? null : r.authorId,
+        authorName: r.isAnonymous ? "Anonymous" : (r.authorName ?? r.authorNameSnapshot),
+        excerpt: "",
+        commentCount: Number(r.commentCount),
+        bookmarkCount: Number(r.bookmarkCount),
+        isBookmarked: Boolean(r.isBookmarked),
+        likeCount: Number(r.likeCount),
+        isLiked: Boolean(r.isLiked),
+        isStudentVerified: Boolean(r.isStudentVerified),
+        createdAt: r.createdAt.toISOString(),
+        lastActivityAt: r.lastActivityAt.toISOString(),
+      };
+    }),
   );
 });
 
@@ -295,12 +299,14 @@ router.get("/:id", async (req, res) => {
     post: {
       ...post,
       ...finalMetadata,
+      authorId: (post.isAnonymous && post.authorId !== sessionUserId && !viewerIsAdmin) ? null : post.authorId,
       authorName: post.isAnonymous ? "Anonymous" : (post.authorId ? post.authorNameSnapshot : "Deleted User"),
       createdAt: post.createdAt.toISOString(),
       canDelete,
     },
-    comments: comments.map((c) => ({
+    comments: comments.map((c: any) => ({
       ...c,
+      authorId: (c.isAnonymous && c.authorId !== sessionUserId && !viewerIsAdmin) ? null : c.authorId,
       authorName: c.isAnonymous ? "Anonymous" : (c.authorId ? c.authorNameSnapshot : "Deleted User"),
       createdAt: c.createdAt.toISOString(),
     })),

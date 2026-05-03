@@ -15,6 +15,34 @@
       "when": 1777173777712,
       "tag": "0001_flaky_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777838145696,
+      "tag": "0002_confused_shooting_star",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777839509783,
+      "tag": "0003_sharp_demogoblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777840306165,
+      "tag": "0004_glamorous_morg",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777840717912,
+      "tag": "0005_calm_hydra",
+      "breakpoints": true
     }
   ]
 }

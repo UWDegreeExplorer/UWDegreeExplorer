@@ -1,6 +1,6 @@
 import { useGetCurrentUser, useGetSectionStats, useCustomFetch, type Section } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen, PencilLine, Home as HomeIcon, Layers, User as UserIcon, FileText, Bookmark, FileEdit, Inbox as InboxIcon, Heart } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PencilLine, Home as HomeIcon, Layers, User as UserIcon, FileText, Bookmark, FileEdit, Inbox as InboxIcon, Heart, MessageSquare } from "lucide-react";
 import { type SectionFilter, SECTION_LABELS, SECTION_ICONS } from "@/lib/constants";
 
 export function SectionRail({
@@ -21,6 +21,8 @@ export function SectionRail({
   const { data: stats } = useGetSectionStats();
   const { data: unreadData } = useCustomFetch<any>("/notifications/unread-count");
   const unreadCount = unreadData?.count ?? 0;
+  const { data: dmUnreadData } = useCustomFetch<any>("/dm/unread-count");
+  const dmUnreadCount = dmUnreadData?.count ?? 0;
 
   return (
     <aside className={["border-r border-sidebar-border bg-sidebar flex flex-col h-full transition-all duration-300", isCollapsed ? "w-[60px]" : "w-full"].join(" ")}>
@@ -126,13 +128,13 @@ export function SectionRail({
               title="Personal"
               className={[
                 "w-full flex items-center justify-center h-10 w-10 mx-auto rounded-md text-sm font-medium transition-all relative",
-                (active === "my-posts" || active === "bookmarks" || active === "likes" || active === "drafts" || active === "inbox")
+                (active === "my-posts" || active === "messages" || active === "bookmarks" || active === "likes" || active === "drafts" || active === "inbox")
                   ? "bg-primary/10 text-primary"
                   : "text-foreground/80 hover:bg-accent hover:text-foreground",
               ].join(" ")}
             >
               <UserIcon className="w-5 h-5 shrink-0" />
-              {unreadCount > 0 && (
+              {(unreadCount > 0 || dmUnreadCount > 0) && (
                 <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm animate-pulse" />
               )}
             </button>
@@ -141,6 +143,26 @@ export function SectionRail({
               <div className="mt-4 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest overflow-hidden whitespace-nowrap">
                 Personal
               </div>
+              <button
+                onClick={() => onSelect("messages")}
+                className={[
+                  "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
+                  active === "messages"
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground/80 hover:bg-accent hover:text-foreground",
+                ].join(" ")}
+              >
+                <div className="flex items-center gap-2.5">
+                  <MessageSquare className="w-4 h-4 shrink-0" />
+                  <span>Messages</span>
+                </div>
+                {dmUnreadCount > 0 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-sm animate-pulse">
+                    {dmUnreadCount}
+                  </span>
+                )}
+              </button>
+
               <button
                 onClick={() => onSelect("my-posts")}
                 className={[

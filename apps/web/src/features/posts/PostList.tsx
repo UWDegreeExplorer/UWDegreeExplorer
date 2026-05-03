@@ -15,17 +15,20 @@ import { type SectionFilter, SECTION_LABELS } from "@/lib/constants";
 import { relTime, excerpt } from "@/lib/utils";
 import { ReplyComposer } from "./PostDetailPane";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { NotificationItem } from "../notifications/NotificationItem";
 
 export function PostList({
   section,
   selectedId,
   onSelect,
+  onSelectConversation,
   search,
   onSearchChange,
 }: {
   section: SectionFilter;
   selectedId: number | null;
   onSelect: (id: number, commentId?: number) => void;
+  onSelectConversation?: (id: string) => void;
   search: string;
   onSearchChange: (val: string) => void;
 }) {
@@ -376,30 +379,12 @@ export function PostList({
             ) : section === "inbox" ? (
               <ul className="divide-y divide-border">
                 {Array.isArray(notifications) && notifications.map((n) => (
-                  <li key={n.id}>
-                    <button
-                      onClick={() => handleNotificationClick(n)}
-                      className={[
-                        "w-full text-left px-6 py-4 transition-colors hover:bg-accent/50",
-                        !n.isRead && "bg-primary/[0.03] relative after:absolute after:left-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary"
-                      ].join(" ")}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant={n.isRead ? "outline" : "secondary"} className="text-[10px] py-0">
-                          {n.type === "reply_to_post" ? "Post Reply" : "Comment Reply"}
-                        </Badge>
-                        {n.postDeleted && (
-                          <Badge variant="destructive" className="text-[10px] py-0">Deleted</Badge>
-                        )}
-                        <span className="text-[10px] text-muted-foreground">{relTime(n.createdAt)}</span>
-                      </div>
-                      <p className="text-sm leading-snug">
-                        <span className="font-bold text-foreground">{n.actorName}</span>
-                        <span className="text-muted-foreground"> replied to: </span>
-                        <span className="font-medium">"{n.postTitle}"</span>
-                      </p>
-                    </button>
-                  </li>
+                  <NotificationItem 
+                    key={n.id} 
+                    notification={n}
+                    onSelectPost={onSelect}
+                    onSelectConversation={onSelectConversation || (() => {})}
+                  />
                 ))}
                 {notifications?.length === 0 && <EmptyState message="No notifications yet" />}
               </ul>

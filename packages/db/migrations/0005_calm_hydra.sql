@@ -1,0 +1,4 @@
+DROP INDEX "pending_connect_post_idx";--> statement-breakpoint
+DROP INDEX "pending_connect_comment_idx";--> statement-breakpoint
+CREATE UNIQUE INDEX "pending_connect_post_idx" ON "connect_requests" USING btree ("requester_id","target_user_id","source_post_id") WHERE "connect_requests"."source_comment_id" IS NULL AND "connect_requests"."status" = 'pending';--> statement-breakpoint
+CREATE UNIQUE INDEX "pending_connect_comment_idx" ON "connect_requests" USING btree ("requester_id","target_user_id","source_post_id","source_comment_id") WHERE "connect_requests"."source_comment_id" IS NOT NULL AND "connect_requests"."status" = 'pending';

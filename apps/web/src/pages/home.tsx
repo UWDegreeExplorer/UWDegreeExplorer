@@ -28,6 +28,8 @@ import { PostDetailPane, ReplyComposer } from "../features/posts/PostDetailPane"
 import { Header } from "../features/navigation/Header";
 import { SectionRail } from "../features/navigation/SectionRail";
 import { PostList } from "../features/posts/PostList";
+import { ConversationList } from "../features/messages/ConversationList";
+import { MessagePanel } from "../features/messages/MessagePanel";
 
 import { relTime, excerpt } from "@/lib/utils";
 import {
@@ -123,6 +125,7 @@ export default function Home() {
   const selectedId = matchPost && params?.id ? Number(params.id) : null;
   const [activeSection, setActiveSection] = useState<SectionFilter>("all");
   const [search, setSearch] = useState("");
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   
   const sidebarRef = useRef<ImperativePanelHandle>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -163,11 +166,18 @@ export default function Home() {
       setLocation("/bookmarks");
     } else if (s === "my-posts") {
       setLocation("/activity");
+    } else if (s === "messages") {
+      // Stay on home but show messages section
     } else if (s === "likes") {
       setLocation("/likes");
     } else if (matchPost || matchSettings || matchBookmarks || matchActivity || matchLikes) {
       setLocation(commentId ? `/post/${selectedId}?commentId=${commentId}` : "/");
     }
+  };
+
+  const openConversation = (id: string) => {
+    setActiveSection("messages");
+    setSelectedConversationId(id);
   };
 
   const handleSelectPost = (id: number, commentId?: number) => {
@@ -248,6 +258,31 @@ export default function Home() {
                   <SettingsPane />
                 </main>
               </Panel>
+            ) : activeSection === "messages" ? (
+              <>
+                <Panel defaultSize={35} minSize={(320 / viewportWidth) * 100}>
+                  <ConversationList 
+                    selectedId={selectedConversationId} 
+                    onSelect={setSelectedConversationId} 
+                  />
+                </Panel>
+                <PanelResizeHandle className="w-1.5 flex items-center justify-center group bg-border hover:bg-primary/50 data-[active]:bg-primary/80 transition-colors">
+                  <div className="w-0.5 h-8 bg-muted-foreground/30 group-hover:bg-white data-[active]:bg-white rounded-full" />
+                </PanelResizeHandle>
+                <Panel defaultSize={45} minSize={(360 / viewportWidth) * 100}>
+                  <main className="flex-1 flex flex-col bg-background h-full min-w-0">
+                    {selectedConversationId ? (
+                      <MessagePanel conversationId={selectedConversationId} />
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-40">
+                        <MessageSquare className="w-12 h-12 mb-4" />
+                        <h3 className="font-serif text-xl font-medium">Select a conversation</h3>
+                        <p className="text-sm max-w-xs mt-2">Pick a conversation from the list to start messaging with other community members.</p>
+                      </div>
+                    )}
+                  </main>
+                </Panel>
+              </>
             ) : (
               <>
                 {/* List: min 320px */}
@@ -258,6 +293,7 @@ export default function Home() {
                     search={search}
                     onSearchChange={setSearch}
                     onSelect={handleSelectPost}
+                    onSelectConversation={openConversation}
                   />
                 </Panel>
 
@@ -269,7 +305,10 @@ export default function Home() {
                 <Panel defaultSize={45} minSize={(360 / viewportWidth) * 100}>
                   <main className="flex-1 flex flex-col bg-background h-full min-w-0">
                     {selectedId ? (
-                      <PostDetailPane postId={selectedId} />
+                      <PostDetailPane 
+                        postId={selectedId} 
+                        onOpenConversation={openConversation}
+                      />
                     ) : (
                       <WelcomePane />
                     )}
@@ -284,6 +323,24 @@ export default function Home() {
               <main className="flex-1 min-w-0 bg-background h-full overflow-hidden">
                 <SettingsPane />
               </main>
+            ) : activeSection === "messages" ? (
+              <>
+                <div className="basis-[38%] max-w-[360px] min-w-[300px] shrink-0 h-full border-r border-border">
+                  <ConversationList 
+                    selectedId={selectedConversationId} 
+                    onSelect={setSelectedConversationId} 
+                  />
+                </div>
+                <main className="flex-1 min-w-0 bg-background h-full overflow-hidden">
+                  {selectedConversationId ? (
+                    <MessagePanel conversationId={selectedConversationId} />
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center opacity-30">
+                      <p>Select a message</p>
+                    </div>
+                  )}
+                </main>
+              </>
             ) : (
               <>
                 <div className="basis-[38%] max-w-[360px] min-w-[300px] shrink-0 h-full border-r border-border">
@@ -293,11 +350,15 @@ export default function Home() {
                     search={search}
                     onSearchChange={setSearch}
                     onSelect={handleSelectPost}
+                    onSelectConversation={openConversation}
                   />
                 </div>
                 <main className="flex-1 min-w-0 bg-background h-full overflow-hidden">
                   {selectedId ? (
-                    <PostDetailPane postId={selectedId} />
+                    <PostDetailPane 
+                      postId={selectedId} 
+                      onOpenConversation={openConversation}
+                    />
                   ) : (
                     <WelcomePane />
                   )}
@@ -329,8 +390,25 @@ export default function Home() {
                   </Button>
                 </div>
                 <div className="flex-1 overflow-hidden flex flex-col">
-                  <PostDetailPane postId={selectedId} />
+                  <PostDetailPane 
+                    postId={selectedId} 
+                    onOpenConversation={openConversation}
+                  />
                 </div>
+              </div>
+            ) : activeSection === "messages" ? (
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                {selectedConversationId ? (
+                  <MessagePanel 
+                    conversationId={selectedConversationId} 
+                    onBack={() => setSelectedConversationId(null)} 
+                  />
+                ) : (
+                  <ConversationList 
+                    selectedId={selectedConversationId} 
+                    onSelect={setSelectedConversationId} 
+                  />
+                )}
               </div>
             ) : (
               <PostList
@@ -339,6 +417,7 @@ export default function Home() {
                 search={search}
                 onSearchChange={setSearch}
                 onSelect={handleSelectPost}
+                onSelectConversation={openConversation}
               />
             )}
           </div>
