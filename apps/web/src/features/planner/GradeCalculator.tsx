@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
-  Plus, 
   Trash2, 
   Calculator, 
   ChevronRight, 
@@ -9,19 +8,20 @@ import {
   TrendingUp, 
   AlertCircle,
   GraduationCap,
-  Save,
   RefreshCw,
   FolderPlus,
   FilePlus,
   MoreVertical,
   ArrowLeft,
-  Calendar
+  Calendar,
+  GripVertical
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -192,83 +192,82 @@ export const GradeCalculator: React.FC = () => {
   // View 1: Detailed Course Editor
   if (selectedCourse) {
     return (
-      <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setSelectedCourse(null)}>
-            <ArrowLeft size={20} />
+      <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="flex items-center gap-6">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedCourse(null)} className="h-10 w-10">
+            <ArrowLeft size={24} />
           </Button>
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline" className="font-mono">{selectedCourse.term}</Badge>
-              <h1 className="text-3xl font-black tracking-tight">{selectedCourse.courseCode}</h1>
+            <div className="flex items-center gap-3 mb-1">
+              <Badge variant="secondary" className="font-mono px-2 py-0 text-xs font-bold uppercase">{selectedCourse.term}</Badge>
+              <h1 className="text-4xl font-black tracking-tight">{selectedCourse.courseCode}</h1>
             </div>
-            <p className="text-muted-foreground text-sm">Detailed grade breakdown and contribution analysis.</p>
+            <p className="text-muted-foreground font-medium text-sm">Real-time grade forecasting and syllabus breakdown.</p>
           </div>
-          <Button variant="outline" className="gap-2" onClick={() => loadCourseDetail(selectedCourse.term, selectedCourse.courseCode)}>
+          <Button variant="outline" className="gap-2 border-2 hover:bg-muted" onClick={() => loadCourseDetail(selectedCourse.term, selectedCourse.courseCode)}>
             <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
-            Refresh
+            Refresh Data
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-primary/5 border-primary/20 relative overflow-hidden">
-            <div className="absolute -right-2 -bottom-2 opacity-5">
-              <TrendingUp size={100} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <Card className="bg-primary/[0.03] border-primary/20 relative overflow-hidden shadow-sm">
+            <div className="absolute -right-4 -bottom-4 opacity-5">
+              <TrendingUp size={120} />
             </div>
             <CardHeader className="pb-2">
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Current Total</CardDescription>
-              <CardTitle className="text-4xl font-black">{totals.current.toFixed(1)}<span className="text-sm opacity-50 ml-1">/ 100</span></CardTitle>
+              <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Current Total</CardDescription>
+              <CardTitle className="text-5xl font-black text-primary">{totals.current.toFixed(1)}<span className="text-sm opacity-50 ml-1 font-bold">/ 100</span></CardTitle>
             </CardHeader>
             <CardContent>
-              <Progress value={totals.current} className="h-1 bg-primary/10" />
-              <p className="text-[10px] mt-2 text-muted-foreground">Weighted contribution from graded items.</p>
+              <Progress value={totals.current} className="h-1.5 bg-primary/10" />
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-dashed">
+          <Card className="relative overflow-hidden border-2 border-dashed bg-card/50 shadow-sm">
             <CardHeader className="pb-2">
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Weight Logged</CardDescription>
-              <CardTitle className="text-4xl font-black">{totals.totalWeight.toFixed(0)}%</CardTitle>
+              <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em]">Weight Defined</CardDescription>
+              <CardTitle className="text-5xl font-black">{totals.totalWeight.toFixed(0)}<span className="text-sm opacity-50 ml-1 font-bold">%</span></CardTitle>
             </CardHeader>
             <CardContent>
-              <Progress value={totals.totalWeight} className="h-1" />
-              <p className="text-[10px] mt-2 text-muted-foreground">Percentage of total course weight defined.</p>
+              <Progress value={totals.totalWeight} className="h-1.5" />
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-2 flex flex-col justify-center p-6 space-y-2">
-             <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-muted-foreground uppercase">Target Grade</span>
-                <span className="text-xl font-black">{selectedCourse.targetGrade}%</span>
+          <Card className="bg-card border-2 shadow-sm flex flex-col justify-between p-6">
+             <div className="flex justify-between items-start">
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Target Grade</span>
+                <Badge className="bg-indigo-500 hover:bg-indigo-600 font-black text-sm">{selectedCourse.targetGrade}%</Badge>
              </div>
-             <div className="pt-2">
-                <div className="text-[10px] uppercase text-muted-foreground font-bold mb-1">Required to hit target</div>
-                <div className="text-lg font-bold">
+             <div className="pt-4 space-y-1">
+                <div className="text-[10px] uppercase text-muted-foreground font-black tracking-tight">Required avg. remaining</div>
+                <div className="text-3xl font-black text-indigo-500">
                   {totals.totalWeight < 100 
-                    ? `${((selectedCourse.targetGrade - totals.current) / (100 - totals.totalWeight) * 100).toFixed(1)}% avg.`
-                    : "N/A"}
+                    ? `${((selectedCourse.targetGrade - totals.current) / (100 - totals.totalWeight) * 100).toFixed(1)}%`
+                    : "Reached"}
                 </div>
              </div>
           </Card>
         </div>
 
-        <Card className="border-2">
-          <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
-            <div>
-              <CardTitle className="text-lg">Grading Components</CardTitle>
-              <CardDescription>Add categories and items as per your syllabus.</CardDescription>
+        <Card className="border-2 shadow-md overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between bg-muted/30 border-b py-5 px-8">
+            <div className="space-y-1">
+              <CardTitle className="text-xl font-black">Syllabus Breakdown</CardTitle>
+              <CardDescription className="font-medium">Map your assignments and exams to track progress.</CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="gap-2" onClick={() => handleAddComponent(null, false)}>
-                <FolderPlus size={14} /> Category
+            <div className="flex bg-background rounded-lg border-2 p-1 gap-1">
+              <Button size="sm" variant="ghost" className="gap-2 h-8 px-3 font-bold text-xs" onClick={() => handleAddComponent(null, false)}>
+                <FolderPlus size={14} className="text-primary" /> Category
               </Button>
-              <Button size="sm" className="gap-2 shadow-lg shadow-primary/20" onClick={() => handleAddComponent(null, true)}>
-                <FilePlus size={14} /> Item
+              <Separator orientation="vertical" className="h-4 self-center" />
+              <Button size="sm" variant="ghost" className="gap-2 h-8 px-3 font-bold text-xs" onClick={() => handleAddComponent(null, true)}>
+                <FilePlus size={14} className="text-primary" /> Item
               </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-             <div className="divide-y divide-border">
+             <div className="divide-y-2 divide-border/50">
                 {selectedCourse.components.filter(c => c.parentId === null).map((comp) => (
                   <ComponentRow 
                     key={comp.id} 
@@ -280,9 +279,12 @@ export const GradeCalculator: React.FC = () => {
                   />
                 ))}
                 {selectedCourse.components.filter(c => c.parentId === null).length === 0 && (
-                  <div className="py-20 text-center text-muted-foreground space-y-4">
-                    <div className="flex justify-center"><AlertCircle className="opacity-20" size={40} /></div>
-                    <p className="text-sm">No components yet. Start by adding a category (e.g. Assignments) or a direct item.</p>
+                  <div className="py-32 text-center text-muted-foreground space-y-6">
+                    <div className="flex justify-center"><Calculator className="opacity-10" size={80} /></div>
+                    <div className="space-y-1">
+                      <p className="text-lg font-black text-foreground/50">Your breakdown is empty</p>
+                      <p className="text-sm font-medium">Start by adding a high-level category like "Assignments" or "Exams".</p>
+                    </div>
                   </div>
                 )}
              </div>
@@ -302,8 +304,8 @@ export const GradeCalculator: React.FC = () => {
             <ArrowLeft size={20} />
           </Button>
           <div className="flex-1">
-            <h1 className="text-3xl font-black tracking-tight">{selectedTerm}</h1>
-            <p className="text-muted-foreground">Select a course to manage your grades.</p>
+            <h1 className="text-4xl font-black tracking-tighter">{selectedTerm}</h1>
+            <p className="text-muted-foreground font-medium">Pick a course to manage your grades.</p>
           </div>
         </div>
 
@@ -316,36 +318,28 @@ export const GradeCalculator: React.FC = () => {
               whileHover={{ y: -4 }}
               onClick={() => loadCourseDetail(course.term, course.courseCode)}
             >
-              <Card className="cursor-pointer group hover:border-primary/50 transition-all border-2 bg-card/50 backdrop-blur-sm overflow-hidden relative">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-2xl font-black">{course.courseCode}</CardTitle>
+              <Card className="cursor-pointer group hover:border-primary/50 transition-all border-2 bg-card/50 backdrop-blur-sm overflow-hidden relative shadow-sm hover:shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-2xl font-black tracking-tight">{course.courseCode}</CardTitle>
                   {course.isActive === false && (
-                    <Badge variant="destructive" className="text-[10px] uppercase">Archived</Badge>
+                    <Badge variant="destructive" className="text-[10px] font-black uppercase px-2 py-0">Archived</Badge>
                   )}
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
                   <div className="flex justify-between items-end">
                     <div className="space-y-1">
-                      <div className="text-[10px] font-bold uppercase text-muted-foreground">Target</div>
-                      <div className="text-lg font-bold">{course.targetGrade}%</div>
+                      <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Target</div>
+                      <div className="text-2xl font-black text-indigo-500">{course.targetGrade}%</div>
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="group-hover:bg-primary group-hover:text-primary-foreground"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        loadCourseDetail(course.term, course.courseCode);
-                      }}
-                    >
-                      Edit Grades <ChevronRight size={14} className="ml-1" />
+                    <Button size="sm" variant="outline" className="group-hover:bg-primary group-hover:text-primary-foreground border-2 font-bold">
+                      Edit <ChevronRight size={14} className="ml-1" />
                     </Button>
                   </div>
                   {course.isActive === false && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 h-8 w-8 transition-all"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteCourse(course.id);
@@ -365,48 +359,48 @@ export const GradeCalculator: React.FC = () => {
 
   // View 3: Term Selection (Initial View)
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-8 max-w-6xl mx-auto space-y-10 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black tracking-tight flex items-center gap-3">
-            <Calculator className="text-primary" size={36} />
-            Grade Calculator
+        <div className="space-y-2">
+          <h1 className="text-5xl font-black tracking-tighter flex items-center gap-4">
+            <Calculator className="text-primary h-12 w-12" />
+            Grades
           </h1>
-          <p className="text-muted-foreground">Track your academic progress by term.</p>
+          <p className="text-muted-foreground font-medium text-lg italic">Organized by academic term.</p>
         </div>
-        <Button onClick={handleSync} className="gap-2 shadow-lg shadow-primary/10">
-          <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
-          Sync from Calendar
+        <Button onClick={handleSync} className="gap-2 h-12 px-6 shadow-xl shadow-primary/20 font-black rounded-xl">
+          <RefreshCw size={18} className={isLoading ? "animate-spin" : ""} />
+          Sync Calendar
         </Button>
       </div>
 
       {isLoading && courseSummaries.length === 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[1, 2, 3].map(i => (
-            <Card key={i} className="h-48 animate-pulse bg-muted/20" />
+            <Card key={i} className="h-56 animate-pulse bg-muted/20 rounded-2xl border-2" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {groupedTerms.map(([term, courses]) => (
             <motion.div
               key={term}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -4 }}
+              whileHover={{ y: -6 }}
               onClick={() => setSelectedTerm(term)}
             >
-              <Card className="cursor-pointer border-2 hover:border-primary/50 transition-all bg-card shadow-sm overflow-hidden relative">
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10">
-                  <Calendar size={60} />
+              <Card className="cursor-pointer border-2 border-transparent hover:border-primary/50 transition-all bg-card shadow-lg hover:shadow-xl overflow-hidden relative rounded-2xl group">
+                <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
+                  <Calendar size={120} />
                 </div>
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold">{term}</CardTitle>
-                  <CardDescription>{courses.length} Courses</CardDescription>
+                <CardHeader className="pb-4 pt-8 text-center">
+                  <CardTitle className="text-2xl font-black tracking-tight">{term}</CardTitle>
+                  <CardDescription className="font-bold text-primary">{courses.length} Active Courses</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Button variant="ghost" size="sm" className="w-full justify-between hover:bg-primary hover:text-primary-foreground">
-                    View Term <ChevronRight size={14} />
+                <CardContent className="px-6 pb-8">
+                  <Button variant="secondary" className="w-full justify-between font-black group-hover:bg-primary group-hover:text-primary-foreground transition-colors h-11">
+                    Open Term <ChevronRight size={16} />
                   </Button>
                 </CardContent>
               </Card>
@@ -414,14 +408,16 @@ export const GradeCalculator: React.FC = () => {
           ))}
           
           {courseSummaries.length === 0 && !isLoading && (
-            <Card className="col-span-full py-20 border-dashed bg-muted/5 flex flex-col items-center justify-center text-center">
-              <Target size={48} className="text-muted-foreground/20 mb-4" />
-              <h3 className="text-lg font-bold">No data yet</h3>
-              <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
-                Click "Sync from Calendar" to import your courses.
-              </p>
-              <Button onClick={handleSync} variant="outline" className="gap-2">
-                <RefreshCw size={16} /> Sync Now
+            <Card className="col-span-full py-32 border-4 border-dashed bg-muted/5 rounded-3xl flex flex-col items-center justify-center text-center">
+              <Target size={100} className="text-muted-foreground/10 mb-6" />
+              <div className="space-y-2 mb-8">
+                <h3 className="text-3xl font-black tracking-tight">Fresh Start?</h3>
+                <p className="text-muted-foreground font-medium max-w-sm mx-auto">
+                  Pull your current courses from the calendar to start tracking your grades and predicting outcomes.
+                </p>
+              </div>
+              <Button onClick={handleSync} size="lg" className="gap-3 h-14 px-8 rounded-2xl font-black text-lg shadow-lg">
+                <RefreshCw size={20} /> Sync Now
               </Button>
             </Card>
           )}
@@ -468,88 +464,103 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
   return (
     <div className="w-full">
       <div 
-        className={`flex items-center group hover:bg-muted/30 transition-colors ${depth === 0 ? "py-4 px-6" : "py-3 px-6 border-l-2 ml-4 border-muted"}`}
+        className={`grid grid-cols-[1fr_auto] items-center group transition-all duration-200 ${
+          depth === 0 ? "py-5 px-8 bg-background" : "py-4 px-8 border-l-4 border-muted hover:bg-muted/10 ml-8"
+        }`}
       >
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {!component.isLeaf && (
-            <button onClick={() => setIsExpanded(!isExpanded)} className="text-muted-foreground hover:text-primary">
-              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </button>
-          )}
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="flex items-center gap-2">
+            {!component.isLeaf && (
+              <button 
+                onClick={() => setIsExpanded(!isExpanded)} 
+                className="text-muted-foreground hover:text-primary transition-colors p-1"
+              >
+                {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+              </button>
+            )}
+            <GripVertical className="text-muted-foreground/20 cursor-grab" size={16} />
+          </div>
           <Input 
-            className="h-8 text-sm font-bold bg-transparent border-none focus-visible:ring-0 p-0 hover:bg-muted/50 transition-colors w-48"
+            className={`h-9 text-base font-bold bg-transparent border-none focus-visible:ring-1 focus-visible:ring-primary/20 p-2 hover:bg-muted/50 transition-all ${
+              component.isLeaf ? "text-foreground" : "text-primary uppercase tracking-wide"
+            } w-full max-w-[320px]`}
             value={component.name}
             onChange={(e) => onUpdate({ ...component, name: e.target.value })}
             onBlur={() => onUpdate(component)}
           />
         </div>
 
-        <div className="flex items-center gap-8 pr-4">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">Weight</span>
-            <div className="relative">
+        <div className="flex items-center gap-12">
+          {/* Weight Section */}
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">Weight</span>
+            <div className="relative group/input">
               <Input 
                 type="number"
-                className="h-8 w-20 text-right pr-6 font-mono text-xs"
+                className="h-9 w-24 text-right pr-7 font-mono text-xs font-bold border-2 focus-visible:ring-primary/30"
                 value={component.weight}
                 onChange={(e) => onUpdate({ ...component, weight: parseFloat(e.target.value) || 0 })}
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] opacity-40">%</span>
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground opacity-40">%</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-32 justify-end">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">
-              {component.isLeaf ? "Score" : "Sum"}
+          {/* Score/Sum Section */}
+          <div className="flex items-center gap-3 w-40 justify-end">
+            <span className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">
+              {component.isLeaf ? "Score" : "Contribution"}
             </span>
             {component.isLeaf ? (
               <div className="relative">
                 <Input 
                   type="number"
-                  className="h-8 w-20 text-right pr-6 font-mono text-xs font-bold text-primary"
+                  className="h-9 w-24 text-right pr-7 font-mono text-sm font-black text-indigo-500 border-2 focus-visible:ring-indigo-300"
                   value={component.score || 0}
                   onChange={(e) => onUpdate({ ...component, score: parseFloat(e.target.value) || 0 })}
                 />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] opacity-40">%</span>
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400 opacity-40">%</span>
               </div>
             ) : (
-              <div className="text-sm font-black text-indigo-500 w-20 text-right">
+              <div className="text-lg font-black text-primary w-24 text-right px-2">
                 {categoryTotal.toFixed(1)}
               </div>
             )}
           </div>
 
+          {/* Action Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                <MoreVertical size={14} />
+              <Button variant="ghost" size="icon" className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10 hover:text-primary">
+                <MoreVertical size={16} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48 p-1">
               {!component.isLeaf && (
                 <>
-                  <DropdownMenuItem onClick={() => onAddChild(component.id, false)} className="gap-2 text-xs">
-                    <FolderPlus size={14} /> Add Sub-category
+                  <DropdownMenuItem onClick={() => onAddChild(component.id, false)} className="gap-3 font-bold py-2 px-3">
+                    <FolderPlus size={16} className="text-primary" /> Add Category
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onAddChild(component.id, true)} className="gap-2 text-xs">
-                    <FilePlus size={14} /> Add Sub-item
+                  <DropdownMenuItem onClick={() => onAddChild(component.id, true)} className="gap-3 font-bold py-2 px-3">
+                    <FilePlus size={16} className="text-primary" /> Add Item
                   </DropdownMenuItem>
+                  <Separator className="my-1" />
                 </>
               )}
-              <DropdownMenuItem onClick={() => onDelete(component.id)} className="gap-2 text-xs text-rose-500 focus:text-rose-500">
-                <Trash2 size={14} /> Delete
+              <DropdownMenuItem onClick={() => onDelete(component.id)} className="gap-3 font-bold py-2 px-3 text-rose-500 focus:text-rose-500 focus:bg-rose-50">
+                <Trash2 size={16} /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isExpanded && children.length > 0 && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="overflow-hidden"
           >
             {children.map((child) => (
