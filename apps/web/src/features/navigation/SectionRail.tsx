@@ -253,125 +253,123 @@ export function SectionRail({
         </div>
 
         {/* Group 3: Personal */}
-        {currentUser && (
-          isCollapsed ? (
+        {isCollapsed ? (
+          <button
+            onClick={() => onToggle?.()}
+            title="Personal"
+            className={[
+              "w-full flex items-center justify-center h-10 w-10 mx-auto rounded-md text-sm font-medium transition-all relative",
+              (active === "my-posts" || active === "messages" || active === "bookmarks" || active === "likes" || active === "drafts" || active === "inbox")
+                ? "bg-primary/10 text-primary"
+                : "text-foreground/80 hover:bg-accent hover:text-foreground",
+            ].join(" ")}
+          >
+            <UserIcon className="w-5 h-5 shrink-0" />
+            {(unreadCount > 0 || dmUnreadCount > 0) && (
+              <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm animate-pulse" />
+            )}
+          </button>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-1"
+          >
+            <div className="mt-4 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest overflow-hidden whitespace-nowrap">
+              Personal
+            </div>
             <button
-              onClick={() => onToggle?.()}
-              title="Personal"
+              onClick={() => onSelect("messages")}
               className={[
-                "w-full flex items-center justify-center h-10 w-10 mx-auto rounded-md text-sm font-medium transition-all relative",
-                (active === "my-posts" || active === "messages" || active === "bookmarks" || active === "likes" || active === "drafts" || active === "inbox")
+                "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
+                active === "messages"
                   ? "bg-primary/10 text-primary"
                   : "text-foreground/80 hover:bg-accent hover:text-foreground",
               ].join(" ")}
             >
-              <UserIcon className="w-5 h-5 shrink-0" />
-              {(unreadCount > 0 || dmUnreadCount > 0) && (
-                <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm animate-pulse" />
+              <div className="flex items-center gap-2.5">
+                <MessageSquare className="w-4 h-4 shrink-0" />
+                <span>Messages</span>
+              </div>
+              {dmUnreadCount > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-sm animate-pulse">
+                  {dmUnreadCount}
+                </span>
               )}
             </button>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-1"
+
+            <button
+              onClick={() => onSelect("my-posts")}
+              className={[
+                "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
+                active === "my-posts"
+                  ? "bg-primary/10 text-primary"
+                  : "text-foreground/80 hover:bg-accent hover:text-foreground",
+              ].join(" ")}
             >
-              <div className="mt-4 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest overflow-hidden whitespace-nowrap">
-                Personal
+              <FileText className="w-4 h-4 shrink-0" />
+              <span>My Activity</span>
+            </button>
+
+            <button
+              onClick={() => onSelect("bookmarks")}
+              className={[
+                "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
+                active === "bookmarks"
+                  ? "bg-primary/10 text-primary"
+                  : "text-foreground/80 hover:bg-accent hover:text-foreground",
+              ].join(" ")}
+            >
+              <Bookmark className="w-4 h-4 shrink-0" />
+              <span>Bookmarks</span>
+            </button>
+
+            <button
+              onClick={() => onSelect("likes")}
+              className={[
+                "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
+                active === "likes"
+                  ? "bg-primary/10 text-primary"
+                  : "text-foreground/80 hover:bg-accent hover:text-foreground",
+              ].join(" ")}
+            >
+              <Heart className="w-4 h-4 shrink-0" />
+              <span>Likes</span>
+            </button>
+
+            <button
+              onClick={() => onSelect("drafts")}
+              className={[
+                "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
+                active === "drafts"
+                  ? "bg-primary/10 text-primary"
+                  : "text-foreground/80 hover:bg-accent hover:text-foreground",
+              ].join(" ")}
+            >
+              <FileEdit className="w-4 h-4 shrink-0" />
+              <span>Drafts</span>
+            </button>
+
+            <button
+              onClick={() => onSelect("inbox")}
+              className={[
+                "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
+                active === "inbox"
+                  ? "bg-primary/10 text-primary"
+                  : "text-foreground/80 hover:bg-accent hover:text-foreground",
+              ].join(" ")}
+            >
+              <div className="flex items-center gap-2.5">
+                <InboxIcon className="w-4 h-4 shrink-0" />
+                <span>Inbox</span>
               </div>
-              <button
-                onClick={() => onSelect("messages")}
-                className={[
-                  "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
-                  active === "messages"
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/80 hover:bg-accent hover:text-foreground",
-                ].join(" ")}
-              >
-                <div className="flex items-center gap-2.5">
-                  <MessageSquare className="w-4 h-4 shrink-0" />
-                  <span>Messages</span>
-                </div>
-                {dmUnreadCount > 0 && (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-sm animate-pulse">
-                    {dmUnreadCount}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => onSelect("my-posts")}
-                className={[
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
-                  active === "my-posts"
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/80 hover:bg-accent hover:text-foreground",
-                ].join(" ")}
-              >
-                <FileText className="w-4 h-4 shrink-0" />
-                <span>My Activity</span>
-              </button>
-
-              <button
-                onClick={() => onSelect("bookmarks")}
-                className={[
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
-                  active === "bookmarks"
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/80 hover:bg-accent hover:text-foreground",
-                ].join(" ")}
-              >
-                <Bookmark className="w-4 h-4 shrink-0" />
-                <span>Bookmarks</span>
-              </button>
-
-              <button
-                onClick={() => onSelect("likes")}
-                className={[
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
-                  active === "likes"
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/80 hover:bg-accent hover:text-foreground",
-                ].join(" ")}
-              >
-                <Heart className="w-4 h-4 shrink-0" />
-                <span>Likes</span>
-              </button>
-
-              <button
-                onClick={() => onSelect("drafts")}
-                className={[
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
-                  active === "drafts"
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/80 hover:bg-accent hover:text-foreground",
-                ].join(" ")}
-              >
-                <FileEdit className="w-4 h-4 shrink-0" />
-                <span>Drafts</span>
-              </button>
-
-              <button
-                onClick={() => onSelect("inbox")}
-                className={[
-                  "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
-                  active === "inbox"
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/80 hover:bg-accent hover:text-foreground",
-                ].join(" ")}
-              >
-                <div className="flex items-center gap-2.5">
-                  <InboxIcon className="w-4 h-4 shrink-0" />
-                  <span>Inbox</span>
-                </div>
-                {unreadCount > 0 && (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-sm animate-pulse">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-            </motion.div>
-          )
+              {unreadCount > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-sm animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          </motion.div>
         )}
       </nav>
 

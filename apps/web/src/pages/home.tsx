@@ -28,6 +28,7 @@ import { PostDetailPane, ReplyComposer } from "../features/posts/PostDetailPane"
 import { Header } from "../features/navigation/Header";
 import { SectionRail } from "../features/navigation/SectionRail";
 import { PostList } from "../features/posts/PostList";
+import { LoginRequired } from "@/components/shared/LoginRequired";
 import { ConversationList } from "../features/messages/ConversationList";
 import { MessagePanel } from "../features/messages/MessagePanel";
 import { CourseExplorer } from "../features/planner/CourseExplorer";
@@ -70,6 +71,10 @@ import {
   GripVertical,
   Menu,
   ArrowLeft,
+  Heart,
+  Plus,
+  Activity,
+  Calculator
 } from "lucide-react";
 import { 
   PanelGroup, 
@@ -124,6 +129,8 @@ import { type SectionFilter, SECTION_LABELS, SECTION_ICONS } from "@/lib/constan
 
 
 export default function Home() {
+  const { data: userData } = useGetCurrentUser();
+  const currentUser = userData?.user;
   const [, setLocation] = useLocation();
   const [matchPost, params] = useRoute<{ id: string }>("/post/:id");
   const selectedId = matchPost && params?.id ? Number(params.id) : null;
@@ -158,6 +165,7 @@ export default function Home() {
 
   const isMobile = !isDesktop && !isTablet;
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const isPersonalSection = ["messages", "my-posts", "bookmarks", "likes", "drafts", "inbox"].includes(activeSection);
 
   const onSelectSection = (s: SectionFilter, commentId?: number) => {
     setActiveSection(s);
@@ -276,7 +284,24 @@ export default function Home() {
               <div className="w-0.5 h-8 bg-muted-foreground/30 group-hover:bg-white data-[active]:bg-white rounded-full" />
             </PanelResizeHandle>
 
-            {activeSection === "settings" ? (
+            {!currentUser && isPersonalSection ? (
+              <Panel defaultSize={80} minSize={60}>
+                <main className="flex-1 flex flex-col bg-background h-full min-w-0 items-center justify-center">
+                   <LoginRequired 
+                      title={`${activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}`} 
+                      description={`Access your ${activeSection} and keep track of your contributions. Sign in to see your personalized content.`}
+                      icon={
+                        activeSection === "messages" ? <MessageSquare size={48} className="text-primary/20" /> :
+                        activeSection === "bookmarks" ? <Bookmark size={48} className="text-primary/20" /> :
+                        activeSection === "likes" ? <Heart size={48} className="text-primary/20" /> :
+                        activeSection === "drafts" ? <FileEdit size={48} className="text-primary/20" /> :
+                        activeSection === "inbox" ? <InboxIcon size={48} className="text-primary/20" /> :
+                        <UserIcon size={48} className="text-primary/20" />
+                      }
+                   />
+                </main>
+              </Panel>
+            ) : activeSection === "settings" ? (
               <Panel defaultSize={80} minSize={60}>
                 <main className="flex-1 flex flex-col bg-background h-full min-w-0">
                   <SettingsPane />
@@ -367,7 +392,22 @@ export default function Home() {
           </PanelGroup>
         ) : isTablet ? (
           <div className="flex h-full w-full">
-            {activeSection === "settings" ? (
+            {!currentUser && isPersonalSection ? (
+              <main className="flex-1 min-w-0 bg-background h-full overflow-hidden">
+                 <LoginRequired 
+                    title={`${activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}`} 
+                    description={`Access your ${activeSection} and keep track of your contributions. Sign in to see your personalized content.`}
+                    icon={
+                      activeSection === "messages" ? <MessageSquare size={48} className="text-primary/20" /> :
+                      activeSection === "bookmarks" ? <Bookmark size={48} className="text-primary/20" /> :
+                      activeSection === "likes" ? <Heart size={48} className="text-primary/20" /> :
+                      activeSection === "drafts" ? <FileEdit size={48} className="text-primary/20" /> :
+                      activeSection === "inbox" ? <InboxIcon size={48} className="text-primary/20" /> :
+                      <UserIcon size={48} className="text-primary/20" />
+                    }
+                 />
+              </main>
+            ) : activeSection === "settings" ? (
               <main className="flex-1 min-w-0 bg-background h-full overflow-hidden">
                 <SettingsPane />
               </main>
@@ -433,7 +473,28 @@ export default function Home() {
         ) : (
           /* Mobile: Single column with back navigation */
           <div className="h-full w-full flex flex-col bg-background">
-            {activeSection === "settings" ? (
+            {!currentUser && isPersonalSection ? (
+               <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <div className="px-3 py-1.5 border-b border-border flex items-center bg-card/10 backdrop-blur-sm sticky top-0 z-10">
+                  <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="-ml-1 gap-1.5 h-8 text-muted-foreground hover:text-foreground transition-colors">
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-xs font-medium">Home</span>
+                  </Button>
+                </div>
+                <LoginRequired 
+                    title={`${activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}`} 
+                    description={`Access your ${activeSection} and keep track of your contributions. Sign in to see your personalized content.`}
+                    icon={
+                      activeSection === "messages" ? <MessageSquare size={48} className="text-primary/20" /> :
+                      activeSection === "bookmarks" ? <Bookmark size={48} className="text-primary/20" /> :
+                      activeSection === "likes" ? <Heart size={48} className="text-primary/20" /> :
+                      activeSection === "drafts" ? <FileEdit size={48} className="text-primary/20" /> :
+                      activeSection === "inbox" ? <InboxIcon size={48} className="text-primary/20" /> :
+                      <UserIcon size={48} className="text-primary/20" />
+                    }
+                 />
+              </div>
+            ) : activeSection === "settings" ? (
               <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <div className="px-3 py-1.5 border-b border-border flex items-center bg-card/10 backdrop-blur-sm sticky top-0 z-10">
                   <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="-ml-1 gap-1.5 h-8 text-muted-foreground hover:text-foreground transition-colors">
