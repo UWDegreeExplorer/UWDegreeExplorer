@@ -167,6 +167,18 @@ export default function Home() {
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
   const isPersonalSection = ["messages", "my-posts", "bookmarks", "likes", "drafts", "inbox"].includes(activeSection);
 
+  const sectionTitleMap: Record<string, string> = {
+    "my-posts": "My Activity",
+    "bookmarks": "Bookmarks",
+    "likes": "Likes",
+    "messages": "Messages",
+    "drafts": "Drafts",
+    "inbox": "Inbox",
+    "calendar": "Calendar Importer",
+    "workload": "Workload Analysis",
+    "grades": "Grade Calculator"
+  };
+
   const onSelectSection = (s: SectionFilter, commentId?: number) => {
     setActiveSection(s);
     setSearch("");
@@ -288,8 +300,8 @@ export default function Home() {
               <Panel defaultSize={80} minSize={60}>
                 <main className="flex-1 flex flex-col bg-background h-full min-w-0 items-center justify-center">
                    <LoginRequired 
-                      title={`${activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}`} 
-                      description={`Access your ${activeSection} and keep track of your contributions. Sign in to see your personalized content.`}
+                      title={sectionTitleMap[activeSection] || activeSection} 
+                      description={`Access your ${activeSection.replace("-", " ")} and keep track of your contributions. Sign in to see your personalized content.`}
                       icon={
                         activeSection === "messages" ? <MessageSquare size={48} className="text-primary/20" /> :
                         activeSection === "bookmarks" ? <Bookmark size={48} className="text-primary/20" /> :
@@ -395,8 +407,8 @@ export default function Home() {
             {!currentUser && isPersonalSection ? (
               <main className="flex-1 min-w-0 bg-background h-full overflow-hidden">
                  <LoginRequired 
-                    title={`${activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}`} 
-                    description={`Access your ${activeSection} and keep track of your contributions. Sign in to see your personalized content.`}
+                    title={sectionTitleMap[activeSection] || activeSection} 
+                    description={`Access your ${activeSection.replace("-", " ")} and keep track of your contributions. Sign in to see your personalized content.`}
                     icon={
                       activeSection === "messages" ? <MessageSquare size={48} className="text-primary/20" /> :
                       activeSection === "bookmarks" ? <Bookmark size={48} className="text-primary/20" /> :
@@ -482,8 +494,8 @@ export default function Home() {
                   </Button>
                 </div>
                 <LoginRequired 
-                    title={`${activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}`} 
-                    description={`Access your ${activeSection} and keep track of your contributions. Sign in to see your personalized content.`}
+                    title={sectionTitleMap[activeSection] || activeSection} 
+                    description={`Access your ${activeSection.replace("-", " ")} and keep track of your contributions. Sign in to see your personalized content.`}
                     icon={
                       activeSection === "messages" ? <MessageSquare size={48} className="text-primary/20" /> :
                       activeSection === "bookmarks" ? <Bookmark size={48} className="text-primary/20" /> :
