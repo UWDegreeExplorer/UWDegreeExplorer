@@ -71,6 +71,13 @@
       "when": 1778025791297,
       "tag": "0009_lumpy_fenris",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778046141529,
+      "tag": "0010_same_stingray",
+      "breakpoints": true
     }
   ]
 }

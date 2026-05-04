@@ -5,7 +5,7 @@ export const courses = pgTable("planner_courses", {
   courseId: text("course_id").primaryKey(),
   subjectCode: text("subject_code"),
   catalogNumber: text("catalog_number"),
-  units: numeric("units", { precision: 3, scale: 2 }).default("0.50"),
+  units: numeric("units", { precision: 3, scale: 2 }).default("0.00"),
 });
 
 // 2. 课程内容版本表
