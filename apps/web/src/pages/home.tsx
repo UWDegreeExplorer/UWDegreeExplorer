@@ -308,6 +308,7 @@ export default function Home() {
                         activeSection === "likes" ? <Heart size={48} className="text-primary/20" /> :
                         activeSection === "drafts" ? <FileEdit size={48} className="text-primary/20" /> :
                         activeSection === "inbox" ? <InboxIcon size={48} className="text-primary/20" /> :
+                        activeSection === "my-posts" ? <FileText size={48} className="text-primary/20" /> :
                         <UserIcon size={48} className="text-primary/20" />
                       }
                    />
@@ -415,6 +416,7 @@ export default function Home() {
                       activeSection === "likes" ? <Heart size={48} className="text-primary/20" /> :
                       activeSection === "drafts" ? <FileEdit size={48} className="text-primary/20" /> :
                       activeSection === "inbox" ? <InboxIcon size={48} className="text-primary/20" /> :
+                      activeSection === "my-posts" ? <FileText size={48} className="text-primary/20" /> :
                       <UserIcon size={48} className="text-primary/20" />
                     }
                  />
@@ -502,6 +504,7 @@ export default function Home() {
                       activeSection === "likes" ? <Heart size={48} className="text-primary/20" /> :
                       activeSection === "drafts" ? <FileEdit size={48} className="text-primary/20" /> :
                       activeSection === "inbox" ? <InboxIcon size={48} className="text-primary/20" /> :
+                      activeSection === "my-posts" ? <FileText size={48} className="text-primary/20" /> :
                       <UserIcon size={48} className="text-primary/20" />
                     }
                  />
