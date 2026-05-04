@@ -18,7 +18,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch, useGetCurrentUser } from "@workspace/api-client-react";
+import { LoginRequired } from "@/components/shared/LoginRequired";
 
 interface ParsedCourse {
   courseCode: string;
@@ -53,6 +54,8 @@ const dayMap: Record<string, string> = {
 };
 
 export function MakeCalendar() {
+  const { data: userData } = useGetCurrentUser();
+  const currentUser = userData?.user;
   const [scheduleText, setScheduleText] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -74,8 +77,20 @@ export function MakeCalendar() {
   };
 
   useEffect(() => {
-    fetchSavedSchedules();
-  }, []);
+    if (currentUser) {
+      fetchSavedSchedules();
+    }
+  }, [currentUser]);
+
+  if (!currentUser) {
+    return (
+      <LoginRequired 
+        title="Calendar Importer" 
+        description="Save your class schedule, export it to your phone, and synchronize it with your grade calculator. Sign in to start organizing your term."
+        icon={<CalendarIcon size={48} className="text-primary/20" />}
+      />
+    );
+  }
 
   const handleParse = async () => {
     if (!scheduleText.trim()) return;

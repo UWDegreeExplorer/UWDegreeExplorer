@@ -29,8 +29,10 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch, useGetCurrentUser } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+import { LoginRequired } from "@/components/shared/LoginRequired";
 
 interface GradeComponent {
   id: number;
@@ -52,6 +54,8 @@ interface CourseGrade {
 }
 
 export const GradeCalculator: React.FC = () => {
+  const { data: userData } = useGetCurrentUser();
+  const currentUser = userData?.user;
   const [courseSummaries, setCourseSummaries] = useState<CourseGrade[]>([]);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<CourseGrade | null>(null);
@@ -59,8 +63,20 @@ export const GradeCalculator: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchSummaries();
-  }, []);
+    if (currentUser) {
+      fetchSummaries();
+    }
+  }, [currentUser]);
+
+  if (!currentUser) {
+    return (
+      <LoginRequired 
+        title="Grade Calculator" 
+        description="Sync your courses from the calendar and track your assignments, exams, and target grades in one place. Sign in to start managing your academic performance."
+        icon={<Calculator size={48} className="text-primary/20" />}
+      />
+    );
+  }
 
   const fetchSummaries = async () => {
     setIsLoading(true);

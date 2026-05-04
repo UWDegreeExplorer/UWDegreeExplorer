@@ -23,8 +23,9 @@ import {
   Calendar as CalendarIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch, useGetCurrentUser } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { LoginRequired } from "@/components/shared/LoginRequired";
 
 interface Rating {
   liked: number | null;
@@ -78,6 +79,8 @@ const RatingBar = ({ label, value, icon: Icon, color }: { label: string, value: 
 };
 
 export const WorkloadCalculator: React.FC = () => {
+  const { data: userData } = useGetCurrentUser();
+  const currentUser = userData?.user;
   const [inputText, setInputText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -87,8 +90,20 @@ export const WorkloadCalculator: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    if (currentUser) {
+      fetchHistory();
+    }
+  }, [currentUser]);
+
+  if (!currentUser) {
+    return (
+      <LoginRequired 
+        title="Workload Analysis" 
+        description="Predict your term difficulty using historical data and professor ratings. Sign in to analyze your saved schedules and view your Misery Index."
+        icon={<Activity size={48} className="text-primary/20" />}
+      />
+    );
+  }
 
   const fetchHistory = async () => {
     setIsHistoryLoading(true);
