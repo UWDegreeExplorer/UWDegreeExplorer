@@ -17,9 +17,9 @@ interface GraphNode {
 }
 
 interface GraphLink {
-  source: string;
-  target: string;
-  type: string;
+  source: any;
+  target: any;
+  type?: string;
 }
 
 interface GraphData {
@@ -36,11 +36,21 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export const BreadthConstellation: React.FC = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const fgRef = useRef<any>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [hoverNode, setHoverNode] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Measure container size
+  useEffect(() => {
+    if (containerRef.current) {
+      const { clientWidth, clientHeight } = containerRef.current;
+      setDimensions({ width: clientWidth, height: clientHeight });
+    }
+  }, []);
 
   const { data: graphData, isLoading } = useQuery<GraphData>({
     queryKey: ["breadth-graph", selectedCategory],
@@ -50,7 +60,6 @@ export const BreadthConstellation: React.FC = () => {
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error("Failed to fetch graph data");
       const data = await res.json();
-      console.log("[Graph Data]", data);
       return data;
     }
   });
@@ -61,7 +70,11 @@ export const BreadthConstellation: React.FC = () => {
     
     const nodes = graphData.nodes.map(n => ({
       ...n,
-      val: 3 + (graphData.links.filter(l => l.source === n.id || l.target === n.id).length * 0.8)
+      val: 3 + (graphData.links.filter(l => {
+        const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+        const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+        return sourceId === n.id || targetId === n.id;
+      }).length * 0.8)
     }));
     
     return { nodes, links: graphData.links };
@@ -77,7 +90,7 @@ export const BreadthConstellation: React.FC = () => {
   }
 
   return (
-    <div className="relative w-full h-full bg-white overflow-hidden border-l border-border">
+    <div ref={containerRef} className="relative w-full h-full bg-white overflow-hidden border-l border-border">
       {/* UI Overlay */}
       <div className="absolute top-6 left-6 z-10 space-y-4 pointer-events-none">
         <div className="pointer-events-auto">
@@ -168,6 +181,8 @@ export const BreadthConstellation: React.FC = () => {
       <ForceGraph2D
         ref={fgRef}
         graphData={processedData}
+        width={dimensions.width}
+        height={dimensions.height}
         backgroundColor="#ffffff"
         nodeLabel={(n: any) => ""} 
         nodeColor={(n: any) => CATEGORY_COLORS[n.category] || CATEGORY_COLORS.Other}

@@ -575,43 +575,57 @@ router.get("/breadth/graph", async (req, res) => {
     const nodesMap = new Map();
     const links: any[] = [];
 
-    // Deduplicate courses by ID (keeping the one with the longest title, usually more descriptive)
+    // First pass: Build temporary map and collect all possible connections
+    const tempNodes = new Map();
     rawCourses.forEach(course => {
-      const existing = nodesMap.get(course.courseId);
+      const existing = tempNodes.get(course.courseId);
       if (!existing || (course.title?.length || 0) > (existing.title?.length || 0)) {
-        const cat = subjectToCategory.get(course.subjectCode || "");
-        if (category && cat !== category) return;
-
-        nodesMap.set(course.courseId, {
-          id: course.courseId,
-          code: `${course.subjectCode} ${course.catalogNumber}`,
-          title: course.title,
-          category: cat,
-          prereqs: course.prereqIds
-        });
+        tempNodes.set(course.courseId, course);
       }
     });
 
-    const nodes = Array.from(nodesMap.values());
-    const courseIdSet = new Set(nodes.map(n => n.id));
-
-    nodes.forEach(node => {
-      if (node.prereqs) {
-        const prereqs = node.prereqs.split(",").map((id: string) => id.trim());
+    // Second pass: Create links and identify which nodes are actually connected
+    const connectedNodeIds = new Set();
+    tempNodes.forEach(course => {
+      if (course.prereqIds) {
+        const prereqs = course.prereqIds.split(",").map((id: string) => id.trim());
         prereqs.forEach((pId: string) => {
-          if (courseIdSet.has(pId)) {
+          if (tempNodes.has(pId)) {
             links.push({
               source: pId,
-              target: node.id,
-              type: "prereq"
+              target: course.courseId,
             });
+            connectedNodeIds.add(pId);
+            connectedNodeIds.add(course.courseId);
           }
         });
       }
     });
 
-    console.log(`[Graph API] Returning ${nodes.length} nodes and ${links.length} links.`);
-    return res.json({ nodes, links });
+    // Third pass: Filter nodes to only those that are connected or belong to the category
+    // This drastically reduces the number of nodes (from 4000+ to ~500-1000) for performance
+    tempNodes.forEach((course, id) => {
+      const cat = subjectToCategory.get(course.subjectCode || "");
+      if (category && cat !== category) return;
+      
+      // For the "All" view, only show connected nodes to keep it clean/fast
+      // For specific categories, we can show more if needed
+      if (!category && !connectedNodeIds.has(id)) return;
+
+      nodesMap.set(id, {
+        id: id,
+        code: `${course.subjectCode} ${course.catalogNumber}`,
+        title: course.title,
+        category: cat,
+      });
+    });
+
+    const nodes = Array.from(nodesMap.values());
+    // Filter links to only include nodes that made it into our nodes list
+    const finalLinks = links.filter(l => nodesMap.has(l.source) && nodesMap.has(l.target));
+
+    console.log(`[Graph API] Returning ${nodes.length} nodes and ${finalLinks.length} links.`);
+    return res.json({ nodes, links: finalLinks });
   } catch (error) {
     console.error("[Graph API Error]", error);
     return res.status(500).json({ error: "Failed to build course graph" });
