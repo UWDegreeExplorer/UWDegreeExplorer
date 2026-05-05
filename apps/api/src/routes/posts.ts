@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, postsTable, commentsTable, usersTable, notificationsTable, bookmarksTable, draftsTable, likesTable, reportsTable } from "@workspace/db";
+import { db, postsTable, commentsTable, usersTable, notificationsTable, bookmarksTable, draftsTable, likesTable, reportsTable, postViewsTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import {
   CreatePostBody,
@@ -238,6 +238,16 @@ router.get("/:id", async (req, res) => {
   if (!post || (post.status === "hidden" && !viewerIsAdmin && post.authorId !== sessionUserId)) {
     res.status(404).json({ message: "Post not found" });
     return;
+  }
+
+  if (sessionUserId) {
+    await db
+      .insert(postViewsTable)
+      .values({ userId: sessionUserId, postId: id, viewedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [postViewsTable.userId, postViewsTable.postId],
+        set: { viewedAt: new Date() },
+      });
   }
 
   const commentsData = await db

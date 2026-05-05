@@ -1,8 +1,8 @@
 import { useLocation } from "wouter";
 import { useGoogleLogin as useGoogleOAuth } from "@react-oauth/google";
 import { useState } from "react";
-import { 
-  useLoginUser, 
+import {
+  useLoginUser,
   getGetCurrentUserQueryKey,
   useGoogleLogin as useBackendGoogleLogin,
 } from "@workspace/api-client-react";
@@ -37,7 +37,7 @@ export default function Login() {
   const googleMutation = useBackendGoogleLogin();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const [googleTempToken, setGoogleTempToken] = useState<string | null>(null);
   const [showGooglePassword, setShowGooglePassword] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
@@ -151,12 +151,12 @@ export default function Login() {
         onSuccess: (data: any) => {
           queryClient.setQueryData(getGetCurrentUserQueryKey(), { user: data });
           toast({ title: "Welcome!", description: `Logged in as ${data.displayName}` });
-          
+
           // Clean up state
           setShowGooglePassword(false);
           setGoogleTempToken(null);
           googleForm.reset();
-          
+
           setLocation("/");
         },
         onError: (error: any) => {
@@ -200,7 +200,7 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="password"
@@ -232,10 +232,10 @@ export default function Login() {
               </form>
             </Form>
 
-            <Button 
+            <Button
               type="button"
-              variant="outline" 
-              className="w-full gap-2 mt-4" 
+              variant="outline"
+              className="w-full gap-2 mt-4"
               onClick={() => googleLogin()}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -258,23 +258,23 @@ export default function Login() {
               </svg>
               Continue with Google
             </Button>
-            
+
             <div className="mt-6 flex items-center justify-center">
               <div className="h-px bg-border flex-1"></div>
               <span className="px-4 text-xs text-muted-foreground uppercase tracking-wider">or</span>
               <div className="h-px bg-border flex-1"></div>
             </div>
-            
+
             <div className="mt-6 space-y-3">
               <Button variant="ghost" className="w-full text-xs text-muted-foreground hover:text-foreground" onClick={() => setLocation("/")}>
                 Continue as anonymous
               </Button>
               <p className="text-center mt-3 text-xs text-muted-foreground">
-                You can browse and post as a guest, but signing in unlocks bookmarks and drafts.
+                You can only browse as a guest, but signing in unlocks bookmarks, direct messaging, commenting and replying.
               </p>
             </div>
           </div>
-          
+
           <div className="text-center text-sm">
             <span className="text-muted-foreground">Don't have an account? </span>
             <button onClick={() => setLocation("/register")} className="text-primary font-medium hover:underline">
@@ -284,8 +284,8 @@ export default function Login() {
         </div>
       </div>
 
-      <Dialog 
-        open={showGooglePassword} 
+      <Dialog
+        open={showGooglePassword}
         onOpenChange={(open) => {
           setShowGooglePassword(open);
           if (!open) {
@@ -299,7 +299,7 @@ export default function Login() {
           <DialogHeader>
             <DialogTitle>Complete Your Registration</DialogTitle>
             <DialogDescription>
-              Since this is your first time logging in with Google, please set a password for your account. 
+              Since this is your first time logging in with Google, please set a password for your account.
               This will serve as a backup login method.
             </DialogDescription>
           </DialogHeader>

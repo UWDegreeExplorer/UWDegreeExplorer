@@ -43,6 +43,13 @@
       "when": 1777840717912,
       "tag": "0005_calm_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777945743009,
+      "tag": "0006_flowery_magma",
+      "breakpoints": true
     }
   ]
 }

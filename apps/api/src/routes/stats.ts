@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, postsTable, commentsTable } from "@workspace/db";
-import { desc, sql, count } from "drizzle-orm";
+import { db, postsTable, postViewsTable } from "@workspace/db";
+import { desc, sql, count, and, eq, notExists } from "drizzle-orm";
 
 const SECTION_LABELS: Record<string, string> = {
   carpool: "Carpool",
@@ -45,9 +45,26 @@ router.get("/sections", async (_req, res) => {
 });
 
 // GET /api/stats/recent-activity
-// Returns the most recent 20 items (posts + comments), merged and sorted
-router.get("/recent-activity", async (_req, res) => {
+// Logged out: latest 5 visible posts. Logged in: latest 5 visible posts the user has not opened.
+router.get("/recent-activity", async (req, res) => {
   try {
+    const userId = req.session.userId;
+    const filters = [sql`${postsTable.status} != 'hidden'`];
+
+    if (userId) {
+      filters.push(
+        notExists(
+          db
+            .select({ value: sql`1` })
+            .from(postViewsTable)
+            .where(and(
+              eq(postViewsTable.userId, userId),
+              eq(postViewsTable.postId, postsTable.id),
+            )),
+        ),
+      );
+    }
+
     const recentPosts = await db
       .select({
         kind: sql<string>`'post'`,
@@ -59,29 +76,11 @@ router.get("/recent-activity", async (_req, res) => {
         createdAt: postsTable.createdAt,
       })
       .from(postsTable)
+      .where(and(...filters))
       .orderBy(desc(postsTable.createdAt))
-      .limit(20);
+      .limit(5);
 
-    const recentComments = await db
-      .select({
-        kind: sql<string>`'comment'`,
-        postId: commentsTable.postId,
-        postTitle: postsTable.title,
-        section: postsTable.section,
-        authorName: commentsTable.authorNameSnapshot,
-        snippet: sql<string>`substring(${commentsTable.body}, 1, 120)`,
-        createdAt: commentsTable.createdAt,
-      })
-      .from(commentsTable)
-      .innerJoin(postsTable, sql`${commentsTable.postId} = ${postsTable.id}`)
-      .orderBy(desc(commentsTable.createdAt))
-      .limit(20);
-
-    const merged = [...recentPosts, ...recentComments]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 20);
-
-    res.json(merged);
+    res.json(recentPosts);
   } catch (err) {
     console.error("stats/recent-activity error:", err);
     res.status(500).json({ message: "Internal server error" });
