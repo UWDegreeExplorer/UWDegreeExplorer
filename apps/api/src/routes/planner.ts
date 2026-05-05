@@ -4,7 +4,7 @@ import { parseQuestSchedule } from "../utils/scheduleParser";
 import { generateICS } from "../utils/icsGenerator";
 import { db, userSchedules } from "@workspace/db";
 import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth, userWorkloads } from "@workspace/db/schema";
-import { eq, ilike, or, and, sql, not } from "drizzle-orm";
+import { eq, ilike, or, and, sql, not, inArray } from "drizzle-orm";
 import * as analyzer from "../utils/workloadAnalyzer";
 
 // Initialize the geographical data for location-based workload analysis
@@ -528,6 +528,85 @@ router.delete("/workload/:term", async (req, res) => {
     return res.json({ success: true });
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// --- BREADTH CONSTELLATION GRAPH ROUTES ---
+
+/**
+ * GET /breadth/graph
+ * Returns nodes and edges for visualizing breadth requirement course chains.
+ */
+router.get("/breadth/graph", async (req, res) => {
+  try {
+    const { category } = req.query;
+
+    // 1. Fetch all subjects and their breadth categories
+    const brSubjects = await db.select().from(subjectBreadth);
+    const subjectToCategory = new Map(brSubjects.map(s => [s.subjectCode, s.category]));
+    const brSubjectCodes = brSubjects.map(s => s.subjectCode);
+
+    // 2. Fetch all courses in these subjects along with their requirements
+    let query = db
+      .select({
+        courseId: courses.courseId,
+        subjectCode: courses.subjectCode,
+        catalogNumber: courses.catalogNumber,
+        title: courseVersions.title,
+        prereqIds: courseRequirements.prereqIds,
+      })
+      .from(courses)
+      .innerJoin(courseVersions, eq(courses.courseId, courseVersions.courseId))
+      .leftJoin(courseRequirements, eq(courses.courseId, courseRequirements.courseId))
+      .where(
+        and(
+          inArray(courses.subjectCode, brSubjectCodes),
+          // Only get the latest version for each course
+          sql`(${courseVersions.versionId}) IN (
+            SELECT MAX(version_id) FROM planner_course_versions GROUP BY course_id
+          )`
+        )
+      );
+
+    const rawCourses = await query;
+
+    // 3. Build Nodes and Edges
+    const nodes: any[] = [];
+    const links: any[] = [];
+    const courseIdSet = new Set(rawCourses.map(c => c.courseId));
+
+    rawCourses.forEach(course => {
+      const cat = subjectToCategory.get(course.subjectCode || "");
+      
+      // If a category filter is applied, only show courses in that category
+      if (category && cat !== category) return;
+
+      nodes.push({
+        id: course.courseId,
+        code: `${course.subjectCode} ${course.catalogNumber}`,
+        title: course.title,
+        category: cat,
+      });
+
+      if (course.prereqIds) {
+        const prereqs = course.prereqIds.split(",").map(id => id.trim());
+        prereqs.forEach(pId => {
+          // Only create a link if the prerequisite course exists in our data
+          if (courseIdSet.has(pId)) {
+            links.push({
+              source: pId,
+              target: course.courseId,
+              type: "prereq"
+            });
+          }
+        });
+      }
+    });
+
+    res.json({ nodes, links });
+  } catch (error) {
+    console.error("[Graph API Error]", error);
+    res.status(500).json({ error: "Failed to build course graph" });
   }
 });
 

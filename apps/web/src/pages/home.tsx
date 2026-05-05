@@ -35,6 +35,7 @@ import { CourseExplorer } from "../features/planner/CourseExplorer";
 import { MakeCalendar } from "../features/planner/MakeCalendar";
 import { WorkloadCalculator } from "../features/planner/WorkloadCalculator";
 import { GradeCalculator } from "../features/planner/GradeCalculator";
+import { BreadthConstellation } from "../features/planner/BreadthConstellation";
 
 import { relTime, excerpt } from "@/lib/utils";
 import {
@@ -176,7 +177,8 @@ export default function Home() {
     "inbox": "Inbox",
     "calendar": "Calendar Importer",
     "workload": "Workload Analysis",
-    "grades": "Grade Calculator"
+    "grades": "Grade Calculator",
+    "breadth": "Breadth Constellation"
   };
 
   const onSelectSection = (s: SectionFilter, commentId?: number) => {
@@ -202,7 +204,9 @@ export default function Home() {
       setLocation("/workload");
     } else if (s === "grades") {
       setLocation("/grades");
-    } else if (matchPost || matchSettings || matchBookmarks || matchActivity || matchLikes || matchCourses || matchCalendar || matchWorkload || matchGrades) {
+    } else if (s === "breadth") {
+      setLocation("/breadth");
+    } else if (matchPost || matchSettings || matchBookmarks || matchActivity || matchLikes || matchCourses || matchCalendar || matchWorkload || matchGrades || matchBreadth) {
       setLocation(commentId ? `/post/${selectedId}?commentId=${commentId}` : "/");
     }
   };
@@ -225,6 +229,7 @@ export default function Home() {
   const [matchCalendar] = useRoute("/calendar");
   const [matchWorkload] = useRoute("/workload");
   const [matchGrades] = useRoute("/grades");
+  const [matchBreadth] = useRoute("/breadth");
 
   useEffect(() => {
     if (matchSettings) {
@@ -243,8 +248,10 @@ export default function Home() {
       setActiveSection("workload");
     } else if (matchGrades) {
       setActiveSection("grades");
+    } else if (matchBreadth) {
+      setActiveSection("breadth");
     }
-  }, [matchSettings, matchBookmarks, matchActivity, matchLikes, matchCourses, matchCalendar, matchWorkload]);
+  }, [matchSettings, matchBookmarks, matchActivity, matchLikes, matchCourses, matchCalendar, matchWorkload, matchBreadth]);
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
@@ -344,6 +351,12 @@ export default function Home() {
                   <GradeCalculator />
                 </main>
               </Panel>
+            ) : activeSection === "breadth" ? (
+              <Panel defaultSize={80} minSize={60}>
+                <main className="flex-1 flex flex-col bg-background h-full min-w-0 overflow-hidden">
+                  <BreadthConstellation />
+                </main>
+              </Panel>
             ) : activeSection === "messages" ? (
               <>
                 <Panel defaultSize={35} minSize={(320 / viewportWidth) * 100}>
@@ -440,6 +453,10 @@ export default function Home() {
             ) : activeSection === "grades" ? (
               <main className="flex-1 min-w-0 bg-background h-full overflow-y-auto">
                 <GradeCalculator />
+              </main>
+            ) : activeSection === "breadth" ? (
+              <main className="flex-1 min-w-0 bg-background h-full overflow-hidden">
+                <BreadthConstellation />
               </main>
             ) : activeSection === "messages" ? (
               <>
@@ -567,6 +584,18 @@ export default function Home() {
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   <GradeCalculator />
+                </div>
+              </div>
+            ) : activeSection === "breadth" ? (
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <div className="px-3 py-1.5 border-b border-border flex items-center bg-card/10 backdrop-blur-sm sticky top-0 z-10">
+                  <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="-ml-1 gap-1.5 h-8 text-muted-foreground hover:text-foreground transition-colors">
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-xs font-medium">Home</span>
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  <BreadthConstellation />
                 </div>
               </div>
             ) : selectedId ? (

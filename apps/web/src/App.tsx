@@ -36,6 +36,7 @@ function Router() {
       <Route path="/calendar" component={Home} />
       <Route path="/workload" component={Home} />
       <Route path="/grades" component={Home} />
+      <Route path="/breadth" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />

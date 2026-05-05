@@ -44,6 +44,7 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/react-google-recaptcha": "^2.1.9",
     "@vitejs/plugin-react": "catalog:",
     "@workspace/api-client-react": "workspace:*",
     "class-variance-authority": "catalog:",
@@ -69,11 +70,11 @@
     "vaul": "^1.1.2",
     "vite": "catalog:",
     "wouter": "^3.3.5",
-    "zod": "catalog:",
-    "@types/react-google-recaptcha": "^2.1.9"
+    "zod": "catalog:"
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.5",
+    "react-force-graph-2d": "^1.29.1",
     "react-google-recaptcha": "^3.1.0"
   }
 }
