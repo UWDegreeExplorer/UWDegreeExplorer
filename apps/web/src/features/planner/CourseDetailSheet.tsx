@@ -72,10 +72,10 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
 
       // We need to associate every numeric code with ALL subjects in the prefix
       // For simplicity in display, we keep the original structure
-      
+
       // 1. Process Subjects
       const resolvedSubjects = subjects.filter(s => /[A-Z]{2,}/.test(s));
-      
+
       subjects.forEach((sPart, sIdx) => {
         if (/[A-Z]{2,}/.test(sPart)) {
           // It is a subject link? No, subjects usually need a number.
@@ -83,7 +83,7 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
           // We will render it as a link that uses the FIRST number of the list as a fallback,
           // but that might be complex. Let's stick to the user's specific request:
           // Clicking BU in BU/MATH 117 goes to BU 117.
-          
+
           const firstNumber = numbers.find(n => /[0-9]/.test(n)) || "";
           parts.push(
             <span
@@ -186,9 +186,9 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
                     {course.description || "No description available."}
                   </p>
                   <div className="mt-4 pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="h-9 gap-2 border-primary/20 text-primary hover:bg-primary/5 rounded-xl px-4"
                       onClick={() => window.open(`https://outline.uwaterloo.ca/viewer/?q=${course.subjectCode}%20${course.catalogNumber}`, '_blank')}
                     >
@@ -206,7 +206,7 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
                     <BookOpen className="h-5 w-5 text-primary" />
                     <h2>Academic Requirements</h2>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {course.prereqRaw && (
                       <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
@@ -214,7 +214,7 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
                         <p className="text-sm mt-1">{renderLinkedText(course.prereqRaw)}</p>
                       </div>
                     )}
-                    
+
                     {course.coreqRaw && (
                       <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
                         <span className="text-xs font-bold uppercase tracking-wider text-blue-500">Corequisites</span>

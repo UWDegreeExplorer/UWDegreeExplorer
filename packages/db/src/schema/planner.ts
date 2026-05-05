@@ -1,6 +1,6 @@
 import { pgTable, text, integer, serial, primaryKey, foreignKey, numeric } from "drizzle-orm/pg-core";
 
-// 1. 课程基础信息表
+// Master table for courses, storing basic metadata and unit values
 export const courses = pgTable("planner_courses", {
   courseId: text("course_id").primaryKey(),
   subjectCode: text("subject_code"),
@@ -8,7 +8,7 @@ export const courses = pgTable("planner_courses", {
   units: numeric("units", { precision: 3, scale: 2 }).default("0.00"),
 });
 
-// 2. 课程内容版本表
+// Historical versions of course data, allowing for term-specific titles and descriptions
 export const courseVersions = pgTable("planner_course_versions", {
   versionId: serial("version_id").primaryKey(),
   courseId: text("course_id").references(() => courses.courseId),
@@ -21,7 +21,7 @@ export const courseVersions = pgTable("planner_course_versions", {
   status: text("status").default("auto"),
 });
 
-// 3. 课程开课组件表
+// Specific term offerings for each course to track historical availability
 export const courseOfferings = pgTable("planner_course_offerings", {
   offeringId: serial("offering_id").primaryKey(),
   courseId: text("course_id").references(() => courses.courseId),
@@ -30,7 +30,7 @@ export const courseOfferings = pgTable("planner_course_offerings", {
   versionId: integer("version_id").references(() => courseVersions.versionId),
 });
 
-// 4. 结构化要求解析表
+// Structured requirement data (prerequisites, antirequisites, etc.) linked to a course
 export const courseRequirements = pgTable("planner_course_requirements", {
   courseId: text("course_id").primaryKey().references(() => courses.courseId),
   latestTerm: text("latest_term"),
@@ -45,7 +45,7 @@ export const courseRequirements = pgTable("planner_course_requirements", {
   prereqIds: text("prereq_ids"),
 });
 
-// 5. 广度要求映射表 (Breadth Requirements)
+// Mapping of subjects to their respective breadth requirement categories
 export const subjectBreadth = pgTable("planner_subject_breadth", {
   subjectCode: text("subject_code").primaryKey(),
   category: text("category").notNull(), // Humanities, Pure Sciences, Social Sciences, etc.

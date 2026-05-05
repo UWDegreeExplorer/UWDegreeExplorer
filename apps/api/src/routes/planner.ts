@@ -7,18 +7,21 @@ import { courses, courseVersions, courseRequirements, courseOfferings, subjectBr
 import { eq, ilike, or, and, sql, not } from "drizzle-orm";
 import * as analyzer from "../utils/workloadAnalyzer";
 
-// Initialize Geo Data
+// Initialize the geographical data for location-based workload analysis
 analyzer.initGeoData();
 
 const router = Router();
 
-// Search courses
+/**
+ * GET /courses
+ * Searches for courses based on query string, subject, and academic level.
+ */
 router.get("/courses", async (req, res) => {
   try {
     const { q, subject, level } = req.query;
-    
+
     let whereClause = [];
-    
+
     if (q && typeof q === "string") {
       const normalizedSearch = q.replace(/\s+/g, '');
       whereClause.push(or(
@@ -26,18 +29,18 @@ router.get("/courses", async (req, res) => {
         ilike(courseVersions.title, `%${q}%`),
         ilike(courses.subjectCode, `%${q}%`),
         ilike(courses.catalogNumber, `%${q}%`),
-        // Support searching for "CS135" or "CS 135"
+        // Support searching for concatenated codes (e.g., "CS135") by normalizing whitespace
         sql`(${courses.subjectCode} || ${courses.catalogNumber}) ILIKE ${'%' + normalizedSearch + '%'}`
       ));
     }
-    
+
     if (subject && subject !== "All" && typeof subject === "string") {
       whereClause.push(eq(courses.subjectCode, subject));
     }
-    
+
     if (level && level !== "All" && typeof level === "string") {
       if (level === "Other") {
-        // Not 1xx, 2xx, 3xx, 4xx
+        // Filter for courses that do not match standard 1xx-4xx levels
         const undergraduateLevels = or(
           ilike(courses.catalogNumber, '1%'),
           ilike(courses.catalogNumber, '2%'),
@@ -48,7 +51,7 @@ router.get("/courses", async (req, res) => {
           whereClause.push(not(undergraduateLevels));
         }
       } else {
-        // level is e.g. "100"
+        // Filter by the first digit of the catalog number (e.g., "100" matches "1%")
         whereClause.push(ilike(courses.catalogNumber, `${level.substring(0, 1)}%`));
       }
     }
@@ -74,7 +77,7 @@ router.get("/courses", async (req, res) => {
 
     console.log(`[Planner API] q=${q}, sub=${subject}, lvl=${level}. Found ${results.length} raw results.`);
 
-    // Filter duplicates in memory for now if any
+    // Deduplicate results in-memory using courseId as the unique key
     const uniqueResults = Array.from(new Map(results.map(item => [item.courseId, item])).values());
 
     res.json(uniqueResults);
@@ -84,14 +87,18 @@ router.get("/courses", async (req, res) => {
   }
 });
 
-// --- CALENDAR ROUTES ---
+// --- CALENDAR & COURSE DETAIL ROUTES ---
 
-// Get single course details with requirements and history
+/**
+ * GET /courses/:id
+ * Fetches full details for a single course, including its requirements and offering history.
+ * Supports both numeric Kuali IDs and alphanumeric course codes (e.g., CS135).
+ */
 router.get("/courses/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // 1. Get core course info and requirements
+
+    // 1. Retrieve the primary course metadata and its requirement rules
     let courseQuery = db
       .select({
         course: courses,
@@ -103,15 +110,15 @@ router.get("/courses/:id", async (req, res) => {
       .leftJoin(courseRequirements, eq(courses.courseId, courseRequirements.courseId));
 
     let courseData: any[] = [];
-    
-    // Check if ID is a numeric 6-digit code
+
+    // Determine if the provided ID is a standard 6-digit numeric Kuali code
     if (/^\d{6}$/.test(id)) {
       courseData = await courseQuery
         .where(eq(courses.courseId, id))
         .orderBy(sql`${courseVersions.versionId} DESC`)
         .limit(1);
     } else {
-      // Try to parse as Subject + Catalog (e.g. CS135 or CS 135)
+      // Fallback: Attempt to resolve as an alphanumeric alias (e.g., "CS135" or "CS 135")
       const match = id.match(/^([A-Z]+)\s*([0-9][A-Z0-9]*)$/i);
       if (match) {
         const sub = match[1].toUpperCase();
@@ -132,13 +139,13 @@ router.get("/courses/:id", async (req, res) => {
 
     const { course, version, requirements } = courseData[0];
 
-    // 2. Fetch UWFlow ratings in parallel
+    // 2. Fetch community ratings from UWFlow asynchronously
     const uwflowRating = await analyzer.fetchUWFlowRatings(
-      course.subjectCode || "", 
+      course.subjectCode || "",
       course.catalogNumber || ""
     );
 
-    // 3. Get offering history
+    // 3. Retrieve the historical term offerings for this course
     const offerings = await db
       .select({
         termCode: courseOfferings.termCode,
@@ -147,7 +154,7 @@ router.get("/courses/:id", async (req, res) => {
       .where(eq(courseOfferings.courseId, id))
       .orderBy(sql`${courseOfferings.termCode} DESC`);
 
-    // Deduplicate terms for history
+    // Extract unique term codes to build the history timeline
     const history = Array.from(new Set(offerings.map(o => o.termCode))).filter(Boolean);
 
     res.json({
@@ -168,7 +175,10 @@ router.get("/courses/:id", async (req, res) => {
   }
 });
 
-// Parse Quest Schedule Text
+/**
+ * POST /parse-schedule
+ * Parses raw text from Quest (UWaterloo student portal) into a structured schedule object.
+ */
 router.post("/parse-schedule", (req, res) => {
   const { text } = req.body;
   if (!text) {
@@ -176,16 +186,16 @@ router.post("/parse-schedule", (req, res) => {
     res.status(400).json({ error: "No text provided" });
     return;
   }
-  
+
   logger.info({ textLength: text.length }, "Starting schedule parse");
-  
+
   try {
     const result = parseQuestSchedule(text);
-    logger.info({ 
+    logger.info({
       coursesFound: result.courses.length,
-      term: result.term 
+      term: result.term
     }, "Schedule parse completed");
-    
+
     res.json(result);
   } catch (error) {
     logger.error({ error }, "Failed to parse schedule");
@@ -193,7 +203,10 @@ router.post("/parse-schedule", (req, res) => {
   }
 });
 
-// Generate ICS File
+/**
+ * POST /generate-ics
+ * Converts a list of course sessions into a downloadable iCalendar (.ics) file.
+ */
 router.post("/generate-ics", (req, res) => {
   const { courses } = req.body;
   if (!courses || !Array.isArray(courses)) {
@@ -210,9 +223,12 @@ router.post("/generate-ics", (req, res) => {
   }
 });
 
-// --- PERSISTENCE ROUTES ---
+// --- USER DATA PERSISTENCE ROUTES ---
 
-// List all saved terms for current user
+/**
+ * GET /schedules
+ * Returns a list of saved schedule metadata for the authenticated user.
+ */
 router.get("/schedules", async (req, res) => {
   const userId = req.session.userId;
   if (!userId) {
@@ -234,7 +250,10 @@ router.get("/schedules", async (req, res) => {
   }
 });
 
-// Save or Update a schedule for a term
+/**
+ * POST /schedules
+ * Saves or updates a full term schedule for the authenticated user.
+ */
 router.post("/schedules", async (req, res) => {
   const userId = req.session.userId;
   if (!userId) {
@@ -271,7 +290,10 @@ router.post("/schedules", async (req, res) => {
   }
 });
 
-// Get detailed schedule for a specific term
+/**
+ * GET /schedules/:term
+ * Returns the full JSON payload of a saved schedule for a specific term.
+ */
 router.get("/schedules/:term", async (req, res) => {
   const userId = req.session.userId;
   if (!userId) {
@@ -300,7 +322,10 @@ router.get("/schedules/:term", async (req, res) => {
   }
 });
 
-// Delete a saved schedule
+/**
+ * DELETE /schedules/:term
+ * Removes a saved schedule record from the database.
+ */
 router.delete("/schedules/:term", async (req, res) => {
   const userId = req.session.userId;
   if (!userId) {
@@ -322,12 +347,12 @@ router.delete("/schedules/:term", async (req, res) => {
   }
 });
 
-// --- WORKLOAD CALCULATOR ROUTES ---
+// --- ACADEMIC WORKLOAD ANALYZER ROUTES ---
 
 router.post("/workload/analyze", async (req, res) => {
   const { text, courses, term } = req.body;
-  
-  // Debug log to see what's coming in
+
+  // Log the incoming analysis request for monitoring and debugging
   console.log(`[Workload Analyze] Request received. Text length: ${text?.length || 0}, Courses: ${courses?.length || 0}, Term: ${term}`);
 
   if (!text && (!courses || !term)) {
@@ -337,9 +362,9 @@ router.post("/workload/analyze", async (req, res) => {
   try {
     let data;
     if (courses && term) {
-      // Normalize courses if coming from DB (they use startTime/endTime/days instead of a single time string)
+      // Standardize input course objects if they originate from the database persistence layer
       const normalizedCourses = courses.map((c: any) => {
-        // If it's already a string, keep it. If it's an array, join it.
+        // Ensure the 'days' field is formatted as a single string
         const dayStr = Array.isArray(c.days) ? c.days.join("") : (c.days || "");
         if (!c.time && dayStr && c.startTime && c.endTime) {
           return { ...c, time: `${dayStr} ${c.startTime} ${c.endTime}` };
@@ -350,8 +375,8 @@ router.post("/workload/analyze", async (req, res) => {
     } else {
       data = parseQuestSchedule(text);
     }
-    
-    // Fetch all ratings and analyze commute in parallel
+
+    // Concurrently fetch difficulty ratings and perform commute stress analysis
     const courseResults = await Promise.all(data.courses.map(async (c: any) => {
       const code = c.courseCode || "Unknown Unknown";
       const [subject, catalog] = code.split(" ");
@@ -362,7 +387,7 @@ router.post("/workload/analyze", async (req, res) => {
       return { ...c, time: c.time || "", courseRatings, profRatings };
     }));
 
-    // Organize by day for commute analysis
+    // Group class sessions by day of the week to calculate travel times between buildings
     const dayMap: any = { MO: "Mon", TU: "Tue", WE: "Wed", TH: "Thu", FR: "Fri" };
     const dayStruct: any = { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [] };
 
@@ -373,28 +398,28 @@ router.post("/workload/analyze", async (req, res) => {
       const daysStr = parts[0];
       const startStr = parts[1];
       const endStr = parts[parts.length - 1];
-      
+
       const roomStr = c.room || "Unknown";
       const bParts = roomStr.split(" ");
       const bCode = bParts[0];
       const bFloor = (bParts[1] && bParts[1][0]) || "1";
 
-      // Improved day parsing to handle both MO/TU and M/T/Th
+      // Robust day parser handling Quest codes (MO, TU), legacy codes (M, T), and special cases (Th)
       let i = 0;
       while (i < daysStr.length) {
         let dKey = "";
-        // Check for 2-letter codes first (MO, TU, WE, TH, FR)
+        // Match two-letter standard codes first
         const nextTwo = daysStr.substring(i, i + 2);
         if (["MO", "TU", "WE", "TH", "FR"].includes(nextTwo)) {
           dKey = nextTwo;
           i += 2;
-        } 
-        // Then check for legacy/Quest style
-        else if (daysStr[i] === "T" && daysStr[i+1] === "h") {
+        }
+        // Handle Quest-specific 'Th' for Thursday
+        else if (daysStr[i] === "T" && daysStr[i + 1] === "h") {
           dKey = "TH";
           i += 2;
         } else {
-          // Map single letters to standard keys
+          // Fallback to single-letter mapping
           const singleMap: any = { 'M': 'MO', 'T': 'TU', 'W': 'WE', 'F': 'FR' };
           dKey = singleMap[daysStr[i]] || daysStr[i];
           i += 1;
@@ -418,17 +443,17 @@ router.post("/workload/analyze", async (req, res) => {
       }
     });
 
-    // Run commute analysis per day
+    // Calculate walking time and stress level for back-to-back classes
     Object.keys(dayStruct).forEach((day) => {
       const dailyCourses = dayStruct[day].sort((a: any, b: any) => a.start - b.start);
       for (let i = 0; i < dailyCourses.length - 1; i++) {
         const curr = dailyCourses[i];
-        const nxt = dailyCourses[i+1];
+        const nxt = dailyCourses[i + 1];
         if (curr.bCode !== "ONLN" && nxt.bCode !== "ONLN") {
           const wTime = analyzer.getWalkingTime(curr.bCode, curr.bFloor, nxt.bCode, nxt.bFloor);
           const gap = (nxt.start - curr.end) / 60000;
           const stress = wTime > gap ? "impossible" : (wTime > 15 || gap - wTime < 5) ? "high" : "low";
-          
+
           if (!curr.ref.commute) curr.ref.commute = [];
           curr.ref.commute.push({ to: nxt.ref.courseCode, walk: wTime, gap, stress, day });
         }
@@ -508,4 +533,4 @@ router.delete("/workload/:term", async (req, res) => {
 
 export default router;
 
-// Final production build trigger comment
+// Trigger comment for continuous deployment validation

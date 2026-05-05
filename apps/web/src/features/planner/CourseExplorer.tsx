@@ -17,11 +17,15 @@ interface Course {
   prereqRaw?: string;
 }
 
+// Subjects and academic levels used for filtering the course catalog
 const SUBJECTS = ["All", "CS", "MATH", "STAT", "CO", "AFM", "ECON", "PHYS"];
 const LEVELS = ["All", "100", "200", "300", "400", "Other"];
 
 import { CourseDetailSheet } from "./CourseDetailSheet";
 
+/**
+ * Returns a human-readable tag based on the course catalog number level.
+ */
 const getLevelTag = (catalogNumber: string) => {
   const first = catalogNumber[0];
   if (first === "1") return "Foundation";
@@ -32,12 +36,16 @@ const getLevelTag = (catalogNumber: string) => {
 };
 
 export const CourseExplorer: React.FC = () => {
+  // State management for search input and filters
   const [search, setSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All");
+  
+  // State for the side sheet detail view
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
+  // Fetch courses from the API based on current search and filter criteria
   const { data: courses, isLoading, error } = useQuery<Course[]>({
     queryKey: ["courses", search, selectedSubject, selectedLevel],
     queryFn: async () => {
@@ -58,6 +66,9 @@ export const CourseExplorer: React.FC = () => {
     },
   });
 
+  /**
+   * Opens the course detail sheet for a specific course ID.
+   */
   const handleCourseClick = (id: string) => {
     setSelectedCourseId(id);
     setIsSheetOpen(true);
@@ -65,7 +76,7 @@ export const CourseExplorer: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-8">
-      {/* ... rest of header and filters ... */}
+      {/* Hidden Course Detail Sidebar */}
       <CourseDetailSheet 
         courseId={selectedCourseId}
         open={isSheetOpen}
@@ -73,7 +84,7 @@ export const CourseExplorer: React.FC = () => {
         onNavigate={handleCourseClick}
       />
       
-      {/* Header Section */}
+      {/* Welcome and Header */}
       <div className="space-y-2">
         <h1 className="text-4xl font-bold tracking-tight text-foreground">Course Discovery</h1>
         <p className="text-muted-foreground text-lg">
@@ -81,7 +92,7 @@ export const CourseExplorer: React.FC = () => {
         </p>
       </div>
 
-      {/* Filter Bar */}
+      {/* Search and Advanced Filters */}
       <div className="bg-card/50 backdrop-blur-md border rounded-2xl p-6 shadow-sm space-y-6">
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
@@ -134,7 +145,7 @@ export const CourseExplorer: React.FC = () => {
         </div>
       </div>
 
-      {/* Results Section */}
+      {/* Course Grid Results */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (

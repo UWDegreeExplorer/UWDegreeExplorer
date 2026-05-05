@@ -23,17 +23,16 @@ async function seed() {
   const data = [];
   let idCounter = 1000;
 
-  // Skip header (line 0)
+  // Parse each line, skipping the header record
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    // Use a regex to correctly split CSV while respecting quotes
-    // Matches: category, programName
+    // Utilize a regular expression to handle CSV fields that may contain quoted commas
     const parts = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
     
     if (!parts || parts.length < 2) {
-      // Fallback for lines that might fail regex (very rare in this CSV)
+      // Skip malformed or incomplete records
       continue;
     }
 
@@ -47,8 +46,9 @@ async function seed() {
     });
   }
 
-  console.log(`Parsed ${data.length} programs. Starting database insertion...`);
+  console.log(`Parsed ${data.length} programs. Executing bulk database insertion...`);
 
+  // Batch insertions to optimize performance and prevent transaction overhead
   const chunkSize = 100;
   for (let i = 0; i < data.length; i += chunkSize) {
     const chunk = data.slice(i, i + chunkSize);
@@ -56,7 +56,7 @@ async function seed() {
     console.log(`Inserted programs ${i} to ${Math.min(i + chunkSize, data.length)}`);
   }
 
-  console.log("Seeding finished successfully!");
+  console.log("Seeding process completed successfully.");
   process.exit(0);
 }
 

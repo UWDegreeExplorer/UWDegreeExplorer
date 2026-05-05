@@ -89,6 +89,7 @@ export const WorkloadCalculator: React.FC = () => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const { toast } = useToast();
 
+  // Fetch existing history and available terms for analysis on mount
   useEffect(() => {
     if (currentUser) {
       fetchHistory();
@@ -121,7 +122,7 @@ export const WorkloadCalculator: React.FC = () => {
     }
   };
 
-  // Auto-analyze the latest schedule on mount
+  // Automatically analyze the most recent term if no result is present
   useEffect(() => {
     if (!result && !isAnalyzing && (workloadHistory.length > 0 || scheduleHistory.length > 0)) {
       const allTerms = [...workloadHistory, ...scheduleHistory].sort((a, b) => b.term.localeCompare(a.term));
@@ -131,6 +132,9 @@ export const WorkloadCalculator: React.FC = () => {
     }
   }, [workloadHistory, scheduleHistory]);
 
+  /**
+   * Performs the workload analysis on the provided schedule text.
+   */
   const handleAnalyze = async () => {
     if (!inputText.trim()) return;
     setIsAnalyzing(true);
