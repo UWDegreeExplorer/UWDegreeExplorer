@@ -53,7 +53,7 @@ const RatingBadge = ({ label, value, icon: Icon, color }: { label: string, value
         <div className={`p-1.5 rounded-lg ${bgColor}`}>
           <Icon size={16} className={textColor} />
         </div>
-        <span className="text-lg font-bold">{value}%</span>
+        <span className="text-lg font-bold">{Math.round(value)}%</span>
       </div>
       <div className="space-y-1">
         <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
