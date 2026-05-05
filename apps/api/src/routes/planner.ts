@@ -575,26 +575,24 @@ router.get("/breadth/graph", async (req, res) => {
     const nodesMap = new Map();
     const links: any[] = [];
 
-    // First pass: Build temporary map and collect all possible connections
+    // First pass: Deduplicate and store courses
     const tempNodes = new Map();
     rawCourses.forEach(course => {
       const existing = tempNodes.get(course.courseId);
-      if (!existing || (course.title?.length || 0) > (existing.title?.length || 0)) {
+      // Prefer records with prereq data or longer titles
+      if (!existing || (course.prereqIds?.length || 0) > (existing.prereqIds?.length || 0)) {
         tempNodes.set(course.courseId, course);
       }
     });
 
-    // Second pass: Create links and identify which nodes are actually connected
+    // Second pass: Identify connections
     const connectedNodeIds = new Set();
     tempNodes.forEach(course => {
       if (course.prereqIds) {
         const prereqs = course.prereqIds.split(",").map((id: string) => id.trim());
         prereqs.forEach((pId: string) => {
           if (tempNodes.has(pId)) {
-            links.push({
-              source: pId,
-              target: course.courseId,
-            });
+            links.push({ source: pId, target: course.courseId });
             connectedNodeIds.add(pId);
             connectedNodeIds.add(course.courseId);
           }
@@ -602,30 +600,33 @@ router.get("/breadth/graph", async (req, res) => {
       }
     });
 
-    // Third pass: Filter nodes to only those that are connected or belong to the category
-    // This drastically reduces the number of nodes (from 4000+ to ~500-1000) for performance
+    // Third pass: Collect nodes to return
+    const nodesToReturn: any[] = [];
+    const maxNodes = 1000;
+
     tempNodes.forEach((course, id) => {
       const cat = subjectToCategory.get(course.subjectCode || "");
       if (category && cat !== category) return;
       
-      // For the "All" view, only show connected nodes to keep it clean/fast
-      // For specific categories, we can show more if needed
-      if (!category && !connectedNodeIds.has(id)) return;
+      const isConnected = connectedNodeIds.has(id);
+      
+      // If we are over the limit, prioritize connected nodes
+      if (!category && nodesToReturn.length >= maxNodes && !isConnected) return;
 
-      nodesMap.set(id, {
+      nodesToReturn.push({
         id: id,
         code: `${course.subjectCode} ${course.catalogNumber}`,
         title: course.title,
         category: cat,
       });
+      nodesMap.set(id, true);
     });
 
-    const nodes = Array.from(nodesMap.values());
-    // Filter links to only include nodes that made it into our nodes list
+    // Final pass: Filter links to only those where both nodes are in nodesToReturn
     const finalLinks = links.filter(l => nodesMap.has(l.source) && nodesMap.has(l.target));
 
-    console.log(`[Graph API] Returning ${nodes.length} nodes and ${finalLinks.length} links.`);
-    return res.json({ nodes, links: finalLinks });
+    console.log(`[Graph API] Returning ${nodesToReturn.length} nodes and ${finalLinks.length} links.`);
+    return res.json({ nodes: nodesToReturn, links: finalLinks });
   } catch (error) {
     console.error("[Graph API Error]", error);
     return res.status(500).json({ error: "Failed to build course graph" });

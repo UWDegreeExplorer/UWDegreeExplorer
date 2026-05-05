@@ -66,6 +66,7 @@ export const BreadthConstellation: React.FC = () => {
 
   // Calculate node values (size) based on degree (number of connections)
   const processedData = React.useMemo(() => {
+    console.log("[GraphData Debug] Raw nodes:", graphData?.nodes?.length, "Raw links:", graphData?.links?.length);
     if (!graphData || !graphData.nodes.length) return { nodes: [], links: [] };
     
     const nodes = graphData.nodes.map(n => ({
@@ -77,6 +78,7 @@ export const BreadthConstellation: React.FC = () => {
       }).length * 0.8)
     }));
     
+    console.log("[GraphData Debug] Processed nodes:", nodes.length);
     return { nodes, links: graphData.links };
   }, [graphData]);
 
