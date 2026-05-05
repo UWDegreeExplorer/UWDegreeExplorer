@@ -579,10 +579,17 @@ router.get("/breadth/graph", async (req, res) => {
     const tempNodes = new Map();
     rawCourses.forEach(course => {
       const existing = tempNodes.get(course.courseId);
-      // Prefer records with prereq data or longer titles
       if (!existing || (course.prereqIds?.length || 0) > (existing.prereqIds?.length || 0)) {
         tempNodes.set(course.courseId, course);
       }
+    });
+
+    // Map of subjectCode -> Array of categories
+    const subjectToCategories = new Map();
+    brSubjects.forEach(s => {
+      const existing = subjectToCategories.get(s.subjectCode) || [];
+      existing.push(s.category);
+      subjectToCategories.set(s.subjectCode, existing);
     });
 
     // Second pass: Identify connections
@@ -605,8 +612,10 @@ router.get("/breadth/graph", async (req, res) => {
     const maxNodes = 1000;
 
     tempNodes.forEach((course, id) => {
-      const cat = subjectToCategory.get(course.subjectCode || "");
-      if (category && cat !== category) return;
+      const cats = subjectToCategories.get(course.subjectCode || []) || [];
+      
+      // If filtering by category, check if this subject is in that category
+      if (category && !cats.includes(category)) return;
       
       const isConnected = connectedNodeIds.has(id);
       
@@ -617,7 +626,7 @@ router.get("/breadth/graph", async (req, res) => {
         id: id,
         code: `${course.subjectCode} ${course.catalogNumber}`,
         title: course.title,
-        category: cat,
+        category: cats[0] || "Other", // For color, just pick first one or default
       });
       nodesMap.set(id, true);
     });
@@ -630,6 +639,24 @@ router.get("/breadth/graph", async (req, res) => {
   } catch (error) {
     console.error("[Graph API Error]", error);
     return res.status(500).json({ error: "Failed to build course graph" });
+  }
+});
+
+/**
+ * GET /breadth/categories
+ * Returns unique breadth categories stored in the database.
+ */
+router.get("/breadth/categories", async (req, res) => {
+  try {
+    const categories = await db
+      .selectDistinct({ category: subjectBreadth.category })
+      .from(subjectBreadth);
+    
+    const list = categories.map(c => c.category).filter(Boolean);
+    return res.json(list);
+  } catch (error) {
+    console.error("[Categories API Error]", error);
+    return res.status(500).json({ error: "Failed to fetch categories" });
   }
 });
 

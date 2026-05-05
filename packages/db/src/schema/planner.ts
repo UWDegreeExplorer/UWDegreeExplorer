@@ -47,9 +47,11 @@ export const courseRequirements = pgTable("planner_course_requirements", {
 
 // Mapping of subjects to their respective breadth requirement categories
 export const subjectBreadth = pgTable("planner_subject_breadth", {
-  subjectCode: text("subject_code").primaryKey(),
+  subjectCode: text("subject_code"),
   category: text("category").notNull(), // Humanities, Pure Sciences, Social Sciences, etc.
-});
+}, (table) => ({
+  pk: primaryKey({ columns: [table.subjectCode, table.category] }),
+}));
 
 // 6. 专业列表表
 export const programs = pgTable("planner_programs", {
