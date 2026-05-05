@@ -70,6 +70,7 @@ export const CourseExplorer: React.FC = () => {
         courseId={selectedCourseId}
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
+        onNavigate={handleCourseClick}
       />
       
       {/* Header Section */}

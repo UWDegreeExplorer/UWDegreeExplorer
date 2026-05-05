@@ -37,13 +37,62 @@ interface CourseDetailSheetProps {
   courseId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onNavigate?: (id: string) => void;
 }
 
 export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
   courseId,
   open,
   onOpenChange,
+  onNavigate,
 }) => {
+  const renderLinkedText = (text: string | null) => {
+    if (!text) return null;
+
+    // Pattern: Subjects (e.g. CS or BU/MATH) followed by Catalog Numbers (e.g. 135 or 117/118)
+    const regex = /([A-Z]{2,}(?:\s*\/\s*[A-Z]{2,})*)\s+([0-9]{1,3}[A-Z]*(?:\s*\/\s*[0-9]{1,3}[A-Z]*)*)/g;
+    const parts: (string | React.ReactNode)[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(text)) !== null) {
+      // Add text before match
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      const subjects = match[1].split(/\s*\/\s*/);
+      const numbers = match[2].split(/\s*\/\s*/);
+      const matchIndex = match.index;
+
+      // Render each subject/number combination
+      subjects.forEach((sub, sIdx) => {
+        numbers.forEach((num, nIdx) => {
+          const fullCode = `${sub}${num}`;
+          parts.push(
+            <span
+              key={`${matchIndex}-${sub}-${num}`}
+              className="text-primary hover:underline cursor-pointer font-bold decoration-primary/30"
+              onClick={() => onNavigate?.(fullCode)}
+            >
+              {sub} {num}
+            </span>
+          );
+          if (nIdx < numbers.length - 1) parts.push("/");
+        });
+        if (sIdx < subjects.length - 1) parts.push("/");
+      });
+
+      lastIndex = regex.lastIndex;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts;
+  };
   const { data: course, isLoading, error } = useQuery<CourseDetail>({
     queryKey: ["course-detail", courseId],
     queryFn: async () => {
@@ -124,21 +173,21 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
                     {course.prereqRaw && (
                       <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
                         <span className="text-xs font-bold uppercase tracking-wider text-primary">Prerequisites</span>
-                        <p className="text-sm mt-1">{course.prereqRaw}</p>
+                        <p className="text-sm mt-1">{renderLinkedText(course.prereqRaw)}</p>
                       </div>
                     )}
                     
                     {course.coreqRaw && (
                       <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
                         <span className="text-xs font-bold uppercase tracking-wider text-blue-500">Corequisites</span>
-                        <p className="text-sm mt-1">{course.coreqRaw}</p>
+                        <p className="text-sm mt-1">{renderLinkedText(course.coreqRaw)}</p>
                       </div>
                     )}
 
                     {course.antireqRaw && (
                       <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/10">
                         <span className="text-xs font-bold uppercase tracking-wider text-destructive">Antirequisites</span>
-                        <p className="text-sm mt-1">{course.antireqRaw}</p>
+                        <p className="text-sm mt-1">{renderLinkedText(course.antireqRaw)}</p>
                       </div>
                     )}
 

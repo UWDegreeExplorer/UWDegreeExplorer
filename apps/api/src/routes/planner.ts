@@ -92,7 +92,7 @@ router.get("/courses/:id", async (req, res) => {
     const { id } = req.params;
     
     // 1. Get core course info and requirements
-    const courseData = await db
+    let courseQuery = db
       .select({
         course: courses,
         version: courseVersions,
@@ -100,10 +100,30 @@ router.get("/courses/:id", async (req, res) => {
       })
       .from(courses)
       .leftJoin(courseVersions, eq(courses.courseId, courseVersions.courseId))
-      .leftJoin(courseRequirements, eq(courses.courseId, courseRequirements.courseId))
-      .where(eq(courses.courseId, id))
-      .orderBy(sql`${courseVersions.versionId} DESC`)
-      .limit(1);
+      .leftJoin(courseRequirements, eq(courses.courseId, courseRequirements.courseId));
+
+    let courseData: any[] = [];
+    
+    // Check if ID is a numeric 6-digit code
+    if (/^\d{6}$/.test(id)) {
+      courseData = await courseQuery
+        .where(eq(courses.courseId, id))
+        .orderBy(sql`${courseVersions.versionId} DESC`)
+        .limit(1);
+    } else {
+      // Try to parse as Subject + Catalog (e.g. CS135 or CS 135)
+      const match = id.match(/^([A-Z]+)\s*([0-9][A-Z0-9]*)$/i);
+      if (match) {
+        const sub = match[1].toUpperCase();
+        const cat = match[2].toUpperCase();
+        courseData = await courseQuery
+          .where(and(eq(courses.subjectCode, sub), eq(courses.catalogNumber, cat)))
+          .orderBy(sql`${courseVersions.versionId} DESC`)
+          .limit(1);
+      } else {
+        courseData = [];
+      }
+    }
 
     if (courseData.length === 0) {
       res.status(404).json({ error: "Course not found" });
