@@ -84,24 +84,24 @@ export const BreadthConstellation: React.FC = () => {
   });
 
   useEffect(() => {
-    if (graphData && fgRef.current) {
-      setIsStable(false);
-      const fg = fgRef.current;
-      fg.d3Force("charge").strength(-150);
-      fg.d3Force("link").distance(100);
-      fg.d3Force("radial", d3.forceRadial(0, 0, 0).strength(0.02));
-      fg.d3ReheatSimulation();
+    if (!graphData || !fgRef.current) return;
+    
+    setIsStable(false);
+    const fg = fgRef.current;
+    fg.d3Force("charge").strength(-150);
+    fg.d3Force("link").distance(100);
+    fg.d3Force("radial", d3.forceRadial(0, 0, 0).strength(0.02));
+    fg.d3ReheatSimulation();
 
-      const timer = setTimeout(() => {
-        if (!isStable) {
-          fg.zoomToFit(1000, 30);
-          // Immediately zoom in a bit more to make it clearer
-          setTimeout(() => fg.zoom(2.2, 800), 1100);
-          setIsStable(true);
-        }
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(() => {
+      if (!isStable) {
+        fg.zoomToFit(1000, 30);
+        // Immediately zoom in a bit more to make it clearer
+        setTimeout(() => fg.zoom(2.2, 800), 1100);
+        setIsStable(true);
+      }
+    }, 4000);
+    return () => clearTimeout(timer);
   }, [graphData]);
 
   const processedData = useMemo(() => {
