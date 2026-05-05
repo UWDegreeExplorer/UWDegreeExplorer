@@ -49,38 +49,76 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
   const renderLinkedText = (text: string | null) => {
     if (!text) return null;
 
-    // Pattern: Subjects (e.g. CS or BU/MATH) followed by Catalog Numbers (e.g. 135 or 117/118)
-    const regex = /([A-Z]{2,}(?:\s*\/\s*[A-Z]{2,})*)\s+([0-9]{1,3}[A-Z]*(?:\s*\/\s*[0-9]{1,3}[A-Z]*)*)/g;
+    // Pattern: Subjects (e.g. CS or BU/MATH) followed by Catalog Numbers (e.g. 135 or 117/118 or 106, 114, 115)
+    // The number part now allows commas and slashes.
+    const regex = /([A-Z]{2,}(?:\s*\/\s*[A-Z]{2,})*)\s+([0-9]{1,3}[A-Z]*(?:\s*[,/]\s*[0-9]{1,3}[A-Z]*)*)/g;
     const parts: (string | React.ReactNode)[] = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
 
     while ((match = regex.exec(text)) !== null) {
-      // Add text before match
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index));
       }
 
-      const subjects = match[1].split(/\s*\/\s*/);
-      const numbers = match[2].split(/\s*\/\s*/);
+      const subjectsText = match[1];
+      const numbersText = match[2];
       const matchIndex = match.index;
 
-      // Render each subject/number combination
-      subjects.forEach((sub, sIdx) => {
-        numbers.forEach((num, nIdx) => {
-          const fullCode = `${sub}${num}`;
+      // Split subjects by slash, but keep the slashes for rendering
+      const subjects = subjectsText.split(/(\s*\/\s*)/);
+      // Split numbers by comma or slash, keeping them for rendering
+      const numbers = numbersText.split(/(\s*[,/]\s*)/);
+
+      // We need to associate every numeric code with ALL subjects in the prefix
+      // For simplicity in display, we keep the original structure
+      
+      // 1. Process Subjects
+      const resolvedSubjects = subjects.filter(s => /[A-Z]{2,}/.test(s));
+      
+      subjects.forEach((sPart, sIdx) => {
+        if (/[A-Z]{2,}/.test(sPart)) {
+          // It is a subject link? No, subjects usually need a number.
+          // In BU/MATH 117, we want BU to link to BU 117.
+          // We will render it as a link that uses the FIRST number of the list as a fallback,
+          // but that might be complex. Let's stick to the user's specific request:
+          // Clicking BU in BU/MATH 117 goes to BU 117.
+          
+          const firstNumber = numbers.find(n => /[0-9]/.test(n)) || "";
           parts.push(
             <span
-              key={`${matchIndex}-${sub}-${num}`}
+              key={`${matchIndex}-sub-${sIdx}`}
               className="text-primary hover:underline cursor-pointer font-bold decoration-primary/30"
-              onClick={() => onNavigate?.(fullCode)}
+              onClick={() => onNavigate?.(`${sPart}${firstNumber}`)}
             >
-              {sub} {num}
+              {sPart}
             </span>
           );
-          if (nIdx < numbers.length - 1) parts.push("/");
-        });
-        if (sIdx < subjects.length - 1) parts.push("/");
+        } else {
+          parts.push(sPart);
+        }
+      });
+
+      parts.push(" "); // Space between subjects and numbers
+
+      // 2. Process Numbers
+      numbers.forEach((nPart, nIdx) => {
+        if (/[0-9]/.test(nPart)) {
+          // For each number, it links to [First Subject] + [This Number]
+          // Usually in MATH 106, 114, it is always the same subject.
+          const mainSubject = resolvedSubjects[0] || "";
+          parts.push(
+            <span
+              key={`${matchIndex}-num-${nIdx}`}
+              className="text-primary hover:underline cursor-pointer font-bold decoration-primary/30"
+              onClick={() => onNavigate?.(`${mainSubject}${nPart}`)}
+            >
+              {nPart}
+            </span>
+          );
+        } else {
+          parts.push(nPart);
+        }
       });
 
       lastIndex = regex.lastIndex;
