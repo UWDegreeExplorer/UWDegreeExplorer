@@ -541,13 +541,22 @@ router.get("/breadth/graph", async (req, res) => {
   try {
     const { category } = req.query;
 
+    console.log(`[Graph API] Fetching data for category: ${category || 'All'}`);
+
     // 1. Fetch all subjects and their breadth categories
     const brSubjects = await db.select().from(subjectBreadth);
     const subjectToCategory = new Map(brSubjects.map(s => [s.subjectCode, s.category]));
-    const brSubjectCodes = brSubjects.map(s => s.subjectCode);
+    const brSubjectCodes = brSubjects.map(s => s.subjectCode).filter(Boolean) as string[];
+
+    console.log(`[Graph API] Found ${brSubjectCodes.length} BR subjects.`);
+
+    if (brSubjectCodes.length === 0) {
+      return res.json({ nodes: [], links: [] });
+    }
 
     // 2. Fetch all courses in these subjects along with their requirements
-    let query = db
+    // Simplified query to avoid subquery issues during debug
+    const rawCourses = await db
       .select({
         courseId: courses.courseId,
         subjectCode: courses.subjectCode,
@@ -558,44 +567,42 @@ router.get("/breadth/graph", async (req, res) => {
       .from(courses)
       .innerJoin(courseVersions, eq(courses.courseId, courseVersions.courseId))
       .leftJoin(courseRequirements, eq(courses.courseId, courseRequirements.courseId))
-      .where(
-        and(
-          inArray(courses.subjectCode, brSubjectCodes),
-          // Only get the latest version for each course
-          sql`(${courseVersions.versionId}) IN (
-            SELECT MAX(version_id) FROM planner_course_versions GROUP BY course_id
-          )`
-        )
-      );
+      .where(inArray(courses.subjectCode, brSubjectCodes));
 
-    const rawCourses = await query;
+    console.log(`[Graph API] Fetched ${rawCourses.length} raw course records.`);
 
     // 3. Build Nodes and Edges
-    const nodes: any[] = [];
+    const nodesMap = new Map();
     const links: any[] = [];
-    const courseIdSet = new Set(rawCourses.map(c => c.courseId));
 
+    // Deduplicate courses by ID (keeping the one with the longest title, usually more descriptive)
     rawCourses.forEach(course => {
-      const cat = subjectToCategory.get(course.subjectCode || "");
-      
-      // If a category filter is applied, only show courses in that category
-      if (category && cat !== category) return;
+      const existing = nodesMap.get(course.courseId);
+      if (!existing || (course.title?.length || 0) > (existing.title?.length || 0)) {
+        const cat = subjectToCategory.get(course.subjectCode || "");
+        if (category && cat !== category) return;
 
-      nodes.push({
-        id: course.courseId,
-        code: `${course.subjectCode} ${course.catalogNumber}`,
-        title: course.title,
-        category: cat,
-      });
+        nodesMap.set(course.courseId, {
+          id: course.courseId,
+          code: `${course.subjectCode} ${course.catalogNumber}`,
+          title: course.title,
+          category: cat,
+          prereqs: course.prereqIds
+        });
+      }
+    });
 
-      if (course.prereqIds) {
-        const prereqs = course.prereqIds.split(",").map(id => id.trim());
-        prereqs.forEach(pId => {
-          // Only create a link if the prerequisite course exists in our data
+    const nodes = Array.from(nodesMap.values());
+    const courseIdSet = new Set(nodes.map(n => n.id));
+
+    nodes.forEach(node => {
+      if (node.prereqs) {
+        const prereqs = node.prereqs.split(",").map((id: string) => id.trim());
+        prereqs.forEach((pId: string) => {
           if (courseIdSet.has(pId)) {
             links.push({
               source: pId,
-              target: course.courseId,
+              target: node.id,
               type: "prereq"
             });
           }
@@ -603,10 +610,11 @@ router.get("/breadth/graph", async (req, res) => {
       }
     });
 
-    res.json({ nodes, links });
+    console.log(`[Graph API] Returning ${nodes.length} nodes and ${links.length} links.`);
+    return res.json({ nodes, links });
   } catch (error) {
     console.error("[Graph API Error]", error);
-    res.status(500).json({ error: "Failed to build course graph" });
+    return res.status(500).json({ error: "Failed to build course graph" });
   }
 });
 
