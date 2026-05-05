@@ -5,13 +5,11 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, History, Info, AlertTriangle, Sparkles, Heart, ThumbsUp, Brain, FileText, ExternalLink } from "lucide-react";
-import { motion } from "framer-motion";
+import { BookOpen, History, Info, AlertTriangle, FileText, ExternalLink } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatTermCode } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,36 +38,6 @@ interface CourseDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const RatingBadge = ({ label, value, icon: Icon, color }: { label: string, value: number | null, icon: any, color: string }) => {
-  if (value === null) return null;
-  // Convert bg-xxx-500 to text-xxx-600 for better contrast on light backgrounds
-  const textColor = color.replace('bg-', 'text-').replace('-500', '-600');
-  const bgColor = color.replace('-500', '-500/10');
-
-  return (
-    <div className="flex-1 p-3 rounded-2xl bg-muted/30 border border-border/50 space-y-2">
-      <div className="flex items-center justify-between">
-        <div className={`p-1.5 rounded-lg ${bgColor}`}>
-          <Icon size={16} className={textColor} />
-        </div>
-        <span className="text-lg font-bold">{Math.round(value)}%</span>
-      </div>
-      <div className="space-y-1">
-        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          <span>{label}</span>
-        </div>
-        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: `${value}%` }}
-            className={`h-full ${color} rounded-full`}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
   courseId,
@@ -109,62 +77,17 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
           <ScrollArea className="flex-1">
             <div className="p-8 space-y-8 pb-12">
               <SheetHeader>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-primary border-primary/20 font-mono">
-                      {course.subjectCode} {course.catalogNumber}
-                    </Badge>
-                    <Badge variant="secondary">{course.units} Units</Badge>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 gap-2 border-primary/20 text-primary hover:bg-primary/5"
-                    onClick={() => window.open(`https://outline.uwaterloo.ca/viewer/?q=${course.subjectCode}%20${course.catalogNumber}`, '_blank')}
-                  >
-                    <FileText size={14} />
-                    <span className="text-xs font-bold">Official Outline</span>
-                    <ExternalLink size={12} className="opacity-50" />
-                  </Button>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-primary border-primary/20 font-mono">
+                    {course.subjectCode} {course.catalogNumber}
+                  </Badge>
+                  <Badge variant="secondary">{course.units} Units</Badge>
                 </div>
                 <SheetTitle className="text-3xl font-bold leading-tight">
                   {course.title}
                 </SheetTitle>
               </SheetHeader>
 
-              <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center gap-2 mb-4 text-lg font-semibold">
-                  <Sparkles className="h-5 w-5 text-amber-500" />
-                  <h2>UWFlow Insights</h2>
-                </div>
-
-                {course.uwflowRating && (course.uwflowRating.liked !== null || course.uwflowRating.useful !== null || course.uwflowRating.easy !== null) ? (
-                  <div className="flex gap-3">
-                    <RatingBadge 
-                      label="Liked" 
-                      value={course.uwflowRating.liked} 
-                      icon={Heart} 
-                      color="bg-rose-500" 
-                    />
-                    <RatingBadge 
-                      label="Useful" 
-                      value={course.uwflowRating.useful} 
-                      icon={ThumbsUp} 
-                      color="bg-blue-500" 
-                    />
-                    <RatingBadge 
-                      label="Easy" 
-                      value={course.uwflowRating.easy} 
-                      icon={Brain} 
-                      color="bg-emerald-500" 
-                    />
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-2xl bg-muted/30 border border-dashed text-center">
-                    <p className="text-sm text-muted-foreground italic">No ratings available yet for this course.</p>
-                  </div>
-                )}
-              </section>
 
               <div className="space-y-6">
                 <section>
@@ -175,6 +98,18 @@ export const CourseDetailSheet: React.FC<CourseDetailSheetProps> = ({
                   <p className="text-muted-foreground leading-relaxed">
                     {course.description || "No description available."}
                   </p>
+                  <div className="mt-4 pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-9 gap-2 border-primary/20 text-primary hover:bg-primary/5 rounded-xl px-4"
+                      onClick={() => window.open(`https://outline.uwaterloo.ca/viewer/?q=${course.subjectCode}%20${course.catalogNumber}`, '_blank')}
+                    >
+                      <FileText size={16} />
+                      <span className="text-sm font-bold">Official Course Outline</span>
+                      <ExternalLink size={14} className="opacity-50" />
+                    </Button>
+                  </div>
                 </section>
 
                 <Separator />
