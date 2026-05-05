@@ -47,12 +47,16 @@ export function MessageUserButton({
 
   const { mutate: createConnectRequest, isPending: isRequesting } = useCustomMutation<any, any>("/dm/connect-requests", {
     fetchOptions: { method: "POST" },
-    onSuccess: () => {
-      setHasRequested(true);
-      toast({
-        title: "Connect request sent",
-        description: "The author has been notified. You can chat if they accept.",
-      });
+    onSuccess: (data: any) => {
+      if (data?.conversationId) {
+        onOpenConversation(data.conversationId);
+      } else {
+        setHasRequested(true);
+        toast({
+          title: "Connect request sent",
+          description: "The author has been notified. You can chat if they accept.",
+        });
+      }
     },
     onError: (err: any) => {
       toast({

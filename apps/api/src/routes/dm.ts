@@ -262,6 +262,22 @@ router.post("/connect-requests", async (req, res) => {
     return;
   }
 
+  // Check if a conversation already exists between the two users
+  const p1 = aliasedTable(conversationParticipantsTable, "p1");
+  const p2 = aliasedTable(conversationParticipantsTable, "p2");
+
+  const [existingConversation] = await db
+    .select({ id: p1.conversationId })
+    .from(p1)
+    .innerJoin(p2, eq(p1.conversationId, p2.conversationId))
+    .where(and(eq(p1.userId, userId), eq(p2.userId, targetUserId)))
+    .limit(1);
+
+  if (existingConversation) {
+    res.json({ status: "connected", conversationId: existingConversation.id });
+    return;
+  }
+
   // Check for existing pending request
   const [existing] = await db
     .select()
