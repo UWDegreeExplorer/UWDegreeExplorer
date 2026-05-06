@@ -243,8 +243,8 @@ export const BreadthConstellation: React.FC = () => {
             }}
             d3AlphaDecay={0.015}
             d3VelocityDecay={0.35}
-            cooldownTicks={100}
-          />
+            />
+          )}
         </div>
 
         <div className="absolute bottom-8 right-8 z-10 flex flex-col gap-3 pointer-events-auto">
