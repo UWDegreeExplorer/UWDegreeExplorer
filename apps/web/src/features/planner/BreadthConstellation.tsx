@@ -241,8 +241,6 @@ export const BreadthConstellation: React.FC = () => {
                 setIsStable(true);
               }
             }}
-            d3AlphaDecay={0.015}
-            d3VelocityDecay={0.35}
             />
           )}
         </div>
