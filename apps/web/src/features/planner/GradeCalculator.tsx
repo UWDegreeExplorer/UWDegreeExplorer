@@ -186,21 +186,22 @@ export const GradeCalculator: React.FC = () => {
   const totals = useMemo(() => {
     if (!selectedCourse) return { current: 0, totalWeight: 0 };
     
-    const calculateNode = (nodes: GradeComponent[], parentId: number | null): number => {
+    const calculateNode = (nodes: GradeComponent[], parentId: number | null, depth: number): number => {
+      if (depth > 10) return 0;
       let contribution = 0;
       const children = nodes.filter(n => n.parentId === parentId);
       for (const child of children) {
         if (child.isLeaf) {
           contribution += (child.score || 0) * (child.weight / 100);
         } else {
-          contribution += calculateNode(nodes, child.id);
+          contribution += calculateNode(nodes, child.id, depth + 1);
         }
       }
       return contribution;
     };
 
     return { 
-      current: calculateNode(selectedCourse.components, null),
+      current: calculateNode(selectedCourse.components, null, 0),
       totalWeight: selectedCourse.components.reduce((acc, curr) => curr.parentId === null ? acc + curr.weight : acc, 0)
     };
   }, [selectedCourse]);
@@ -504,17 +505,25 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
 
   const categoryTotal = useMemo(() => {
     if (component.isLeaf) return 0;
-    const calculateSum = (nodes: GradeComponent[], parentId: number): number => {
+    
+    const calculateSum = (nodes: GradeComponent[], parentId: number, currentDepth: number): number => {
+      if (currentDepth > 10) return 0; // Safety break
       let sum = 0;
       const childs = nodes.filter(n => n.parentId === parentId);
       for (const c of childs) {
         if (c.isLeaf) sum += (c.score || 0) * (c.weight / 100);
-        else sum += calculateSum(nodes, c.id);
+        else sum += calculateSum(nodes, c.id, currentDepth + 1);
       }
       return sum;
     };
-    return calculateSum(allComponents, component.id);
-  }, [component, allComponents]);
+    
+    try {
+      return calculateSum(allComponents, component.id, 0);
+    } catch (e) {
+      console.error("Recursive calculation error:", e);
+      return 0;
+    }
+  }, [component.id, component.isLeaf, allComponents]);
 
   return (
     <div className="w-full">
