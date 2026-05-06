@@ -287,7 +287,7 @@ export const GradeCalculator: React.FC = () => {
              <div className="divide-y-2 divide-border/50">
                 {selectedCourse.components.filter(c => c.parentId === null).map((comp) => (
                   <ComponentRow 
-                    key={comp.id} 
+                    key={`${comp.id}-${comp.updatedAt || ''}`} 
                     component={comp} 
                     allComponents={selectedCourse.components}
                     onUpdate={handleUpdateComponent}
@@ -468,9 +468,8 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
   const [localWeight, setLocalWeight] = useState((component.weight || 0).toString());
   const [localScore, setLocalScore] = useState((component.score || 0).toString());
 
-  useEffect(() => { setLocalName(component.name); }, [component.name]);
-  useEffect(() => { setLocalWeight((component.weight || 0).toString()); }, [component.weight]);
-  useEffect(() => { setLocalScore((component.score || 0).toString()); }, [component.score]);
+  // Instead of useEffects, we use the component ID/updatedAt as a key from the parent 
+  // to force a fresh component state when properties change significantly.
 
   const commitName = () => {
     if (localName.trim() !== "" && localName !== component.name) {
@@ -634,7 +633,7 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
           >
             {children.map((child) => (
               <ComponentRow 
-                key={child.id} 
+                key={`${child.id}-${child.updatedAt || ''}`} 
                 component={child} 
                 allComponents={allComponents}
                 onUpdate={onUpdate}
