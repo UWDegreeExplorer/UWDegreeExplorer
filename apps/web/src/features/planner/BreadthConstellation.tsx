@@ -67,7 +67,12 @@ export const BreadthConstellation: React.FC = () => {
     queryKey: ["breadth-categories"],
     queryFn: async () => {
       const baseUrl = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${baseUrl}/api/planner/breadth/categories`);
+      const fullUrl = baseUrl 
+        ? (baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl) + "/api/planner/breadth/categories"
+        : "/api/planner/breadth/categories";
+      
+      console.log(`[Breadth] Fetching categories from: ${fullUrl}`);
+      const res = await fetch(fullUrl);
       if (!res.ok) throw new Error("Failed to fetch categories");
       return (await res.json()).sort();
     }
@@ -189,6 +194,9 @@ export const BreadthConstellation: React.FC = () => {
               width={dimensions.width}
               height={dimensions.height}
               backgroundColor="#f8fafc"
+              d3AlphaDecay={0.02}
+              d3VelocityDecay={0.3}
+              cooldownTicks={100}
             nodeLabel={() => ""} 
             nodeColor={(n: any) => CATEGORY_COLORS[n.category] || "#475569"}
             nodeRelSize={6}
