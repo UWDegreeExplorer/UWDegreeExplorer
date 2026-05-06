@@ -463,6 +463,45 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const children = allComponents.filter(c => c.parentId === component.id);
   
+  const [localName, setLocalName] = useState(component.name);
+  const [localWeight, setLocalWeight] = useState((component.weight || 0).toString());
+  const [localScore, setLocalScore] = useState((component.score || 0).toString());
+
+  useEffect(() => { setLocalName(component.name); }, [component.name]);
+  useEffect(() => { setLocalWeight((component.weight || 0).toString()); }, [component.weight]);
+  useEffect(() => { setLocalScore((component.score || 0).toString()); }, [component.score]);
+
+  const commitName = () => {
+    if (localName.trim() !== "" && localName !== component.name) {
+      onUpdate({ ...component, name: localName });
+    } else {
+      setLocalName(component.name);
+    }
+  };
+
+  const commitWeight = () => {
+    const w = parseFloat(localWeight);
+    if (!isNaN(w) && w !== component.weight) {
+      onUpdate({ ...component, weight: w });
+    } else {
+      setLocalWeight((component.weight || 0).toString());
+    }
+  };
+
+  const commitScore = () => {
+    const s = parseFloat(localScore);
+    if (!isNaN(s) && s !== component.score) {
+      onUpdate({ ...component, score: s });
+    } else {
+      setLocalScore((component.score || 0).toString());
+    }
+  };
+
+  const handleAddChildClick = (isLeaf: boolean) => {
+    setIsExpanded(true);
+    onAddChild(component.id, isLeaf);
+  };
+
   const categoryTotal = useMemo(() => {
     if (component.isLeaf) return 0;
     const calculateSum = (nodes: GradeComponent[], parentId: number): number => {
@@ -500,9 +539,10 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
             className={`h-9 text-base font-bold bg-transparent border-none focus-visible:ring-1 focus-visible:ring-primary/20 p-2 hover:bg-muted/50 transition-all ${
               component.isLeaf ? "text-foreground" : "text-primary uppercase tracking-wide"
             } w-full max-w-[320px]`}
-            value={component.name}
-            onChange={(e) => onUpdate({ ...component, name: e.target.value })}
-            onBlur={() => onUpdate(component)}
+            value={localName}
+            onChange={(e) => setLocalName(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e) => e.key === 'Enter' && commitName()}
           />
         </div>
 
@@ -513,9 +553,11 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
             <div className="relative group/input">
               <Input 
                 type="number"
-                className="h-9 w-24 text-right pr-7 font-mono text-xs font-bold border-2 focus-visible:ring-primary/30"
-                value={component.weight}
-                onChange={(e) => onUpdate({ ...component, weight: parseFloat(e.target.value) || 0 })}
+                className="h-9 w-24 text-right pr-7 font-mono text-xs font-bold border-2 focus-visible:ring-primary/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                value={localWeight}
+                onChange={(e) => setLocalWeight(e.target.value)}
+                onBlur={commitWeight}
+                onKeyDown={(e) => e.key === 'Enter' && commitWeight()}
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground opacity-40">%</span>
             </div>
@@ -530,9 +572,11 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
               <div className="relative">
                 <Input 
                   type="number"
-                  className="h-9 w-24 text-right pr-7 font-mono text-sm font-black text-indigo-500 border-2 focus-visible:ring-indigo-300"
-                  value={component.score || 0}
-                  onChange={(e) => onUpdate({ ...component, score: parseFloat(e.target.value) || 0 })}
+                  className="h-9 w-24 text-right pr-7 font-mono text-sm font-black text-indigo-500 border-2 focus-visible:ring-indigo-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  value={localScore}
+                  onChange={(e) => setLocalScore(e.target.value)}
+                  onBlur={commitScore}
+                  onKeyDown={(e) => e.key === 'Enter' && commitScore()}
                 />
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400 opacity-40">%</span>
               </div>
@@ -553,10 +597,10 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
             <DropdownMenuContent align="end" className="w-48 p-1">
               {!component.isLeaf && (
                 <>
-                  <DropdownMenuItem onClick={() => onAddChild(component.id, false)} className="gap-3 font-bold py-2 px-3">
+                  <DropdownMenuItem onClick={() => handleAddChildClick(false)} className="gap-3 font-bold py-2 px-3">
                     <FolderPlus size={16} className="text-primary" /> Add Category
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onAddChild(component.id, true)} className="gap-3 font-bold py-2 px-3">
+                  <DropdownMenuItem onClick={() => handleAddChildClick(true)} className="gap-3 font-bold py-2 px-3">
                     <FilePlus size={16} className="text-primary" /> Add Item
                   </DropdownMenuItem>
                   <Separator className="my-1" />
