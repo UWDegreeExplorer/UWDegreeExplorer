@@ -77,8 +77,14 @@ export const BreadthConstellation: React.FC = () => {
     queryKey: ["breadth-graph", selectedCategory],
     queryFn: async () => {
       const baseUrl = import.meta.env.VITE_API_URL || "";
-      const url = new URL(`${baseUrl}/api/planner/breadth/graph`, window.location.origin);
+      // Robust URL construction
+      const fullUrl = baseUrl 
+        ? (baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl) + "/api/planner/breadth/graph"
+        : "/api/planner/breadth/graph";
+        
+      const url = new URL(fullUrl, window.location.origin);
       if (selectedCategory) url.searchParams.append("category", selectedCategory);
+      
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error("Failed to fetch graph data");
       return await res.json();
@@ -148,6 +154,9 @@ export const BreadthConstellation: React.FC = () => {
           >
             All Courses
           </Button>
+          {!categories && !isLoading && (
+            <p className="text-xs text-red-400 self-center ml-2">Categories unavailable (check VITE_API_URL)</p>
+          )}
           {(categories || []).map((cat) => {
             const color = CATEGORY_COLORS[cat] || "#475569";
             return (
@@ -173,12 +182,13 @@ export const BreadthConstellation: React.FC = () => {
 
       <div className="flex-1 relative min-h-0 w-full m-0 p-0 overflow-hidden">
         <div ref={containerRef} className="absolute inset-0 m-0 p-0 overflow-hidden">
-          <ForceGraph2D
-            ref={fgRef}
-            graphData={processedData}
-            width={dimensions.width}
-            height={dimensions.height}
-            backgroundColor="#f8fafc"
+          {dimensions.width > 0 && dimensions.height > 0 && (
+            <ForceGraph2D
+              ref={fgRef}
+              graphData={processedData}
+              width={dimensions.width}
+              height={dimensions.height}
+              backgroundColor="#f8fafc"
             nodeLabel={() => ""} 
             nodeColor={(n: any) => CATEGORY_COLORS[n.category] || "#475569"}
             nodeRelSize={6}
