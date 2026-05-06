@@ -66,7 +66,8 @@ export const BreadthConstellation: React.FC = () => {
   const { data: categories } = useQuery<string[]>({
     queryKey: ["breadth-categories"],
     queryFn: async () => {
-      const res = await fetch("/api/planner/breadth/categories");
+      const baseUrl = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${baseUrl}/api/planner/breadth/categories`);
       if (!res.ok) throw new Error("Failed to fetch categories");
       return (await res.json()).sort();
     }
@@ -75,7 +76,8 @@ export const BreadthConstellation: React.FC = () => {
   const { data: graphData, isLoading } = useQuery<GraphData>({
     queryKey: ["breadth-graph", selectedCategory],
     queryFn: async () => {
-      const url = new URL("/api/planner/breadth/graph", window.location.origin);
+      const baseUrl = import.meta.env.VITE_API_URL || "";
+      const url = new URL(`${baseUrl}/api/planner/breadth/graph`, window.location.origin);
       if (selectedCategory) url.searchParams.append("category", selectedCategory);
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error("Failed to fetch graph data");

@@ -141,5 +141,14 @@ pnpm dev
 ## Security & Best Practices
 
 - **Secrets**: Never commit `.env`. It is ignored by git. Use `.env.example` as a template.
-- **Session**: `trust proxy` is enabled in the backend to support secure cookies behind reverse proxies (like Supabase/Vercel).
+- **Session**: `trust proxy` is enabled in the backend to support secure cookies behind reverse proxies (like Railway).
 - **CORS**: Configured to allow credentials for session-based authentication.
+
+## Production Architecture (Reference)
+
+- **Frontend**: Hosted on **Cloudflare Pages** (`uwdegree.org`).
+- **Backend (API)**: Hosted on **Railway** (e.g., `https://api-xxx.up.railway.app`).
+- **Database**: Hosted on **Supabase** (PostgreSQL).
+
+### Important for Frontend Development
+Always use `import.meta.env.VITE_API_URL` when making API calls in features to ensure requests are correctly routed to the Railway backend in production. Relative paths (`/api/...`) will only work in local development due to the Vite proxy.
