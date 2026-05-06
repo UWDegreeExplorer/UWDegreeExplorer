@@ -29,4 +29,4 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
 });
 
-// Deployment trigger: 2026-05-02 12:48 (UTC)
+// Deployment trigger: Force Railway redeploy to sync API routes
