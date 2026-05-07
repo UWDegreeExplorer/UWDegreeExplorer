@@ -17,9 +17,11 @@ export function WelcomePane() {
     <ScrollArea className="flex-1">
       <div className="max-w-2xl mx-auto px-10 py-12">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary text-primary-foreground font-serif font-bold text-2xl shadow-sm mb-5">
-            U
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="UW Degree Explorer Logo" 
+            className="h-20 object-contain mx-auto mb-5" 
+          />
           <h1 className="font-serif text-3xl font-medium tracking-tight">
             Welcome to UW Degree Explorer
           </h1>

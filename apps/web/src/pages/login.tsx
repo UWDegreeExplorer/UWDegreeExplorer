@@ -177,9 +177,11 @@ export default function Login() {
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-serif font-bold text-2xl mx-auto shadow-sm mb-6">
-              U
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="UW Degree Explorer Logo" 
+              className="h-16 object-contain mx-auto mb-6" 
+            />
             <h1 className="font-serif text-3xl font-medium tracking-tight">Welcome back</h1>
             <p className="text-muted-foreground">Sign in to your UW Degree Explorer account</p>
           </div>

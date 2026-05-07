@@ -35,12 +35,11 @@ export function Header({ onMenuClick, showMenuButton, onSelectSection }: { onMen
           className="flex items-center gap-2.5 cursor-pointer group"
           onClick={() => setLocation("/")}
         >
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-serif font-bold text-lg shadow-sm group-hover:scale-105 transition-transform">
-          U
-        </div>
-        <span className="font-serif text-xl font-semibold tracking-tight">
-          UW Degree Explorer
-        </span>
+        <img 
+          src="/logo.png" 
+          alt="UW Degree Explorer Logo" 
+          className="h-8 object-contain group-hover:scale-105 transition-transform" 
+        />
       </div>
     </div>
 
