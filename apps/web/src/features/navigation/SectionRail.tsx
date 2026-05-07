@@ -398,8 +398,7 @@ export function SectionRail({
       {!isCollapsed && (
         <div className="p-4 border-t border-border">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            A quiet community board for students and alumni. Sign in to unlock
-            bookmarks, drafts, and notifications.
+            The ultimate degree planning tool. Sign in to unlock course tracking, personalized planners, and more.
           </p>
         </div>
       )}

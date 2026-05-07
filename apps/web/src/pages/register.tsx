@@ -205,7 +205,7 @@ export default function Register() {
       queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
       toast({
         title: "Registration successful",
-        description: "Welcome to Campus Forum!",
+        description: "Welcome to UW Degree Explorer!",
       });
       setLocation("/");
     } catch (error: any) {
@@ -224,14 +224,14 @@ export default function Register() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="h-14 border-b border-border bg-card flex items-center px-6 shrink-0 z-10 shadow-sm">
         <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="-ml-2 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Forum
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Explorer
         </Button>
       </header>
 
       <div className="flex-1 flex flex-col items-center justify-center p-6 py-12">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center space-y-2">
-            <h1 className="font-serif text-3xl font-medium tracking-tight">Join Campus Forum</h1>
+            <h1 className="font-serif text-3xl font-medium tracking-tight">Join UW Degree Explorer</h1>
             <p className="text-muted-foreground">Create an account to verify your identity</p>
           </div>
 

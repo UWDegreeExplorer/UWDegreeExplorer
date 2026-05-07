@@ -36,10 +36,10 @@ export function Header({ onMenuClick, showMenuButton, onSelectSection }: { onMen
           onClick={() => setLocation("/")}
         >
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-serif font-bold text-lg shadow-sm group-hover:scale-105 transition-transform">
-          C
+          U
         </div>
         <span className="font-serif text-xl font-semibold tracking-tight">
-          Campus Forum
+          UW Degree Explorer
         </span>
       </div>
     </div>

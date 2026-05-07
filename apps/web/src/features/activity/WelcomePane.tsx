@@ -18,14 +18,13 @@ export function WelcomePane() {
       <div className="max-w-2xl mx-auto px-10 py-12">
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary text-primary-foreground font-serif font-bold text-2xl shadow-sm mb-5">
-            C
+            U
           </div>
           <h1 className="font-serif text-3xl font-medium tracking-tight">
-            Welcome to Campus Forum
+            Welcome to UW Degree Explorer
           </h1>
           <p className="text-muted-foreground mt-3 max-w-md mx-auto leading-relaxed">
-            A quiet place for students and alumni to swap notes, find rides, find
-            roommates, and stay connected. {currentUser ? "Pick a section on the left to start." : "Sign in to unlock personalized features like bookmarks and drafts."}
+            Your ultimate platform to plan courses, visualize degree requirements, and connect with peers. {currentUser ? "Pick a section on the left to start." : "Sign in to unlock personalized features like course tracking and planners."}
           </p>
 
           <div className="flex items-center justify-center gap-2 mt-6">

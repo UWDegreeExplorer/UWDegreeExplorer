@@ -170,7 +170,7 @@ export default function Login() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="h-14 border-b border-border bg-card flex items-center px-6 shrink-0 z-10 shadow-sm">
         <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="-ml-2 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Forum
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Explorer
         </Button>
       </header>
 
@@ -178,10 +178,10 @@ export default function Login() {
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-serif font-bold text-2xl mx-auto shadow-sm mb-6">
-              C
+              U
             </div>
             <h1 className="font-serif text-3xl font-medium tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground">Sign in to your Campus Forum account</p>
+            <p className="text-muted-foreground">Sign in to your UW Degree Explorer account</p>
           </div>
 
           <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
