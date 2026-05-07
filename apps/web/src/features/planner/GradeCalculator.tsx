@@ -42,6 +42,7 @@ interface GradeComponent {
   weight: number;
   score: number | null;
   isLeaf: boolean;
+  updatedAt?: string | Date;
 }
 
 interface CourseGrade {
