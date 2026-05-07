@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Info, Maximize2, ZoomIn, ZoomOut, Filter, BookOpen } from "lucide-react";
+import { Loader2, Info, Maximize2, ZoomIn, ZoomOut, Filter, BookOpen, Search, X } from "lucide-react";
 import * as d3 from "d3-force";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { CourseDetailSheet } from "./CourseDetailSheet";
 
 interface GraphNode {
@@ -14,6 +15,8 @@ interface GraphNode {
   title: string;
   category: string;
   val?: number;
+  x?: number;
+  y?: number;
 }
 
 interface GraphLink {
@@ -41,6 +44,7 @@ export const BreadthConstellation: React.FC = () => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isStable, setIsStable] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -71,7 +75,6 @@ export const BreadthConstellation: React.FC = () => {
         ? (baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl) + "/api/planner/breadth/categories"
         : "/api/planner/breadth/categories";
       
-      console.log(`[Breadth] Fetching categories from: ${fullUrl}`);
       const res = await fetch(fullUrl);
       if (!res.ok) throw new Error("Failed to fetch categories");
       return (await res.json()).sort();
@@ -82,7 +85,6 @@ export const BreadthConstellation: React.FC = () => {
     queryKey: ["breadth-graph", selectedCategory],
     queryFn: async () => {
       const baseUrl = import.meta.env.VITE_API_URL || "";
-      // Robust URL construction
       const fullUrl = baseUrl 
         ? (baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl) + "/api/planner/breadth/graph"
         : "/api/planner/breadth/graph";
@@ -109,7 +111,6 @@ export const BreadthConstellation: React.FC = () => {
     const timer = setTimeout(() => {
       if (!isStable) {
         fg.zoomToFit(1000, 30);
-        // Immediately zoom in a bit more to make it clearer
         setTimeout(() => fg.zoom(2.2, 800), 1100);
         setIsStable(true);
       }
@@ -125,6 +126,26 @@ export const BreadthConstellation: React.FC = () => {
     };
   }, [graphData]);
 
+  const searchResults = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q || !processedData.nodes) return [];
+    return processedData.nodes.filter(n => 
+      n.code.toLowerCase().includes(q) || 
+      n.title.toLowerCase().includes(q) ||
+      n.category.toLowerCase().includes(q)
+    ).slice(0, 5);
+  }, [searchQuery, processedData.nodes]);
+
+  const handleJumpToNode = (node: GraphNode) => {
+    if (fgRef.current && node.x !== undefined && node.y !== undefined) {
+      fgRef.current.centerAt(node.x, node.y, 800);
+      fgRef.current.zoom(6, 800);
+      setSelectedCourseId(node.id);
+      setIsSheetOpen(true);
+      setSearchQuery("");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4 bg-white">
@@ -136,18 +157,62 @@ export const BreadthConstellation: React.FC = () => {
 
   return (
     <div className="flex flex-col w-full h-full bg-[#f8fafc] overflow-hidden">
-      <div className="p-8 pb-4 space-y-6 bg-white/50 backdrop-blur-md border-b border-slate-200/60 z-20">
-        <div>
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-4">
-            <div className="h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
-              <BookOpen size={24} className="text-primary" />
+      <div className="p-8 pb-4 space-y-6 bg-white/50 backdrop-blur-md border-b border-slate-200/60 z-20 relative">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-4">
+              <div className="h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
+                <BookOpen size={24} className="text-primary" />
+              </div>
+              Breadth Constellation
+            </h1>
+            <p className="text-slate-500 mt-2 max-w-2xl text-sm leading-relaxed">
+              Discover interconnected academic pathways through Waterloo's breadth requirements. 
+              Scroll to zoom, drag to explore, and click any star for details.
+            </p>
+          </div>
+
+          <div className="w-80 relative group">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Input 
+                placeholder="Search code, name or category..." 
+                className="pl-10 pr-10 h-11 bg-white/80 border-slate-200 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full text-slate-400"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
-            Breadth Constellation
-          </h1>
-          <p className="text-slate-500 mt-2 max-w-2xl text-sm leading-relaxed">
-            Discover interconnected academic pathways through Waterloo's breadth requirements. 
-            Scroll to zoom, drag to explore, and click any star for details.
-          </p>
+
+            {searchResults.length > 0 && (
+              <Card className="absolute top-full mt-2 w-full z-50 border-slate-200 shadow-xl overflow-hidden backdrop-blur-xl bg-white/95">
+                <div className="py-2">
+                  {searchResults.map(node => (
+                    <button
+                      key={node.id}
+                      className="w-full px-4 py-2 text-left hover:bg-primary/5 transition-colors group flex flex-col"
+                      onClick={() => handleJumpToNode(node)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-slate-900 group-hover:text-primary transition-colors">{node.code}</span>
+                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter h-4 px-1 opacity-60">
+                          {node.category}
+                        </Badge>
+                      </div>
+                      <span className="text-[11px] text-slate-500 truncate">{node.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2.5">
@@ -159,9 +224,6 @@ export const BreadthConstellation: React.FC = () => {
           >
             All Courses
           </Button>
-          {!categories && !isLoading && (
-            <p className="text-xs text-red-400 self-center ml-2">Categories unavailable (check VITE_API_URL)</p>
-          )}
           {(categories || []).map((cat) => {
             const color = CATEGORY_COLORS[cat] || "#475569";
             return (
@@ -197,50 +259,76 @@ export const BreadthConstellation: React.FC = () => {
               d3AlphaDecay={0.02}
               d3VelocityDecay={0.3}
               cooldownTicks={100}
-            nodeLabel={() => ""} 
-            nodeColor={(n: any) => CATEGORY_COLORS[n.category] || "#475569"}
-            nodeRelSize={6}
-            nodeCanvasObject={(node: any, ctx, globalScale) => {
-              const label = node.code;
-              const fontSize = 11 / globalScale;
-              ctx.font = `600 ${fontSize}px "Outfit", sans-serif`;
-              const color = CATEGORY_COLORS[node.category] || "#475569";
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, node.val || 2, 0, 2 * Math.PI, false);
-              ctx.fillStyle = color;
-              ctx.fill();
-              
-              if (globalScale > 2.5) {
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                const textWidth = ctx.measureText(label).width;
-                const bgPadding = 4 / globalScale;
-                const bgHeight = fontSize + bgPadding * 2;
-                const bgWidth = textWidth + bgPadding * 4;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+              nodeLabel={() => ""} 
+              nodeRelSize={6}
+              nodeCanvasObject={(node: any, ctx, globalScale) => {
+                const label = node.code;
+                const q = searchQuery.toLowerCase().trim();
+                const isSearching = q !== "";
+                const isMatch = isSearching && (
+                  node.code.toLowerCase().includes(q) || 
+                  node.title.toLowerCase().includes(q) ||
+                  node.category.toLowerCase().includes(q)
+                );
+                
+                const color = CATEGORY_COLORS[node.category] || "#475569";
+                const alpha = isSearching ? (isMatch ? 1 : 0.15) : 1;
+                
+                // Drawing shadow/glow for matched node
+                if (isMatch) {
+                  ctx.shadowBlur = 15 / globalScale;
+                  ctx.shadowColor = color;
+                }
+
                 ctx.beginPath();
-                const rectX = node.x - bgWidth / 2;
-                const rectY = node.y + (node.val || 2) + fontSize / 2;
-                ctx.roundRect(rectX, rectY, bgWidth, bgHeight, 4 / globalScale);
+                ctx.arc(node.x, node.y, node.val || 2, 0, 2 * Math.PI, false);
+                ctx.fillStyle = `rgba(${parseInt(color.slice(1,3), 16)}, ${parseInt(color.slice(3,5), 16)}, ${parseInt(color.slice(5,7), 16)}, ${alpha})`;
                 ctx.fill();
-                ctx.fillStyle = '#334155';
-                ctx.fillText(label, node.x, rectY + bgHeight / 2);
-              }
-            }}
-            linkColor={() => "rgba(71, 85, 105, 0.15)"}
-            onNodeHover={() => {}}
-            onNodeClick={(node: any) => {
-              setSelectedCourseId(node.id);
-              setIsSheetOpen(true);
-            }}
-            onEngineStop={() => {
-              if (!isStable) {
-                fgRef.current.zoomToFit(1000, 30);
-                // Zoom in more for better initial legibility
-                setTimeout(() => fgRef.current?.zoom(2.2, 800), 1100);
-                setIsStable(true);
-              }
-            }}
+                
+                // Clear shadow for label
+                ctx.shadowBlur = 0;
+
+                if (globalScale > 2.5 || isMatch) {
+                  const fontSize = (isMatch ? 14 : 11) / globalScale;
+                  ctx.font = `${isMatch ? '800' : '600'} ${fontSize}px "Outfit", sans-serif`;
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  
+                  const textWidth = ctx.measureText(label).width;
+                  const bgPadding = 4 / globalScale;
+                  const bgHeight = fontSize + bgPadding * 2;
+                  const bgWidth = textWidth + bgPadding * 4;
+                  
+                  ctx.fillStyle = isMatch ? color : 'rgba(255, 255, 255, 0.9)';
+                  ctx.beginPath();
+                  const rectX = node.x - bgWidth / 2;
+                  const rectY = node.y + (node.val || 2) + fontSize / 2;
+                  ctx.roundRect(rectX, rectY, bgWidth, bgHeight, 4 / globalScale);
+                  ctx.fill();
+                  
+                  ctx.fillStyle = isMatch ? '#ffffff' : '#334155';
+                  ctx.globalAlpha = alpha;
+                  ctx.fillText(label, node.x, rectY + bgHeight / 2);
+                  ctx.globalAlpha = 1;
+                }
+              }}
+              linkColor={(link: any) => {
+                const q = searchQuery.toLowerCase().trim();
+                if (!q) return "rgba(71, 85, 105, 0.15)";
+                // Fade out links during search
+                return "rgba(71, 85, 105, 0.03)";
+              }}
+              onNodeClick={(node: any) => {
+                setSelectedCourseId(node.id);
+                setIsSheetOpen(true);
+              }}
+              onEngineStop={() => {
+                if (!isStable) {
+                  fgRef.current.zoomToFit(1000, 30);
+                  setTimeout(() => fgRef.current?.zoom(2.2, 800), 1100);
+                  setIsStable(true);
+                }
+              }}
             />
           )}
         </div>
@@ -258,7 +346,6 @@ export const BreadthConstellation: React.FC = () => {
             </Button>
           </div>
         </div>
-
 
         <CourseDetailSheet
           courseId={selectedCourseId}
