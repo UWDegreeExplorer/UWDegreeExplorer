@@ -597,15 +597,24 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
           </div>
 
           {/* Action Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10 hover:text-primary">
-                <MoreVertical size={16} />
+          <div className="flex items-center gap-1">
+            {component.isLeaf ? (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => onDelete(component.id)}
+                className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 size={16} />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 p-1">
-              {!component.isLeaf && (
-                <>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
+                    <MoreVertical size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 p-1">
                   <DropdownMenuItem onClick={() => handleAddChildClick(false)} className="gap-3 font-bold py-2 px-3">
                     <FolderPlus size={16} className="text-primary" /> Add Category
                   </DropdownMenuItem>
@@ -613,13 +622,13 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
                     <FilePlus size={16} className="text-primary" /> Add Item
                   </DropdownMenuItem>
                   <Separator className="my-1" />
-                </>
-              )}
-              <DropdownMenuItem onClick={() => onDelete(component.id)} className="gap-3 font-bold py-2 px-3 text-rose-500 focus:text-rose-500 focus:bg-rose-50">
-                <Trash2 size={16} /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <DropdownMenuItem onClick={() => onDelete(component.id)} className="gap-3 font-bold py-2 px-3 text-rose-500 focus:text-rose-500 focus:bg-rose-50">
+                    <Trash2 size={16} /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
       </div>
 
