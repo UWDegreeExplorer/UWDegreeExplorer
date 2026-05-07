@@ -207,4 +207,30 @@ router.delete("/course/:id", async (req, res) => {
   }
 });
 
+// 7. Update course settings (e.g. targetGrade)
+router.patch("/course/:id", async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const { id } = req.params;
+  const { targetGrade } = req.body;
+
+  try {
+    const [updated] = await db
+      .update(userCourseGrades)
+      .set({ 
+        targetGrade: parseFloat(targetGrade), 
+        updatedAt: new Date() 
+      })
+      .where(and(eq(userCourseGrades.id, Number(id)), eq(userCourseGrades.userId, userId)))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: "Course not found" });
+    return res.json(updated);
+  } catch (error) {
+    logger.error({ error }, "Failed to update target grade");
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 export default router;

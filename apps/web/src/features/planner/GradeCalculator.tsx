@@ -175,6 +175,24 @@ export const GradeCalculator: React.FC = () => {
     }
   };
 
+  const handleUpdateTargetGrade = async (val: number) => {
+    if (!selectedCourse) return;
+    try {
+      const updated = await customFetch<CourseGrade>(`/api/planner/grades/course/${selectedCourse.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetGrade: val })
+      });
+      setSelectedCourse({
+        ...selectedCourse,
+        targetGrade: updated.targetGrade
+      });
+      setCourseSummaries(courseSummaries.map(c => c.id === updated.id ? { ...c, targetGrade: updated.targetGrade } : c));
+    } catch (err) {
+      toast({ title: "Failed to update target grade", variant: "destructive" });
+    }
+  };
+
   const groupedTerms = useMemo(() => {
     const groups: Record<string, CourseGrade[]> = {};
     courseSummaries.forEach(c => {
@@ -253,10 +271,19 @@ export const GradeCalculator: React.FC = () => {
           </Card>
 
           <Card className="bg-card border-2 shadow-sm flex flex-col justify-between p-6">
-             <div className="flex justify-between items-start">
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Target Grade</span>
-                <Badge className="bg-indigo-500 hover:bg-indigo-600 font-black text-sm">{selectedCourse.targetGrade}%</Badge>
-             </div>
+              <div className="flex justify-between items-start">
+                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Target Grade</span>
+                 <div className="relative group/input">
+                    <Input 
+                      type="number"
+                      className="h-8 w-20 text-right pr-6 font-black text-sm bg-indigo-50 border-indigo-200 text-indigo-700 focus-visible:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      defaultValue={selectedCourse.targetGrade}
+                      onBlur={(e) => handleUpdateTargetGrade(parseFloat(e.target.value) || 80)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleUpdateTargetGrade(parseFloat((e.target as HTMLInputElement).value) || 80)}
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-400">%</span>
+                 </div>
+              </div>
              <div className="pt-4 space-y-1">
                 <div className="text-[10px] uppercase text-muted-foreground font-black tracking-tight">Required avg. remaining</div>
                 <div className="text-3xl font-black text-indigo-500">
