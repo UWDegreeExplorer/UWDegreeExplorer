@@ -52,6 +52,8 @@ interface CourseGrade {
   targetGrade: number;
   components: GradeComponent[];
   isActive?: boolean;
+  currentGrade?: number;
+  totalWeight?: number;
 }
 
 export const GradeCalculator: React.FC = () => {
@@ -213,7 +215,7 @@ export const GradeCalculator: React.FC = () => {
         if (child.isLeaf) {
           contribution += (child.score || 0) * (child.weight / 100);
         } else {
-          contribution += calculateNode(nodes, child.id, depth + 1);
+          contribution += calculateNode(nodes, child.id, depth + 1) * (child.weight / 100);
         }
       }
       return contribution;
@@ -354,7 +356,7 @@ export const GradeCalculator: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {coursesInTerm.map((course) => (
             <motion.div
               key={course.id}
@@ -363,28 +365,52 @@ export const GradeCalculator: React.FC = () => {
               whileHover={{ y: -4 }}
               onClick={() => loadCourseDetail(course.term, course.courseCode)}
             >
-              <Card className="cursor-pointer group hover:border-primary/50 transition-all border-2 bg-card/50 backdrop-blur-sm overflow-hidden relative shadow-sm hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-2xl font-black tracking-tight">{course.courseCode}</CardTitle>
-                  {course.isActive === false && (
+              <Card className="cursor-pointer group hover:border-primary/50 transition-all border-2 bg-card/50 backdrop-blur-sm overflow-hidden relative shadow-md hover:shadow-xl p-2">
+                <CardHeader className="flex flex-row items-center justify-between pb-6">
+                  <div className="space-y-1">
+                    <CardTitle className="text-3xl font-black tracking-tight">{course.courseCode}</CardTitle>
+                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{course.term}</div>
+                  </div>
+                  {course.isActive === false ? (
                     <Badge variant="destructive" className="text-[10px] font-black uppercase px-2 py-0">Archived</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-black uppercase px-2 py-0">Active</Badge>
                   )}
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex justify-between items-end">
-                    <div className="space-y-1">
-                      <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Target</div>
-                      <div className="text-2xl font-black text-indigo-500">{course.targetGrade}%</div>
+                <CardContent className="space-y-8">
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Current Score</div>
+                      <div className="text-4xl font-black text-primary">{(course.currentGrade || 0).toFixed(1)}<span className="text-sm opacity-40 ml-1">/ 100</span></div>
                     </div>
-                    <Button size="sm" variant="outline" className="group-hover:bg-primary group-hover:text-primary-foreground border-2 font-bold">
-                      Edit <ChevronRight size={14} className="ml-1" />
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Progress</div>
+                      <div className="text-4xl font-black">{(course.totalWeight || 0).toFixed(0)}<span className="text-sm opacity-40 ml-1">%</span></div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                      <span className="text-muted-foreground">Syllabus Completion</span>
+                      <span className="text-primary">{course.totalWeight}%</span>
+                    </div>
+                    <Progress value={course.totalWeight} className="h-2 bg-primary/10" />
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-indigo-500">
+                      <Target size={14} /> Target: {course.targetGrade}%
+                    </div>
+                    <Button size="sm" variant="outline" className="group-hover:bg-primary group-hover:text-primary-foreground border-2 font-black px-6 h-10 transition-all">
+                      Open Gradebook <ChevronRight size={14} className="ml-1" />
                     </Button>
                   </div>
+
                   {course.isActive === false && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 h-8 w-8 transition-all"
+                      className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 h-8 w-8 transition-all"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteCourse(course.id);
@@ -539,7 +565,7 @@ const ComponentRow: React.FC<ComponentRowProps> = ({
       const childs = nodes.filter(n => n.parentId === parentId);
       for (const c of childs) {
         if (c.isLeaf) sum += (c.score || 0) * (c.weight / 100);
-        else sum += calculateSum(nodes, c.id, currentDepth + 1);
+        else sum += calculateSum(nodes, c.id, currentDepth + 1) * (c.weight / 100);
       }
       return sum;
     };

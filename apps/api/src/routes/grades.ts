@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { userCourseGrades, userGradeComponents, userSchedules } from "@workspace/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -18,6 +18,41 @@ router.get("/", async (req, res) => {
       .where(eq(userCourseGrades.userId, userId))
       .orderBy(sql`${userCourseGrades.term} DESC`, userCourseGrades.courseCode);
 
+    // Fetch all components for these courses to calculate summaries
+    const allComponents = grades.length > 0
+      ? await db
+          .select()
+          .from(userGradeComponents)
+          .where(inArray(userGradeComponents.courseGradeId, grades.map(g => g.id)))
+      : [];
+
+    // Helper to calculate score recursively
+    const calculateScore = (nodes: any[], courseId: number) => {
+      const courseNodes = nodes.filter(n => n.courseGradeId === courseId);
+      
+      const solve = (parentId: number | null): number => {
+        let sum = 0;
+        const children = courseNodes.filter(n => n.parentId === parentId);
+        for (const child of children) {
+          if (child.isLeaf) {
+            sum += (child.score || 0) * (child.weight / 100);
+          } else {
+            sum += solve(child.id) * (child.weight / 100);
+          }
+        }
+        return sum;
+      };
+
+      const totalWeight = courseNodes
+        .filter(n => n.parentId === null)
+        .reduce((acc, curr) => acc + (curr.weight || 0), 0);
+
+      return {
+        currentGrade: solve(null),
+        totalWeight
+      };
+    };
+
     // Get all current schedule course codes for reference
     const schedules = await db
       .select()
@@ -32,12 +67,16 @@ router.get("/", async (req, res) => {
       });
     });
 
-    const gradesWithStatus = grades.map(g => ({
-      ...g,
-      isActive: activeCourseMap.has(`${g.term}-${g.courseCode}`)
-    }));
+    const gradesWithStats = grades.map(g => {
+      const stats = calculateScore(allComponents, g.id);
+      return {
+        ...g,
+        ...stats,
+        isActive: activeCourseMap.has(`${g.term}-${g.courseCode}`)
+      };
+    });
 
-    return res.json(gradesWithStatus);
+    return res.json(gradesWithStats);
   } catch (error) {
     logger.error({ error }, "Failed to fetch grades");
     return res.status(500).json({ error: "Internal Server Error" });
