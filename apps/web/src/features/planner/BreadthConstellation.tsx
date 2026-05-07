@@ -103,18 +103,40 @@ export const BreadthConstellation: React.FC = () => {
     
     setIsStable(false);
     const fg = fgRef.current;
+    
+    // Physics tuning for "Alive" feeling
     fg.d3Force("charge").strength(-150);
     fg.d3Force("link").distance(100);
     fg.d3Force("radial", d3.forceRadial(0, 0, 0).strength(0.02));
+    
+    // Keep the simulation "warm" forever with a tiny alpha target
+    // This creates the subtle disturbed movement (perturbation)
+    fg.d3AlphaTarget(0.005); 
+    fg.d3VelocityDecay(0.2); // Lower decay = more floating movement
+    
     fg.d3ReheatSimulation();
 
+    // Smooth Entrance Animation: Full View -> Dense Center
     const timer = setTimeout(() => {
       if (!isStable) {
-        fg.zoomToFit(1000, 30);
-        setTimeout(() => fg.zoom(2.2, 800), 1100);
-        setIsStable(true);
+        // 1. Show full view first (wide angle)
+        fg.zoomToFit(1200, 100);
+        
+        // 2. After a moment, find the "densest" part (centroid) and dive in
+        setTimeout(() => {
+          if (!graphData.nodes.length) return;
+          
+          // Calculate centroid (weighted average position)
+          const avgX = graphData.nodes.reduce((sum, n) => sum + (n.x || 0), 0) / graphData.nodes.length;
+          const avgY = graphData.nodes.reduce((sum, n) => sum + (n.y || 0), 0) / graphData.nodes.length;
+          
+          fg.centerAt(avgX, avgY, 1500);
+          fg.zoom(2.5, 1500);
+          setIsStable(true);
+        }, 1300);
       }
-    }, 4000);
+    }, 1000);
+    
     return () => clearTimeout(timer);
   }, [graphData]);
 
@@ -138,8 +160,8 @@ export const BreadthConstellation: React.FC = () => {
 
   const handleJumpToNode = (node: GraphNode) => {
     if (fgRef.current && node.x !== undefined && node.y !== undefined) {
-      fgRef.current.centerAt(node.x, node.y, 800);
-      fgRef.current.zoom(6, 800);
+      fgRef.current.centerAt(node.x, node.y, 1000);
+      fgRef.current.zoom(6, 1000);
       setSelectedCourseId(node.id);
       setIsSheetOpen(true);
       setSearchQuery("");
@@ -256,9 +278,9 @@ export const BreadthConstellation: React.FC = () => {
               width={dimensions.width}
               height={dimensions.height}
               backgroundColor="#f8fafc"
-              d3AlphaDecay={0.02}
-              d3VelocityDecay={0.3}
-              cooldownTicks={100}
+              d3AlphaDecay={0.01}
+              d3VelocityDecay={0.2}
+              cooldownTicks={0}
               nodeLabel={() => ""} 
               nodeRelSize={6}
               nodeCanvasObject={(node: any, ctx, globalScale) => {
@@ -274,7 +296,6 @@ export const BreadthConstellation: React.FC = () => {
                 const color = CATEGORY_COLORS[node.category] || "#475569";
                 const alpha = isSearching ? (isMatch ? 1 : 0.15) : 1;
                 
-                // Drawing shadow/glow for matched node
                 if (isMatch) {
                   ctx.shadowBlur = 15 / globalScale;
                   ctx.shadowColor = color;
@@ -285,7 +306,6 @@ export const BreadthConstellation: React.FC = () => {
                 ctx.fillStyle = `rgba(${parseInt(color.slice(1,3), 16)}, ${parseInt(color.slice(3,5), 16)}, ${parseInt(color.slice(5,7), 16)}, ${alpha})`;
                 ctx.fill();
                 
-                // Clear shadow for label
                 ctx.shadowBlur = 0;
 
                 if (globalScale > 2.5 || isMatch) {
@@ -315,7 +335,6 @@ export const BreadthConstellation: React.FC = () => {
               linkColor={(link: any) => {
                 const q = searchQuery.toLowerCase().trim();
                 if (!q) return "rgba(71, 85, 105, 0.15)";
-                // Fade out links during search
                 return "rgba(71, 85, 105, 0.03)";
               }}
               onNodeClick={(node: any) => {
@@ -323,11 +342,7 @@ export const BreadthConstellation: React.FC = () => {
                 setIsSheetOpen(true);
               }}
               onEngineStop={() => {
-                if (!isStable) {
-                  fgRef.current.zoomToFit(1000, 30);
-                  setTimeout(() => fgRef.current?.zoom(2.2, 800), 1100);
-                  setIsStable(true);
-                }
+                // No longer stopping the engine to keep the drifting movement
               }}
             />
           )}
