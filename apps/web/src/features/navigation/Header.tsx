@@ -36,9 +36,9 @@ export function Header({ onMenuClick, showMenuButton, onSelectSection }: { onMen
           onClick={() => setLocation("/")}
         >
         <img 
-          src="/logo.png" 
+          src="/image.png" 
           alt="UW Degree Explorer Logo" 
-          className="h-8 object-contain group-hover:scale-105 transition-transform" 
+          className="h-9 object-contain group-hover:scale-105 transition-transform" 
         />
       </div>
     </div>
