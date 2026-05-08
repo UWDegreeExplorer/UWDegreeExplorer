@@ -45,8 +45,14 @@ export const BreadthConstellation: React.FC = () => {
   const { data: graphData, isLoading } = useQuery<GraphData>({
     queryKey: ["breadth-graph", selectedCategory],
     queryFn: async () => {
-      const url = new URL("/api/planner/breadth/graph", window.location.origin);
+      const baseUrl = import.meta.env.VITE_API_URL || "";
+      const fullUrl = baseUrl 
+        ? (baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl) + "/api/planner/breadth/graph"
+        : "/api/planner/breadth/graph";
+        
+      const url = new URL(fullUrl, window.location.origin);
       if (selectedCategory) url.searchParams.append("category", selectedCategory);
+      
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error("Failed to fetch graph data");
       const data = await res.json();
