@@ -104,14 +104,15 @@ export const BreadthConstellation: React.FC = () => {
     setIsStable(false);
     const fg = fgRef.current;
     
-    // Original physical engine tuning for the dense ball layout
-    fg.d3Force("charge").strength(-150);
-    fg.d3Force("link").distance(100);
-    fg.d3Force("radial", d3.forceRadial(0, 0, 0).strength(0.02));
+    // Natural network physics (no forced circle)
+    fg.d3Force("charge").strength(-60);
+    fg.d3Force("link").distance(80);
+    fg.d3Force("center", d3.forceCenter());
+    fg.d3Force("radial", null);
     
     // Persistent drifting 
     fg.d3AlphaTarget(0.005); 
-    fg.d3VelocityDecay(0.2); 
+    fg.d3VelocityDecay(0.15); 
     
     fg.d3ReheatSimulation();
 
@@ -138,7 +139,7 @@ export const BreadthConstellation: React.FC = () => {
   const processedData = useMemo(() => {
     if (!graphData) return { nodes: [], links: [] };
     return {
-      nodes: graphData.nodes.map(n => ({ ...n, val: 2 })),
+      nodes: graphData.nodes.map(n => ({ ...n, val: 1 })), // Make dots smaller
       links: graphData.links
     };
   }, [graphData]);
@@ -277,7 +278,7 @@ export const BreadthConstellation: React.FC = () => {
               d3VelocityDecay={0.2}
               cooldownTicks={0}
               nodeLabel={() => ""} 
-              nodeRelSize={6}
+              nodeRelSize={4}
               nodeCanvasObject={(node: any, ctx, globalScale) => {
                 const label = node.code;
                 const q = searchQuery.toLowerCase().trim();
@@ -292,12 +293,12 @@ export const BreadthConstellation: React.FC = () => {
                 const alpha = isSearching ? (isMatch ? 1 : 0.15) : 1;
                 
                 if (isMatch) {
-                  ctx.shadowBlur = 15 / globalScale;
+                  ctx.shadowBlur = 10 / globalScale;
                   ctx.shadowColor = color;
                 }
 
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, node.val || 2, 0, 2 * Math.PI, false);
+                ctx.arc(node.x, node.y, node.val || 1, 0, 2 * Math.PI, false);
                 ctx.fillStyle = `rgba(${parseInt(color.slice(1,3), 16)}, ${parseInt(color.slice(3,5), 16)}, ${parseInt(color.slice(5,7), 16)}, ${alpha})`;
                 ctx.fill();
                 ctx.shadowBlur = 0;
