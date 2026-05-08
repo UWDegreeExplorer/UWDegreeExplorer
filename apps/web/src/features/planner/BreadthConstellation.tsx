@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Maximize2, ZoomIn, ZoomOut, BookOpen, Search, X } from "lucide-react";
-import * as d3 from "d3-force";
+import { Loader2, Info, Maximize2, Minimize2, ZoomIn, ZoomOut, Filter, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CourseDetailSheet } from "./CourseDetailSheet";
 
 interface GraphNode {
@@ -15,13 +14,12 @@ interface GraphNode {
   title: string;
   category: string;
   val?: number;
-  x?: number;
-  y?: number;
 }
 
 interface GraphLink {
-  source: any;
-  target: any;
+  source: string;
+  target: string;
+  type: string;
 }
 
 interface GraphData {
@@ -30,139 +28,44 @@ interface GraphData {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "Humanities": "#2563eb", 
-  "Pure Sciences": "#059669", 
-  "Pure and Applied Sciences": "#d97706", 
-  "Social Sciences": "#db2777",
+  "Humanities": "#2563eb", // Darker Blue
+  "Social Sciences": "#db2777", // Darker Pink
+  "Pure Sciences": "#059669", // Darker Green
+  "Applied Sciences": "#d97706", // Darker Yellow
+  "Other": "#475569", // Slate
 };
 
 export const BreadthConstellation: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
   const fgRef = useRef<any>(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [hoverNode, setHoverNode] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isStable, setIsStable] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        const { clientWidth, clientHeight } = containerRef.current;
-        if (clientWidth > 0 && clientHeight > 0) {
-          setDimensions({ width: clientWidth, height: clientHeight });
-        }
-      }
-    };
-
-    updateDimensions();
-    const resizeObserver = new ResizeObserver(() => updateDimensions());
-    if (containerRef.current) resizeObserver.observe(containerRef.current);
-    window.addEventListener('resize', updateDimensions);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', updateDimensions);
-    };
-  }, []);
-
-  const { data: categories } = useQuery<string[]>({
-    queryKey: ["breadth-categories"],
-    queryFn: async () => {
-      const baseUrl = import.meta.env.VITE_API_URL || "";
-      const fullUrl = baseUrl 
-        ? (baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl) + "/api/planner/breadth/categories"
-        : "/api/planner/breadth/categories";
-      
-      const res = await fetch(fullUrl);
-      if (!res.ok) throw new Error("Failed to fetch categories");
-      return (await res.json()).sort();
-    }
-  });
 
   const { data: graphData, isLoading } = useQuery<GraphData>({
     queryKey: ["breadth-graph", selectedCategory],
     queryFn: async () => {
-      const baseUrl = import.meta.env.VITE_API_URL || "";
-      const fullUrl = baseUrl 
-        ? (baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl) + "/api/planner/breadth/graph"
-        : "/api/planner/breadth/graph";
-        
-      const url = new URL(fullUrl, window.location.origin);
+      const url = new URL("/api/planner/breadth/graph", window.location.origin);
       if (selectedCategory) url.searchParams.append("category", selectedCategory);
-      
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error("Failed to fetch graph data");
-      return await res.json();
+      const data = await res.json();
+      console.log("[Graph Data]", data);
+      return data;
     }
   });
 
-  useEffect(() => {
-    if (!graphData || !fgRef.current) return;
+  // Calculate node values (size) based on degree (number of connections)
+  const processedData = React.useMemo(() => {
+    if (!graphData || !graphData.nodes.length) return { nodes: [], links: [] };
     
-    setIsStable(false);
-    const fg = fgRef.current;
+    const nodes = graphData.nodes.map(n => ({
+      ...n,
+      val: 3 + (graphData.links.filter(l => l.source === n.id || l.target === n.id).length * 0.8)
+    }));
     
-    // Natural network physics (no forced circle)
-    fg.d3Force("charge").strength(-60);
-    fg.d3Force("link").distance(80);
-    fg.d3Force("center", d3.forceCenter());
-    fg.d3Force("radial", null);
-    
-    // Persistent drifting 
-    fg.d3AlphaTarget(0.005); 
-    fg.d3VelocityDecay(0.15); 
-    
-    fg.d3ReheatSimulation();
-
-    const timer = setTimeout(() => {
-      if (!isStable) {
-        // Full View -> Dive
-        fg.zoomToFit(1200, 100);
-        
-        setTimeout(() => {
-          if (!graphData.nodes.length) return;
-          const avgX = graphData.nodes.reduce((sum, n) => sum + (n.x || 0), 0) / graphData.nodes.length;
-          const avgY = graphData.nodes.reduce((sum, n) => sum + (n.y || 0), 0) / graphData.nodes.length;
-          
-          fg.centerAt(avgX, avgY, 1500);
-          fg.zoom(2.5, 1500);
-          setIsStable(true);
-        }, 1300);
-      }
-    }, 1000);
-    
-    return () => clearTimeout(timer);
+    return { nodes, links: graphData.links };
   }, [graphData]);
-
-  const processedData = useMemo(() => {
-    if (!graphData) return { nodes: [], links: [] };
-    return {
-      nodes: graphData.nodes.map(n => ({ ...n, val: 1 })), // Make dots smaller
-      links: graphData.links
-    };
-  }, [graphData]);
-
-  const searchResults = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q || !processedData.nodes) return [];
-    return processedData.nodes.filter(n => 
-      n.code.toLowerCase().includes(q) || 
-      n.title.toLowerCase().includes(q) ||
-      n.category.toLowerCase().includes(q)
-    ).slice(0, 5);
-  }, [searchQuery, processedData.nodes]);
-
-  const handleJumpToNode = (node: GraphNode) => {
-    if (fgRef.current && node.x !== undefined && node.y !== undefined) {
-      fgRef.current.centerAt(node.x, node.y, 1000);
-      fgRef.current.zoom(6, 1000);
-      setSelectedCourseId(node.id);
-      setIsSheetOpen(true);
-      setSearchQuery("");
-    }
-  };
 
   if (isLoading) {
     return (
@@ -174,193 +77,147 @@ export const BreadthConstellation: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full h-full bg-[#f8fafc] overflow-hidden">
-      <div className="p-8 pb-4 space-y-6 bg-white/50 backdrop-blur-md border-b border-slate-200/60 z-20 relative">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-4">
-              <div className="h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
-                <BookOpen size={24} className="text-primary" />
-              </div>
-              Breadth Constellation
-            </h1>
-            <p className="text-slate-500 mt-2 max-w-2xl text-sm leading-relaxed">
-              Discover interconnected academic pathways through Waterloo's breadth requirements. 
-              Scroll to zoom, drag to explore, and click any star for details.
-            </p>
-          </div>
-
-          <div className="w-80 relative group">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <Input 
-                placeholder="Search code, name or category..." 
-                className="pl-10 pr-10 h-11 bg-white/80 border-slate-200 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full text-slate-400"
-                >
-                  <X size={14} />
-                </button>
-              )}
+    <div className="relative w-full h-full bg-white overflow-hidden border-l border-border">
+      {/* UI Overlay */}
+      <div className="absolute top-6 left-6 z-10 space-y-4 pointer-events-none">
+        <div className="pointer-events-auto">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+              <div className="h-2 w-2 rounded-full bg-primary animate-ping" />
             </div>
-
-            {searchResults.length > 0 && (
-              <Card className="absolute top-full mt-2 w-full z-50 border-slate-200 shadow-xl overflow-hidden backdrop-blur-xl bg-white/95">
-                <div className="py-2">
-                  {searchResults.map(node => (
-                    <button
-                      key={node.id}
-                      className="w-full px-4 py-2 text-left hover:bg-primary/5 transition-colors group flex flex-col"
-                      onClick={() => handleJumpToNode(node)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-slate-900 group-hover:text-primary transition-colors">{node.code}</span>
-                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter h-4 px-1 opacity-60">
-                          {node.category}
-                        </Badge>
-                      </div>
-                      <span className="text-[11px] text-slate-500 truncate">{node.title}</span>
-                    </button>
-                  ))}
-                </div>
-              </Card>
-            )}
-          </div>
+            Breadth Constellation
+          </h1>
+          <p className="text-slate-500 mt-1 max-w-sm">
+            Explore the interconnected pathways of University of Waterloo's breadth requirement courses.
+          </p>
         </div>
 
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap gap-2 pointer-events-auto">
           <Button 
-            variant={selectedCategory === null ? "default" : "secondary"} 
+            variant={selectedCategory === null ? "default" : "outline"} 
             size="sm" 
-            className="rounded-full px-5 h-9 text-xs font-semibold shadow-sm"
+            className="rounded-full h-8 text-[10px] font-bold uppercase tracking-wider"
             onClick={() => setSelectedCategory(null)}
           >
-            All Courses
+            All
           </Button>
-          {(categories || []).map((cat) => {
-            const color = CATEGORY_COLORS[cat] || "#475569";
-            return (
-              <Button
-                key={cat}
-                variant="outline"
-                size="sm"
-                className="rounded-full px-5 h-9 text-xs font-semibold gap-2 border-slate-200 bg-white shadow-sm transition-all hover:bg-slate-50"
-                style={{ 
-                  borderColor: selectedCategory === cat ? color : 'transparent',
-                  backgroundColor: selectedCategory === cat ? `${color}10` : '',
-                  color: selectedCategory === cat ? color : '#64748b'
-                }}
-                onClick={() => setSelectedCategory(cat)}
-              >
-                <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                {cat}
-              </Button>
-            );
-          })}
+          {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
+            <Button
+              key={cat}
+              variant={selectedCategory === cat ? "default" : "outline"}
+              size="sm"
+              className="rounded-full h-8 text-[10px] font-bold uppercase tracking-wider gap-2 border-slate-200"
+              style={{ 
+                backgroundColor: selectedCategory === cat ? color : 'transparent',
+                borderColor: selectedCategory === cat ? 'transparent' : `${color}30`,
+                color: selectedCategory === cat ? '#fff' : color
+              }}
+              onClick={() => setSelectedCategory(cat)}
+            >
+              <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: selectedCategory === cat ? '#fff' : color }} />
+              {cat}
+            </Button>
+          ))}
         </div>
       </div>
 
-      <div className="flex-1 relative min-h-0 w-full m-0 p-0 overflow-hidden">
-        <div ref={containerRef} className="absolute inset-0 m-0 p-0 overflow-hidden">
-          {dimensions.width > 0 && dimensions.height > 0 && (
-            <ForceGraph2D
-              ref={fgRef}
-              graphData={processedData}
-              width={dimensions.width}
-              height={dimensions.height}
-              backgroundColor="#f8fafc"
-              d3AlphaDecay={0.01}
-              d3VelocityDecay={0.2}
-              cooldownTicks={0}
-              nodeLabel={() => ""} 
-              nodeRelSize={4}
-              nodeCanvasObject={(node: any, ctx, globalScale) => {
-                const label = node.code;
-                const q = searchQuery.toLowerCase().trim();
-                const isSearching = q !== "";
-                const isMatch = isSearching && (
-                  node.code.toLowerCase().includes(q) || 
-                  node.title.toLowerCase().includes(q) ||
-                  node.category.toLowerCase().includes(q)
-                );
-                
-                const color = CATEGORY_COLORS[node.category] || "#475569";
-                const alpha = isSearching ? (isMatch ? 1 : 0.15) : 1;
-                
-                if (isMatch) {
-                  ctx.shadowBlur = 10 / globalScale;
-                  ctx.shadowColor = color;
-                }
+      {/* Control Buttons */}
+      <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2 pointer-events-auto">
+        <Button variant="outline" size="icon" className="rounded-xl bg-white/80 backdrop-blur-xl border-slate-200 hover:bg-slate-100 shadow-sm" onClick={() => fgRef.current?.zoomToFit(400)}>
+          <Maximize2 size={18} className="text-slate-600" />
+        </Button>
+        <Button variant="outline" size="icon" className="rounded-xl bg-white/80 backdrop-blur-xl border-slate-200 hover:bg-slate-100 shadow-sm" onClick={() => fgRef.current?.zoom(fgRef.current.zoom() * 1.5)}>
+          <ZoomIn size={18} className="text-slate-600" />
+        </Button>
+        <Button variant="outline" size="icon" className="rounded-xl bg-white/80 backdrop-blur-xl border-slate-200 hover:bg-slate-100 shadow-sm" onClick={() => fgRef.current?.zoom(fgRef.current.zoom() / 1.5)}>
+          <ZoomOut size={18} className="text-slate-600" />
+        </Button>
+      </div>
 
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, node.val || 1, 0, 2 * Math.PI, false);
-                ctx.fillStyle = `rgba(${parseInt(color.slice(1,3), 16)}, ${parseInt(color.slice(3,5), 16)}, ${parseInt(color.slice(5,7), 16)}, ${alpha})`;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-
-                if (globalScale > 2.5 || isMatch) {
-                  const fontSize = (isMatch ? 14 : 11) / globalScale;
-                  ctx.font = `${isMatch ? '800' : '600'} ${fontSize}px "Outfit", sans-serif`;
-                  ctx.textAlign = 'center';
-                  ctx.textBaseline = 'middle';
-                  
-                  const textWidth = ctx.measureText(label).width;
-                  const bgPadding = 4 / globalScale;
-                  const bgHeight = fontSize + bgPadding * 2;
-                  const bgWidth = textWidth + bgPadding * 4;
-                  
-                  ctx.fillStyle = isMatch ? color : 'rgba(255, 255, 255, 0.9)';
-                  ctx.beginPath();
-                  const rectX = node.x - bgWidth / 2;
-                  const rectY = node.y + (node.val || 2) + fontSize / 2;
-                  ctx.roundRect(rectX, rectY, bgWidth, bgHeight, 4 / globalScale);
-                  ctx.fill();
-                  
-                  ctx.fillStyle = isMatch ? '#ffffff' : '#334155';
-                  ctx.globalAlpha = alpha;
-                  ctx.fillText(label, node.x, rectY + bgHeight / 2);
-                  ctx.globalAlpha = 1;
-                }
-              }}
-              linkColor={(link: any) => {
-                const q = searchQuery.toLowerCase().trim();
-                if (!q) return "rgba(71, 85, 105, 0.15)";
-                return "rgba(71, 85, 105, 0.03)";
-              }}
-              onNodeClick={(node: any) => {
-                setSelectedCourseId(node.id);
-                setIsSheetOpen(true);
-              }}
-            />
-          )}
+      {/* Course Detail Preview (Hover) */}
+      {hoverNode && (
+        <div className="absolute top-6 right-6 z-10 w-72 pointer-events-none animate-in fade-in slide-in-from-right-4 duration-300">
+          <Card className="bg-white/90 backdrop-blur-2xl border-slate-200 p-5 space-y-3 shadow-xl shadow-slate-200/50">
+            <div className="flex items-start justify-between">
+              <Badge variant="outline" className="font-mono text-primary border-primary/30 bg-primary/5">
+                {hoverNode.code}
+              </Badge>
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[hoverNode.category] || CATEGORY_COLORS.Other }} />
+            </div>
+            <h3 className="font-bold text-lg text-slate-900 leading-tight">{hoverNode.title}</h3>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <Filter size={12} />
+              {hoverNode.category}
+            </div>
+            <p className="text-[10px] text-slate-400 italic">Click to view prerequisites and details</p>
+          </Card>
         </div>
+      )}
 
-        <div className="absolute bottom-8 right-8 z-10 flex flex-col gap-3 pointer-events-auto">
-          <Button variant="outline" size="icon" className="h-11 w-11 rounded-2xl bg-white/90 backdrop-blur-xl border-slate-200 shadow-lg hover:bg-slate-50 text-slate-600 transition-all active:scale-95" onClick={() => fgRef.current?.zoomToFit(400, 30)}>
-            <Maximize2 size={20} />
-          </Button>
-          <div className="flex flex-col rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-xl shadow-lg overflow-hidden">
-            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-none border-b border-slate-100 hover:bg-slate-50 text-slate-600" onClick={() => fgRef.current?.zoom(fgRef.current.zoom() * 1.5)}>
-              <ZoomIn size={20} />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-none hover:bg-slate-50 text-slate-600" onClick={() => fgRef.current?.zoom(fgRef.current.zoom() / 1.5)}>
-              <ZoomOut size={20} />
-            </Button>
+      {/* Empty State */}
+      {!isLoading && processedData.nodes.length === 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 pointer-events-none">
+          <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
+            <Layers size={40} />
           </div>
+          <p className="text-slate-400 font-medium">No connections found in this category.</p>
         </div>
+      )}
 
-        <CourseDetailSheet
-          courseId={selectedCourseId}
-          open={isSheetOpen}
-          onOpenChange={setIsSheetOpen}
-          onNavigate={(id) => setSelectedCourseId(id)}
-        />
-      </div>
+      {/* The Graph */}
+      <ForceGraph2D
+        ref={fgRef}
+        graphData={processedData}
+        backgroundColor="#ffffff"
+        nodeLabel={(n: any) => ""} 
+        nodeColor={(n: any) => CATEGORY_COLORS[n.category] || CATEGORY_COLORS.Other}
+        nodeRelSize={6}
+        nodeCanvasObject={(node: any, ctx, globalScale) => {
+          const label = node.code;
+          const fontSize = 11 / globalScale;
+          ctx.font = `${fontSize}px Inter, sans-serif`;
+          
+          const color = CATEGORY_COLORS[node.category] || CATEGORY_COLORS.Other;
+          
+          // Draw node
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.val || 3, 0, 2 * Math.PI, false);
+          ctx.fillStyle = color;
+          ctx.fill();
+
+          // Subtle border for clarity on white
+          ctx.strokeStyle = "rgba(0,0,0,0.05)";
+          ctx.lineWidth = 1 / globalScale;
+          ctx.stroke();
+          
+          // Draw label if zoomed in enough or hovered
+          if (globalScale > 2 || hoverNode?.id === node.id) {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#334155'; // Slate 700
+            ctx.fillText(label, node.x, node.y + (node.val || 3) + fontSize + 2);
+          }
+        }}
+        linkColor={() => "rgba(0, 0, 0, 0.08)"}
+        linkDirectionalParticles={2}
+        linkDirectionalParticleSpeed={0.005}
+        linkDirectionalParticleWidth={1}
+        linkDirectionalParticleColor={() => "rgba(0, 0, 0, 0.2)"}
+        onNodeHover={(node) => setHoverNode(node)}
+        onNodeClick={(node: any) => {
+          setSelectedCourseId(node.id);
+          setIsSheetOpen(true);
+        }}
+        cooldownTicks={100}
+      />
+
+      {/* Detailed Course Sheet */}
+      <CourseDetailSheet
+        courseId={selectedCourseId}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        onNavigate={(id) => setSelectedCourseId(id)}
+      />
     </div>
   );
 };
