@@ -59,3 +59,22 @@ export const programs = pgTable("planner_programs", {
   name: text("name").notNull(),
   category: text("category"),
 });
+
+// 7. Communication Requirement 课程清单
+export const communicationList = pgTable("planner_communication_list", {
+  courseId: text("course_id").primaryKey().references(() => courses.courseId),
+  courseCode: text("course_code").notNull(),
+  listType: integer("list_type").notNull(), // 1 for List 1, 2 for List 2
+});
+
+import { jsonb, timestamp } from "drizzle-orm/pg-core";
+
+// 8. 学位要求表 - 存储每个专业的毕业审核规则
+export const degreeRequirements = pgTable("planner_degree_requirements", {
+  slug: text("slug").primaryKey(), // 唯一标识，如 2025-2026-bcs
+  label: text("label").notNull(),  // 显示名称
+  checklistFile: text("checklist_file"), // 对应的 PDF 文件名
+  rules: jsonb("rules").notNull(), // 核心规则 JSON 数组
+  createdAt: timestamp("created_at").defaultNow(),
+});
+

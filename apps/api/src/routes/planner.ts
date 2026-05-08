@@ -3,14 +3,231 @@ import { logger } from "../lib/logger";
 import { parseQuestSchedule } from "../utils/scheduleParser";
 import { generateICS } from "../utils/icsGenerator";
 import { db, userSchedules } from "@workspace/db";
-import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth, userWorkloads } from "@workspace/db/schema";
+import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth, userWorkloads, degreeRequirements, userAuditStates } from "@workspace/db/schema";
 import { eq, ilike, or, and, sql, not, inArray } from "drizzle-orm";
 import * as analyzer from "../utils/workloadAnalyzer";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { DegreeEngine } from "../services/planner/DegreeEngine";
+import multer from "multer";
+import pdfParse from "pdf-parse";
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Initialize the geographical data for location-based workload analysis
 analyzer.initGeoData();
 
 const router = Router();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const formatProgramLabel = (slug: string) =>
+  slug
+    .replace(/^2025-2026-/, "")
+    .replace(/_0$/, "")
+    .split("-")
+    .map((part) => {
+      const upper = part.toUpperCase();
+      if (["BCS", "BMATH", "CS", "AI", "HCI"].includes(upper)) return upper;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(" ");
+
+router.get("/degree-rules", async (_req, res) => {
+  try {
+    const results = await db.select({ slug: degreeRequirements.slug, label: degreeRequirements.label }).from(degreeRequirements).orderBy(degreeRequirements.label);
+    res.json({ programs: results });
+  } catch (error) {
+    logger.error({ error }, "Failed to list degree rules from DB");
+    res.status(500).json({ error: "Failed to list degree rules" });
+  }
+});
+
+router.get("/degree-rules/:program", async (req, res) => {
+  try {
+    const program = req.params.program;
+    const [row] = await db.select().from(degreeRequirements).where(eq(degreeRequirements.slug, program)).limit(1);
+
+    if (!row) {
+      res.status(404).json({ error: "Program rules not found" });
+      return;
+    }
+
+    const rules = row.rules as any[];
+    const creditUnits = rules
+      .filter((rule: any) => !rule.isConstraint)
+      .reduce((sum: number, rule: any) => sum + Number(rule.unitsRequired || 0), 0);
+    const constraintCount = rules.filter((rule: any) => !!rule.isConstraint).length;
+
+    res.json({
+      program: {
+        slug: row.slug,
+        label: row.label,
+        checklistFile: row.checklistFile,
+        creditUnits,
+        constraintCount,
+      },
+      rules,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to read degree rules from DB");
+    res.status(500).json({ error: "Failed to read degree rules" });
+  }
+});
+
+/**
+ * POST /planner/audit
+ * Evaluates a student transcript against a specific degree program.
+ */
+router.post("/audit", async (req, res) => {
+  const { programSlugs, transcriptText, assignments, options } = req.body;
+  
+  if (!programSlugs || !Array.isArray(programSlugs) || programSlugs.length === 0 || !transcriptText) {
+    return res.status(400).json({ error: "Missing programSlugs or transcriptText" });
+  }
+
+  try {
+    const rows = await db.select().from(degreeRequirements).where(inArray(degreeRequirements.slug, programSlugs));
+    if (rows.length === 0) return res.status(404).json({ error: "No matching programs found" });
+
+    // 1. Process transcript text to get subject/catalog list
+    const studentCourses: string[] = [];
+    const lines = transcriptText.split('\n');
+    for (const line of lines) {
+        const match = line.match(/([A-Z]{2,})\s*(\d+[A-Z]*)/);
+        if (match) studentCourses.push(`${match[1]} ${match[2]}`);
+    }
+
+    // 2. Resolve courses from DB
+    const resolvedCourses = await Promise.all(studentCourses.map(async (c) => {
+        const [sub, cat] = c.split(' ');
+        const [courseRes] = await db.select({
+            units: courses.units,
+            category: subjectBreadth.category
+        }).from(courses)
+          .leftJoin(subjectBreadth, eq(courses.subjectCode, subjectBreadth.subjectCode))
+          .where(and(eq(courses.subjectCode, sub), eq(courses.catalogNumber, cat)))
+          .limit(1);
+
+        const [commRes] = await db.select().from(communicationList).where(eq(communicationList.courseCode, c)).limit(1);
+
+        return {
+            subject: sub,
+            catalog: cat,
+            units: parseFloat(courseRes?.units || "0.5"),
+            category: courseRes?.category || undefined,
+            isList1: commRes?.listType === 1,
+            isList2: commRes?.listType === 2
+        };
+    }));
+
+    // 3. Run evaluation for each program
+    const results = rows.map(row => {
+        const engine = new DegreeEngine(row.rules as any[]);
+        const report = engine.evaluate(resolvedCourses, assignments || {});
+        const constraintsReport = engine.evaluateConstraints(resolvedCourses, options || {});
+        return {
+            programSlug: row.slug,
+            programLabel: row.label,
+            report,
+            constraintsReport
+        };
+    });
+
+    res.json({ results });
+  } catch (error) {
+    logger.error({ error }, "Multi-degree audit failed");
+    res.status(500).json({ error: "Audit failed" });
+  }
+});
+
+/**
+ * GET /audit/state
+ * Retrieves the user's saved audit state
+ */
+router.get("/audit/state", async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  
+  try {
+    const [state] = await db.select().from(userAuditStates).where(eq(userAuditStates.userId, req.user.id)).limit(1);
+    res.json({ state: state || null });
+  } catch (error) {
+    logger.error({ error }, "Failed to load audit state");
+    res.status(500).json({ error: "Failed to load audit state" });
+  }
+});
+
+/**
+ * POST /audit/state
+ * Saves the user's audit state
+ */
+router.post("/audit/state", async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  
+  const { programSlugs, transcriptText, assignments, options } = req.body;
+  
+  try {
+    await db.insert(userAuditStates)
+      .values({
+        userId: req.user.id,
+        programSlugs: programSlugs || [],
+        transcriptText: transcriptText || "",
+        assignments: assignments || {},
+        options: options || {},
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: userAuditStates.userId,
+        set: {
+          programSlugs: programSlugs || [],
+          transcriptText: transcriptText || "",
+          assignments: assignments || {},
+          options: options || {},
+          updatedAt: new Date()
+        }
+      });
+      
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, "Failed to save audit state");
+    res.status(500).json({ error: "Failed to save audit state" });
+  }
+});
+
+/**
+ * POST /audit/parse-transcript
+ * Parses an uploaded PDF transcript and returns the extracted text for the editor.
+ */
+router.post("/audit/parse-transcript", upload.single("transcript"), async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  try {
+    const data = await pdfParse(req.file.buffer);
+    const text = data.text;
+    
+    // Naive course extraction matching "SUBJECT  CATALOGTitle"
+    // e.g. "CS  135Designing..."
+    const regex = /([A-Z]{2,10})\s+(\d{3}[A-Z]?)/g;
+    let match;
+    const coursesFound = [];
+    
+    while ((match = regex.exec(text)) !== null) {
+      const subject = match[1];
+      const catalog = match[2];
+      coursesFound.push(`${subject} ${catalog} 0.50`);
+    }
+
+    // Deduplicate
+    const uniqueCourses = Array.from(new Set(coursesFound));
+    
+    res.json({ transcriptText: uniqueCourses.join("\n") });
+  } catch (error) {
+    logger.error({ error }, "Failed to parse transcript PDF");
+    res.status(500).json({ error: "Failed to parse transcript PDF" });
+  }
+});
 
 /**
  * GET /courses

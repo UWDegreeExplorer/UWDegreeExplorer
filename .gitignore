@@ -45,6 +45,14 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
+# Scratch and test files
+scratch/
+test_db.*
+parse_test.*
+
+# PDF files (often contain private transcripts)
+*.pdf
+
 # Replit
 .cache/
 .local/

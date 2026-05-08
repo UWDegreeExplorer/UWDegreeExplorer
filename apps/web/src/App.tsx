@@ -33,6 +33,7 @@ function Router() {
       <Route path="/likes" component={Home} />
       <Route path="/activity" component={Home} />
       <Route path="/courses" component={Home} />
+      <Route path="/degree" component={Home} />
       <Route path="/calendar" component={Home} />
       <Route path="/workload" component={Home} />
       <Route path="/grades" component={Home} />

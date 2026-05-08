@@ -15,3 +15,4 @@ export * from "./user_schedules";
 export * from "./user_workloads";
 export * from "./user_course_grades";
 export * from "./user_grade_components";
+export * from "./user_audit_states";

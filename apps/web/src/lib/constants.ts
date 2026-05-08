@@ -1,7 +1,7 @@
 import { Car, GraduationCap, Home as HomeIcon, Layers } from "lucide-react";
 import type { Section } from "@workspace/api-client-react";
 
-export type SectionFilter = Section | "all" | "my-posts" | "messages" | "inbox" | "bookmarks" | "likes" | "drafts" | "settings" | "courses" | "calendar" | "workload" | "grades" | "breadth";
+export type SectionFilter = Section | "all" | "my-posts" | "messages" | "inbox" | "bookmarks" | "likes" | "drafts" | "settings" | "courses" | "degree" | "degree-audit" | "calendar" | "workload" | "grades" | "breadth";
 
 export const SECTION_LABELS: Record<Section, string> = {
   carpool: "Carpool",
