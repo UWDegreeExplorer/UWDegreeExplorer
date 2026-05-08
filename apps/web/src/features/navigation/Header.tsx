@@ -38,7 +38,7 @@ export function Header({ onMenuClick, showMenuButton, onSelectSection }: { onMen
         <img 
           src="/image.png" 
           alt="UW Degree Explorer Logo" 
-          className="h-9 object-contain group-hover:scale-105 transition-transform" 
+          className="h-11 w-auto object-contain group-hover:scale-105 transition-transform" 
         />
       </div>
     </div>
