@@ -3,7 +3,7 @@ import { logger } from "../lib/logger";
 import { parseQuestSchedule } from "../utils/scheduleParser";
 import { generateICS } from "../utils/icsGenerator";
 import { db, userSchedules } from "@workspace/db";
-import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth, userWorkloads, degreeRequirements, userAuditStates } from "@workspace/db/schema";
+import { courses, courseVersions, courseRequirements, courseOfferings, subjectBreadth, userWorkloads, degreeRequirements, userAuditStates, communicationList } from "@workspace/db/schema";
 import { eq, ilike, or, and, sql, not, inArray } from "drizzle-orm";
 import * as analyzer from "../utils/workloadAnalyzer";
 import fs from "fs";
@@ -37,10 +37,10 @@ const formatProgramLabel = (slug: string) =>
 router.get("/degree-rules", async (_req, res) => {
   try {
     const results = await db.select({ slug: degreeRequirements.slug, label: degreeRequirements.label }).from(degreeRequirements).orderBy(degreeRequirements.label);
-    res.json({ programs: results });
+    return res.json({ programs: results });
   } catch (error) {
     logger.error({ error }, "Failed to list degree rules from DB");
-    res.status(500).json({ error: "Failed to list degree rules" });
+    return res.status(500).json({ error: "Failed to list degree rules" });
   }
 });
 
@@ -60,7 +60,7 @@ router.get("/degree-rules/:program", async (req, res) => {
       .reduce((sum: number, rule: any) => sum + Number(rule.unitsRequired || 0), 0);
     const constraintCount = rules.filter((rule: any) => !!rule.isConstraint).length;
 
-    res.json({
+    return res.json({
       program: {
         slug: row.slug,
         label: row.label,
@@ -72,7 +72,7 @@ router.get("/degree-rules/:program", async (req, res) => {
     });
   } catch (error) {
     logger.error({ error }, "Failed to read degree rules from DB");
-    res.status(500).json({ error: "Failed to read degree rules" });
+    return res.status(500).json({ error: "Failed to read degree rules" });
   }
 });
 
@@ -135,10 +135,10 @@ router.post("/audit", async (req, res) => {
         };
     });
 
-    res.json({ results });
+    return res.json({ results });
   } catch (error) {
     logger.error({ error }, "Multi-degree audit failed");
-    res.status(500).json({ error: "Audit failed" });
+    return res.status(500).json({ error: "Audit failed" });
   }
 });
 
@@ -146,15 +146,18 @@ router.post("/audit", async (req, res) => {
  * GET /audit/state
  * Retrieves the user's saved audit state
  */
-router.get("/audit/state", async (req, res) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+router.get("/audit/state", async (req: any, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   
   try {
     const [state] = await db.select().from(userAuditStates).where(eq(userAuditStates.userId, req.user.id)).limit(1);
-    res.json({ state: state || null });
+    return res.json({ state: state || null });
   } catch (error) {
     logger.error({ error }, "Failed to load audit state");
-    res.status(500).json({ error: "Failed to load audit state" });
+    return res.status(500).json({ error: "Failed to load audit state" });
   }
 });
 
@@ -162,8 +165,11 @@ router.get("/audit/state", async (req, res) => {
  * POST /audit/state
  * Saves the user's audit state
  */
-router.post("/audit/state", async (req, res) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+router.post("/audit/state", async (req: any, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   
   const { programSlugs, transcriptText, assignments, options } = req.body;
   
@@ -188,10 +194,10 @@ router.post("/audit/state", async (req, res) => {
         }
       });
       
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error) {
     logger.error({ error }, "Failed to save audit state");
-    res.status(500).json({ error: "Failed to save audit state" });
+    return res.status(500).json({ error: "Failed to save audit state" });
   }
 });
 
@@ -199,9 +205,15 @@ router.post("/audit/state", async (req, res) => {
  * POST /audit/parse-transcript
  * Parses an uploaded PDF transcript and returns the extracted text for the editor.
  */
-router.post("/audit/parse-transcript", upload.single("transcript"), async (req, res) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+router.post("/audit/parse-transcript", upload.single("transcript"), async (req: any, res) => {
+  if (!req.user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (!req.file) {
+    res.status(400).json({ error: "No file uploaded" });
+    return;
+  }
 
   try {
     const data = await pdfParse(req.file.buffer);
@@ -222,10 +234,10 @@ router.post("/audit/parse-transcript", upload.single("transcript"), async (req, 
     // Deduplicate
     const uniqueCourses = Array.from(new Set(coursesFound));
     
-    res.json({ transcriptText: uniqueCourses.join("\n") });
+    return res.json({ transcriptText: uniqueCourses.join("\n") });
   } catch (error) {
     logger.error({ error }, "Failed to parse transcript PDF");
-    res.status(500).json({ error: "Failed to parse transcript PDF" });
+    return res.status(500).json({ error: "Failed to parse transcript PDF" });
   }
 });
 

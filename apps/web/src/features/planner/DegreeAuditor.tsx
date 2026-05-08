@@ -19,7 +19,8 @@ import {
   Printer,
   RotateCcw,
   Save,
-  Upload
+  Upload,
+  ArrowRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -144,7 +145,7 @@ export const DegreeAuditor: React.FC = () => {
   });
 
   // Upload PDF Mutation
-  const uploadPdfMutation = useMutation<{ transcriptText: string }, FormData>({
+  const uploadPdfMutation = useMutation<{ transcriptText: string }, Error, FormData>({
     mutationFn: async (formData) => {
       const baseUrl = import.meta.env.VITE_API_URL || "";
       const res = await fetch(`${baseUrl}/api/planner/audit/parse-transcript`, {
