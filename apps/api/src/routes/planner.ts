@@ -113,6 +113,7 @@ router.post("/audit", async (req, res) => {
         const [commRes] = await db.select().from(communicationList).where(eq(communicationList.courseCode, c)).limit(1);
 
         return {
+            courseCode: c,
             subject: sub,
             catalog: cat,
             units: parseFloat(courseRes?.units || "0.5"),

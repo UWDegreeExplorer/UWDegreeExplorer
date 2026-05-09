@@ -15,6 +15,7 @@ export interface DegreeRule {
   name: string;
   type: RuleType;
   unitsRequired: number;
+  isConstraint?: boolean;
   
   // Conditionally used based on 'type'
   exactCourses?: string[];   // For "exact"
