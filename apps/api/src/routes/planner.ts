@@ -220,14 +220,15 @@ router.post("/audit/parse-transcript", upload.single("transcript"), async (req: 
     const text = await parsePdfText(req.file.buffer);
     
     // Improved course extraction matching "SUBJECT  CATALOG"
-    // Supports 1-3 digit catalogs (e.g. CS 135, PD 1, MATH 239)
     const regex = /\b([A-Z]{2,10})\s+(\d{1,3}[A-Z]?)\b/g;
     let match;
     const coursesFound = [];
+    const EXCLUDED = ["GPA", "TERM", "LEVEL", "FALL", "WINTER", "SPRING", "SUMMER"];
     
     while ((match = regex.exec(text)) !== null) {
       const subject = match[1];
       const catalog = match[2];
+      if (EXCLUDED.includes(subject)) continue;
       coursesFound.push(`${subject} ${catalog} 0.50`);
     }
 
