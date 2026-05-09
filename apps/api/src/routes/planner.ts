@@ -11,7 +11,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { DegreeEngine } from "../services/planner/DegreeEngine";
 import multer from "multer";
-import pdfParse from "pdf-parse";
+// @ts-ignore
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
