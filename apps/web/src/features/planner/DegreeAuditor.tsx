@@ -415,7 +415,7 @@ export const DegreeAuditor: React.FC = () => {
           <div className="flex items-center gap-2 text-primary font-bold tracking-wider uppercase text-xs">
              <GraduationCap className="h-4 w-4" /> Major Check Sheet
           </div>
-          <h1 className="text-4xl font-black tracking-tighter">Plan Combinator & Audit</h1>
+          <h1 className="text-4xl font-black tracking-tighter">Plan Combinator</h1>
           <p className="text-muted-foreground text-sm max-w-xl">
             Select multiple programs (Minors, Specializations) to see how your courses satisfy combined requirements.
           </p>
@@ -475,13 +475,12 @@ export const DegreeAuditor: React.FC = () => {
                 disabled={auditMutation.isPending || selectedPrograms.length === 0}
             >
                 {auditMutation.isPending ? <Loader2 className="animate-spin h-5 w-5" /> : <ArrowRight className="h-5 w-5" />}
-                Generate Audit
+                Generate Check Sheet
             </Button>
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-10">
+      <div className="flex flex-col gap-12">
           {/* Transcript Section */}
           <section className="space-y-4">
             <div className="flex items-center justify-between px-2">
@@ -611,59 +610,53 @@ export const DegreeAuditor: React.FC = () => {
                 </div>
             </section>
           )}
-        </div>
-
-        {/* Global Parameters */}
-        <aside className="space-y-6">
-            <div className="flex items-center gap-3 px-2">
-               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm">3</div>
-               <h2 className="text-xl font-bold tracking-tight">Audit Context</h2>
-            </div>
-            
-            <Card className="rounded-[2rem] border-none shadow-2xl bg-gradient-to-b from-orange-50/50 to-background overflow-hidden">
-                <CardHeader className="bg-orange-500/10 py-6">
-                    <CardTitle className="text-sm font-black uppercase tracking-widest text-orange-700">Environment</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                    <div className="flex items-center justify-between p-4 rounded-2xl bg-white/50 border border-orange-100">
-                        <label htmlFor="coop" className="text-sm font-bold text-orange-900 cursor-pointer">Co-op Program</label>
-                        <Checkbox 
-                            id="coop" 
-                            checked={constraintOptions.is_coop}
-                            onCheckedChange={(c) => setConstraintOptions(prev => ({ ...prev, is_coop: !!c }))}
-                        />
-                    </div>
-                    
-                    <Separator className="bg-orange-100" />
-                    
-                    <div className="space-y-4">
-                        {constraintRules.map(rule => (
-                            <div key={rule.id} className="space-y-2">
-                                <label className="text-[10px] font-black uppercase text-orange-800/60 px-1 tracking-widest">{rule.name}</label>
-                                {rule.inputType === 'none' ? (
-                                    <div className="p-3 rounded-xl bg-orange-100/30 text-[9px] font-medium text-orange-900 italic">
-                                        Calculated based on transcript metrics.
-                                    </div>
-                                ) : (
-                                    <Input 
-                                        type={rule.inputType || 'text'}
-                                        step={rule.step}
-                                        value={constraintOptions[rule.id] ?? rule.defaultValue}
-                                        onChange={(e) => setConstraintOptions(prev => ({ ...prev, [rule.id]: e.target.value }))}
-                                        className="h-10 rounded-xl bg-white border-orange-200 text-sm focus:ring-orange-500"
-                                    />
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-                <CardFooter className="p-6 pt-0">
-                     <p className="text-[9px] text-muted-foreground text-center w-full leading-relaxed">
-                        Audit results are based on 2025-2026 Academic Calendar rules. Final verification requires academic advisor approval.
-                     </p>
-                </CardFooter>
-            </Card>
-        </aside>
+          {/* Global Parameters */}
+          <section className="space-y-6">
+              <div className="flex items-center gap-3 px-2">
+                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm">3</div>
+                 <h2 className="text-xl font-bold tracking-tight">Environment Config</h2>
+              </div>
+              
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  <Card className="rounded-2xl border-none shadow-sm bg-card">
+                      <CardContent className="p-5 flex flex-col justify-center h-full gap-4">
+                          <div className="flex items-center justify-between">
+                              <label htmlFor="coop" className="text-sm font-black cursor-pointer">Co-op Program</label>
+                              <Checkbox 
+                                  id="coop" 
+                                  checked={constraintOptions.is_coop}
+                                  onCheckedChange={(c) => setConstraintOptions(prev => ({ ...prev, is_coop: !!c }))}
+                                  className="h-4 w-4"
+                              />
+                          </div>
+                      </CardContent>
+                  </Card>
+                  
+                  {constraintRules.map(rule => (
+                      <Card key={rule.id} className="rounded-2xl border-none shadow-sm bg-card">
+                          <CardContent className="p-5 space-y-3">
+                              <label className="text-sm font-black truncate block" title={rule.name}>{rule.name}</label>
+                              {rule.inputType === 'none' ? (
+                                  <div className="px-3 py-2 rounded-xl bg-muted/30 text-[10px] font-medium text-muted-foreground italic h-10 flex items-center">
+                                      Calculated based on transcript.
+                                  </div>
+                              ) : (
+                                  <Input 
+                                      type={rule.inputType || 'text'}
+                                      step={rule.step}
+                                      value={constraintOptions[rule.id] ?? rule.defaultValue}
+                                      onChange={(e) => setConstraintOptions(prev => ({ ...prev, [rule.id]: e.target.value }))}
+                                      className="h-10 rounded-xl bg-background shadow-sm focus:ring-1 text-sm font-mono"
+                                  />
+                              )}
+                          </CardContent>
+                      </Card>
+                  ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground px-2">
+                  Results are based on 2025-2026 Academic Calendar rules. Final verification requires academic advisor approval.
+              </p>
+          </section>
       </div>
     </div>
   );
