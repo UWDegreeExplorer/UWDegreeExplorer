@@ -32,8 +32,7 @@ import { LoginRequired } from "@/components/shared/LoginRequired";
 import { ConversationList } from "../features/messages/ConversationList";
 import { MessagePanel } from "../features/messages/MessagePanel";
 import { CourseExplorer } from "../features/planner/CourseExplorer";
-import { DegreeRequirements } from "../features/planner/DegreeRequirements";
-import { DegreeAuditor } from "../features/planner/DegreeAuditor";
+import { DegreeAuditor } from "@/features/planner/DegreeAuditor";
 import { MakeCalendar } from "../features/planner/MakeCalendar";
 import { WorkloadCalculator } from "../features/planner/WorkloadCalculator";
 import { GradeCalculator } from "../features/planner/GradeCalculator";
@@ -178,8 +177,7 @@ export default function Home() {
     "drafts": "Drafts",
     "inbox": "Inbox",
     "calendar": "Calendar Importer",
-    "degree": "Checklist Rules",
-    "degree-audit": "Major Check Sheet",
+    "degree": "Major Check Sheet",
     "workload": "Workload Analysis",
     "grades": "Grade Calculator",
     "breadth": "Breadth Constellation"
@@ -204,8 +202,6 @@ export default function Home() {
       setLocation("/courses");
     } else if (s === "degree") {
       setLocation("/degree");
-    } else if (s === "degree-audit") {
-      setLocation("/degree-audit");
     } else if (s === "calendar") {
       setLocation("/calendar");
     } else if (s === "workload") {
@@ -235,7 +231,6 @@ export default function Home() {
   const [matchLikes] = useRoute("/likes");
   const [matchCourses] = useRoute("/courses");
   const [matchDegree] = useRoute("/degree");
-  const [matchDegreeAudit] = useRoute("/degree-audit");
   const [matchCalendar] = useRoute("/calendar");
   const [matchWorkload] = useRoute("/workload");
   const [matchGrades] = useRoute("/grades");
@@ -254,8 +249,6 @@ export default function Home() {
       setActiveSection("courses");
     } else if (matchDegree) {
       setActiveSection("degree");
-    } else if (matchDegreeAudit) {
-      setActiveSection("degree-audit");
     } else if (matchCalendar) {
       setActiveSection("calendar");
     } else if (matchWorkload) {
@@ -348,12 +341,6 @@ export default function Home() {
                 </main>
               </Panel>
             ) : activeSection === "degree" ? (
-              <Panel defaultSize={80} minSize={60}>
-                <main className="flex-1 flex flex-col bg-background h-full min-w-0 overflow-y-auto">
-                  <DegreeRequirements />
-                </main>
-              </Panel>
-            ) : activeSection === "degree-audit" ? (
               <Panel defaultSize={80} minSize={60}>
                 <main className="flex-1 flex flex-col bg-background h-full min-w-0 overflow-y-auto">
                   <DegreeAuditor />
@@ -470,10 +457,6 @@ export default function Home() {
               </main>
             ) : activeSection === "degree" ? (
               <main className="flex-1 min-w-0 bg-background h-full overflow-y-auto">
-                <DegreeRequirements />
-              </main>
-            ) : activeSection === "degree-audit" ? (
-              <main className="flex-1 min-w-0 bg-background h-full overflow-y-auto">
                 <DegreeAuditor />
               </main>
             ) : activeSection === "calendar" ? (
@@ -585,18 +568,6 @@ export default function Home() {
                 </div>
               </div>
             ) : activeSection === "degree" ? (
-              <div className="flex-1 flex flex-col h-full overflow-hidden">
-                <div className="px-3 py-1.5 border-b border-border flex items-center bg-card/10 backdrop-blur-sm sticky top-0 z-10">
-                  <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="-ml-1 gap-1.5 h-8 text-muted-foreground hover:text-foreground transition-colors">
-                    <ArrowLeft className="w-4 h-4" />
-                    <span className="text-xs font-medium">Home</span>
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-y-auto">
-                  <DegreeRequirements />
-                </div>
-              </div>
-            ) : activeSection === "degree-audit" ? (
               <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <div className="px-3 py-1.5 border-b border-border flex items-center bg-card/10 backdrop-blur-sm sticky top-0 z-10">
                   <Button variant="ghost" size="sm" onClick={() => setLocation("/")} className="-ml-1 gap-1.5 h-8 text-muted-foreground hover:text-foreground transition-colors">

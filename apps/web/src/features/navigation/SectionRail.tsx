@@ -187,33 +187,11 @@ export function SectionRail({
           </button>
           <button
             onClick={() => isCollapsed ? onToggle?.() : onSelect("degree")}
-            title={isCollapsed ? "Checklist Rules" : ""}
-            className={[
-              "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-all relative group",
-              isCollapsed ? "justify-center h-10 w-10 mx-auto px-0" : "",
-              active === "degree"
-                ? "bg-primary/10 text-primary"
-                : "text-foreground/80 hover:bg-accent hover:text-foreground",
-            ].join(" ")}
-          >
-            <ClipboardCheck className={["w-5 h-5 shrink-0 transition-transform duration-200", !isCollapsed ? "group-hover:scale-110" : ""].join(" ")} />
-            {!isCollapsed && (
-              <motion.span
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="truncate"
-              >
-                Checklist Rules
-              </motion.span>
-            )}
-          </button>
-          <button
-            onClick={() => isCollapsed ? onToggle?.() : onSelect("degree-audit")}
             title={isCollapsed ? "Major Check Sheet" : ""}
             className={[
               "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-all relative group",
               isCollapsed ? "justify-center h-10 w-10 mx-auto px-0" : "",
-              active === "degree-audit"
+              active === "degree"
                 ? "bg-primary/10 text-primary"
                 : "text-foreground/80 hover:bg-accent hover:text-foreground",
             ].join(" ")}
