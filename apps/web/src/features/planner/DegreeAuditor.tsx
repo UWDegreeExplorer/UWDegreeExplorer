@@ -497,24 +497,14 @@ export const DegreeAuditor: React.FC = () => {
                    id="transcript-upload" 
                    onChange={handleFileUpload} 
                  />
-                 <Button variant="secondary" size="sm" asChild disabled={uploadPdfMutation.isPending} className="gap-2 h-8 text-xs font-bold rounded-lg shadow-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer">
+                 <Button variant="secondary" size="default" asChild disabled={uploadPdfMutation.isPending} className="gap-2 text-sm font-bold rounded-lg shadow-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer">
                      <label htmlFor="transcript-upload">
-                       {uploadPdfMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                       {uploadPdfMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                        Upload Unofficial Transcript PDF
                      </label>
                  </Button>
                </div>
             </div>
-            <Card className="rounded-3xl border-2 border-dashed border-primary/20 overflow-hidden bg-muted/10">
-                <CardContent className="p-0">
-                    <Textarea 
-                      placeholder="Paste your Quest 'My Academics' transcript here... (e.g. CS 135 0.50, MATH 136 0.50)"
-                      className="min-h-[160px] border-none rounded-none font-mono text-sm p-6 bg-transparent focus-visible:ring-0 resize-none"
-                      value={transcriptText}
-                      onChange={(e) => setTranscriptText(e.target.value)}
-                    />
-                </CardContent>
-            </Card>
           </section>
 
           {/* Assignments Section */}
@@ -534,14 +524,14 @@ export const DegreeAuditor: React.FC = () => {
                     {/* Fixed Options */}
                     {exactRules.length > 0 && (
                         <div className="space-y-4">
-                            <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Prescribed Lists</div>
+                            <div className="text-xs font-black uppercase text-muted-foreground tracking-widest px-1">Prescribed Lists</div>
                             <div className="grid gap-4">
                                 {exactRules.map(rule => (
                                     <Card key={rule.id} className="rounded-2xl border-none shadow-sm bg-card">
                                         <CardContent className="p-5">
                                             <div className="flex justify-between items-center mb-4">
-                                                <div className="text-sm font-black">{rule.name}</div>
-                                                <Badge variant="secondary" className="text-[10px] font-mono">{rule.unitsRequired} Units</Badge>
+                                                <div className="text-base font-black">{rule.name}</div>
+                                                <Badge variant="secondary" className="bg-muted/50 text-green-700 dark:text-green-400 border-none font-black text-xs px-2.5 py-0.5">{rule.unitsRequired} Units</Badge>
                                             </div>
                                             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
                                                 {rule.options?.map(course => (
@@ -557,9 +547,9 @@ export const DegreeAuditor: React.FC = () => {
                                                             id={`cb-${rule.id}-${course}`} 
                                                             checked={assignments[rule.id]?.includes(course)}
                                                             onCheckedChange={(checked) => handleToggleExact(rule.id, course, !!checked)}
-                                                            className="h-3 w-3"
+                                                            className="h-4 w-4"
                                                         />
-                                                        <label className="text-[10px] font-mono font-bold cursor-pointer select-none">{course}</label>
+                                                        <label className="text-xs font-mono font-bold cursor-pointer select-none flex-1">{course}</label>
                                                     </div>
                                                 ))}
                                             </div>
@@ -572,17 +562,17 @@ export const DegreeAuditor: React.FC = () => {
 
                     {/* Dynamic Rows */}
                     <div className="space-y-4">
-                         <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1">Flexible Assignments</div>
+                         <div className="text-xs font-black uppercase text-muted-foreground tracking-widest px-1">Flexible Assignments</div>
                          <div className="grid gap-4">
                             {dynRules.map(rule => (
                                 <Card key={rule.id} className="rounded-3xl overflow-hidden border-none shadow-lg shadow-primary/5 bg-gradient-to-br from-card to-muted/20">
                                     <CardContent className="p-6 space-y-4">
                                         <div className="flex justify-between items-start">
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 pr-4">
                                                 <h3 className="font-black text-lg tracking-tight truncate">{rule.name}</h3>
-                                                <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1 italic">{rule.requirement || `Assign any matching courses for ${rule.unitsRequired} units`}</p>
+                                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">{rule.requirement || `Assign any matching courses for ${rule.unitsRequired} units`}</p>
                                             </div>
-                                            <Badge variant="default" className="rounded-full px-4 h-6 text-[10px] font-black">{rule.unitsRequired}U</Badge>
+                                            <Badge variant="secondary" className="bg-muted/50 text-green-700 dark:text-green-400 border-none font-black text-xs px-2.5 py-0.5 whitespace-nowrap">{rule.unitsRequired} Units</Badge>
                                         </div>
                                         
                                         <div className="space-y-2">
