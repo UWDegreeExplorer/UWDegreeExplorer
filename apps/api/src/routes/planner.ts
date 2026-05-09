@@ -11,8 +11,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { DegreeEngine } from "../services/planner/DegreeEngine";
 import multer from "multer";
-// @ts-ignore
-import pdfParse from "pdf-parse/lib/pdf-parse.js";
+import { parsePdfText } from "../utils/pdfParser";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -218,8 +217,7 @@ router.post("/audit/parse-transcript", upload.single("transcript"), async (req: 
   }
 
   try {
-    const data = await pdfParse(req.file.buffer);
-    const text = data.text;
+    const text = await parsePdfText(req.file.buffer);
     
     // Naive course extraction matching "SUBJECT  CATALOGTitle"
     // e.g. "CS  135Designing..."
