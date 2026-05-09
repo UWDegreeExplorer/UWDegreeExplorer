@@ -219,9 +219,9 @@ router.post("/audit/parse-transcript", upload.single("transcript"), async (req: 
   try {
     const text = await parsePdfText(req.file.buffer);
     
-    // Naive course extraction matching "SUBJECT  CATALOGTitle"
-    // e.g. "CS  135Designing..."
-    const regex = /([A-Z]{2,10})\s+(\d{3}[A-Z]?)/g;
+    // Improved course extraction matching "SUBJECT  CATALOG"
+    // Supports 1-3 digit catalogs (e.g. CS 135, PD 1, MATH 239)
+    const regex = /\b([A-Z]{2,10})\s+(\d{1,3}[A-Z]?)\b/g;
     let match;
     const coursesFound = [];
     
