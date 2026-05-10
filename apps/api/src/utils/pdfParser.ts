@@ -1,5 +1,4 @@
-// @ts-ignore
-import pdf from 'pdf-parse/lib/pdf-parse.js';
+import pdf from 'pdf-parse';
 
 /**
  * Extracts text from a PDF buffer using pdf-parse.
