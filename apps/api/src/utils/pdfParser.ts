@@ -41,8 +41,8 @@ export async function parsePdfText(buffer: Buffer): Promise<string> {
 
     const data = await pdf(buffer, options);
     return data.text;
-  } catch (error) {
+  } catch (error: any) {
     console.error("PDF Parsing Detailed Error:", error);
-    throw new Error(`Failed to parse PDF: ${error.message}`);
+    throw new Error(`Failed to parse PDF: ${error?.message || String(error)}`);
   }
 }
