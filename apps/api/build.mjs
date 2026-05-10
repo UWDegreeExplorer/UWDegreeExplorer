@@ -100,7 +100,6 @@ async function buildAll() {
       "puppeteer",
       "puppeteer-core",
       "electron",
-      "pdfjs-dist",
     ],
     sourcemap: "linked",
     plugins: [

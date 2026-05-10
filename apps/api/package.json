@@ -25,7 +25,7 @@
     "google-auth-library": "^10.6.2",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.6",
-    "pdfjs-dist": "4.10.38",
+    "pdf-parse": "^2.4.5",
     "pg": "^8.20.0",
     "pino": "^9",
     "pino-http": "^10",

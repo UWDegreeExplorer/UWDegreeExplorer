@@ -163,8 +163,8 @@ export const DegreeAuditor: React.FC = () => {
       setTranscriptText(data.transcriptText);
       toast({ title: "Transcript Parsed", description: "Courses successfully extracted from PDF." });
     },
-    onError: () => {
-      toast({ title: "Parsing Failed", description: "Could not parse the uploaded PDF.", variant: "destructive" });
+    onError: (err) => {
+      toast({ title: "Parsing Failed", description: err.message || "Could not parse the uploaded PDF.", variant: "destructive" });
     }
   });
 

@@ -1,38 +1,43 @@
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 /**
- * Cleanly extracts text from a PDF buffer using Mozilla's pdf.js.
- * This replaces the buggy pdf-parse library.
+ * Extracts text from a PDF buffer using pdf-parse.
+ * This version uses the library path directly to avoid internal bugs 
+ * and ensures compatibility with Node.js environments.
  */
 export async function parsePdfText(buffer: Buffer): Promise<string> {
-  const data = new Uint8Array(buffer);
-  const loadingTask = pdfjs.getDocument({
-    data,
-    useSystemFonts: true,
-    disableFontFace: true,
-  });
-  
-  const pdf = await loadingTask.promise;
-  let fullText = "";
-  
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const textContent = await page.getTextContent();
-    
-    // Sort items by vertical position (top to bottom) and then horizontal position (left to right)
-    // transform[5] is vertical (y), transform[4] is horizontal (x)
-    const items = (textContent.items as any[]).sort((a, b) => {
-      if (Math.abs(a.transform[5] - b.transform[5]) > 2) {
-        return b.transform[5] - a.transform[5]; // Top to bottom
-      }
-      return a.transform[4] - b.transform[4]; // Left to right
-    });
+  try {
+    // pdf-parse options
+    const options = {
+      // Custom pagerender to ensure we get spaces between items
+      pagerender: (pageData: any) => {
+        return pageData.getTextContent().then((textContent: any) => {
+          let lastY, text = '';
+          
+          // Sort items by vertical position (top to bottom) and then horizontal position (left to right)
+          const items = textContent.items.sort((a: any, b: any) => {
+            if (Math.abs(a.transform[5] - b.transform[5]) > 2) {
+              return b.transform[5] - a.transform[5]; // Top to bottom
+            }
+            return a.transform[4] - b.transform[4]; // Left to right
+          });
 
-    const pageText = items
-      .map((item: any) => item.str)
-      .join(" ");
-    fullText += pageText + "\n";
+          for (let item of items) {
+            if (lastY !== item.transform[5] || !lastY) {
+              text += '\n';
+            }
+            text += item.str + ' ';
+            lastY = item.transform[5];
+          }
+          return text;
+        });
+      }
+    };
+
+    const data = await pdf(buffer, options);
+    return data.text;
+  } catch (error) {
+    console.error("PDF Parsing Error:", error);
+    throw new Error("Failed to parse PDF transcript");
   }
-  
-  return fullText;
 }
