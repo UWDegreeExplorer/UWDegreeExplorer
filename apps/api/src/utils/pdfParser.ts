@@ -1,6 +1,9 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const pdf = require('pdf-parse');
+let pdf = require('pdf-parse');
+if (typeof pdf !== 'function' && pdf.default) {
+  pdf = pdf.default;
+}
 
 /**
  * Extracts text from a PDF buffer using pdf-parse.
@@ -39,7 +42,7 @@ export async function parsePdfText(buffer: Buffer): Promise<string> {
     const data = await pdf(buffer, options);
     return data.text;
   } catch (error) {
-    console.error("PDF Parsing Error:", error);
-    throw new Error("Failed to parse PDF transcript");
+    console.error("PDF Parsing Detailed Error:", error);
+    throw new Error(`Failed to parse PDF: ${error.message}`);
   }
 }

@@ -156,7 +156,10 @@ export const DegreeAuditor: React.FC = () => {
         body: formData,
         credentials: "include"
       });
-      if (!res.ok) throw new Error("Failed to upload transcript");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || `Server responded with ${res.status}`);
+      }
       return res.json();
     },
     onSuccess: (data) => {
