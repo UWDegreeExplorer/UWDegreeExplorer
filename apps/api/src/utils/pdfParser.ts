@@ -1,15 +1,17 @@
-import pdf from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
 
 /**
  * Extracts text from a PDF buffer using pdf-parse.
- * This version uses the library path directly to avoid internal bugs 
- * and ensures compatibility with Node.js environments.
+ * Using createRequire to safely load the CommonJS pdf-parse module in an ESM environment,
+ * bypassing TypeScript's default export resolution issues.
  */
 export async function parsePdfText(buffer: Buffer): Promise<string> {
   try {
     // pdf-parse options
     const options = {
-      // Custom pagerender to ensure we get spaces between items
+      // Custom pagerender to ensure we get spaces between items and consistent ordering
       pagerender: (pageData: any) => {
         return pageData.getTextContent().then((textContent: any) => {
           let lastY, text = '';
