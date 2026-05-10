@@ -79,7 +79,10 @@ type AuditResponse = {
 
 const fetchJson = async <T,>(path: string, options?: RequestInit): Promise<T> => {
   const baseUrl = import.meta.env.VITE_API_URL || "";
-  const res = await fetch(`${baseUrl}${path}`, options);
+  const res = await fetch(`${baseUrl}${path}`, {
+    ...options,
+    credentials: "include"
+  });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || "Request failed");
@@ -150,7 +153,8 @@ export const DegreeAuditor: React.FC = () => {
       const baseUrl = import.meta.env.VITE_API_URL || "";
       const res = await fetch(`${baseUrl}/api/planner/audit/parse-transcript`, {
         method: "POST",
-        body: formData
+        body: formData,
+        credentials: "include"
       });
       if (!res.ok) throw new Error("Failed to upload transcript");
       return res.json();
@@ -457,7 +461,7 @@ export const DegreeAuditor: React.FC = () => {
                                 <Checkbox 
                                     id={`prog-${p.slug}`} 
                                     checked={selectedPrograms.includes(p.slug)}
-                                    onCheckedChange={() => handleToggleProgram(p.slug)}
+                                    className="h-4 w-4 pointer-events-none"
                                 />
                                 <label htmlFor={`prog-${p.slug}`} className="text-sm font-medium leading-tight cursor-pointer flex-1">
                                     {p.label}
