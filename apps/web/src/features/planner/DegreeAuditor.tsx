@@ -164,7 +164,33 @@ export const DegreeAuditor: React.FC = () => {
     },
     onSuccess: (data) => {
       setTranscriptText(data.transcriptText);
-      toast({ title: "Transcript Parsed", description: "Courses successfully extracted from PDF." });
+      
+      // Auto-fill logic
+      const extractedCourses = data.transcriptText.split("\n")
+        .map(line => {
+          const parts = line.split(" ");
+          return parts.length >= 2 ? `${parts[0]} ${parts[1]}` : null;
+        })
+        .filter(Boolean) as string[];
+
+      setAssignments(prev => {
+        const next = { ...prev };
+        consolidatedRules.forEach(rule => {
+          // 1. Handle exact rules (checkboxes)
+          if (rule.options && rule.options.length > 0) {
+            const matches = rule.options.filter(opt => extractedCourses.includes(opt));
+            if (matches.length > 0) {
+              const current = next[rule.id] || [];
+              next[rule.id] = Array.from(new Set([...current, ...matches]));
+            }
+          }
+          // 2. Handle dynamic rules (input rows) - we only fill if empty to avoid mess
+          // but maybe it's better to just skip for now and let the user decide
+        });
+        return next;
+      });
+
+      toast({ title: "Transcript Parsed", description: "Courses successfully extracted and mapped to requirements." });
     },
     onError: (err) => {
       toast({ title: "Parsing Failed", description: err.message || "Could not parse the uploaded PDF.", variant: "destructive" });
