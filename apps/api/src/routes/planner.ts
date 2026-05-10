@@ -148,13 +148,13 @@ router.post("/audit", async (req, res) => {
  * Retrieves the user's saved audit state
  */
 router.get("/audit/state", async (req: any, res) => {
-  if (!req.user) {
+  if (!req.session.userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
   
   try {
-    const [state] = await db.select().from(userAuditStates).where(eq(userAuditStates.userId, req.user.id)).limit(1);
+    const [state] = await db.select().from(userAuditStates).where(eq(userAuditStates.userId, req.session.userId)).limit(1);
     return res.json({ state: state || null });
   } catch (error) {
     logger.error({ error }, "Failed to load audit state");
@@ -167,7 +167,7 @@ router.get("/audit/state", async (req: any, res) => {
  * Saves the user's audit state
  */
 router.post("/audit/state", async (req: any, res) => {
-  if (!req.user) {
+  if (!req.session.userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
@@ -177,7 +177,7 @@ router.post("/audit/state", async (req: any, res) => {
   try {
     await db.insert(userAuditStates)
       .values({
-        userId: req.user.id,
+        userId: req.session.userId,
         programSlugs: programSlugs || [],
         transcriptText: transcriptText || "",
         assignments: assignments || {},
@@ -207,7 +207,7 @@ router.post("/audit/state", async (req: any, res) => {
  * Parses an uploaded PDF transcript and returns the extracted text for the editor.
  */
 router.post("/audit/parse-transcript", upload.single("transcript"), async (req: any, res) => {
-  if (!req.user) {
+  if (!req.session.userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
