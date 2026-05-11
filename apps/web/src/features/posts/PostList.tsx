@@ -411,7 +411,7 @@ export function PostList({
                             {p.type && p.type !== "post" ? p.type : SECTION_LABELS[p.section as Section]}
                           </Badge>
                           {p.isAnonymous && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Anonymous</Badge>}
-                          <span className="text-[11px] text-muted-foreground ml-auto">{relTime(isPost ? p.lastActivityAt : p.createdAt)}</span>
+                          <span className="text-[11px] text-muted-foreground ml-auto">{relTime(p.createdAt)}</span>
                         </div>
                         <h3 className="font-serif text-[15px] font-semibold leading-tight text-foreground group-hover:text-primary transition-colors mb-1.5">
                           {p.title}
